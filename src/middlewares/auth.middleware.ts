@@ -22,36 +22,6 @@ export const csrfProtection = (
 	next()
 }
 
-// Generate CSRF token middleware
-export const generateCsrfTokenMiddleware = (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-): void => {
-	// Generate new CSRF token for each request
-	const token = crypto.randomBytes(32).toString('hex')
-	const signature = crypto
-		.createHmac('sha256', process.env.CSRF_SECRET || '')
-		.update(token)
-		.digest('hex')
-
-	const signedToken = `${token}.${signature}`
-
-	// Set CSRF token in cookie
-	res.cookie('csrf-token', signedToken, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'strict',
-		path: '/', // Available for all paths
-	})
-
-	// Also set in response header for frontend to read
-	// Only send the token part, not the signature
-	res.setHeader('X-CSRF-Token', token)
-
-	next()
-}
-
 // XSS Protection middleware
 export const xssProtection = (
 	req: Request,

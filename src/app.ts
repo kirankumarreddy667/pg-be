@@ -24,6 +24,8 @@ import { createRateLimiter } from './middlewares/rateLimit.middleware'
 import { testConnection } from './config/database'
 import { validateEnv, EnvironmentError } from './config/env.validation'
 import { xssProtection } from './middlewares/auth.middleware'
+import { helmetOptions } from './utils/helmet'
+import csurf from 'csurf'
 // import RedisConnectionManager from "./config/RedisConn"
 
 // Validate environment variables before starting the app
@@ -67,26 +69,7 @@ class Server {
 
 	private config(): void {
 		this.app.disable('x-powered-by')
-		this.app.use(
-			helmet({
-				contentSecurityPolicy: {
-					directives: {
-						defaultSrc: ["'self'"],
-						scriptSrc: ["'self'", "'unsafe-inline'"],
-						styleSrc: ["'self'", "'unsafe-inline'"],
-						imgSrc: ["'self'", 'data:', 'https:'],
-						connectSrc: ["'self'"],
-						fontSrc: ["'self'"],
-						objectSrc: ["'none'"],
-						mediaSrc: ["'self'"],
-						frameSrc: ["'none'"],
-					},
-				},
-				xssFilter: true,
-				noSniff: true,
-				referrerPolicy: { policy: 'same-origin' },
-			}),
-		)
+		this.app.use(helmet(helmetOptions))
 		this.app.use(cors(options))
 		this.app.use(
 			createRateLimiter(15 * 60 * 1000, 100) as unknown as RequestHandler,
@@ -116,27 +99,22 @@ class Server {
 		// Apply security middleware only to API routes
 		this.app.use('/api/v1', xssProtection as RequestHandler)
 
-		// Apply CSRF verification only for modifying routes
-		this.app.use('/api/v1', ((
-			req: Request,
-			res: Response,
-			next: NextFunction,
-		) => {
-			if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
-				const csrfToken = req.headers['x-csrf-token']
-				if (!csrfToken || csrfToken !== req.cookies['csrf-token']) {
-					RESPONSE.FailureResponse(res, 403, { message: 'Invalid CSRF token' })
-					return
-				}
-			}
-			next()
-		}) as RequestHandler)
+		// Use csurf middleware for CSRF protection on API routes
+		this.app.use(
+			'/api/v1',
+			csurf({ cookie: true }) as unknown as RequestHandler,
+		)
+
+		// Provide CSRF token to clients (for SPAs, etc.)
+		this.app.use(
+			'/api/v1',
+			(req: Request, res: Response, next: NextFunction) => {
+				res.cookie('csrf-token', req.csrfToken())
+				next()
+			},
+		)
 
 		this.app.use('/api/v1', v1Router)
-
-		// Add error handlers
-		this.app.use(notFoundHandler as unknown as RequestHandler)
-		this.app.use(errorHandler as unknown as ErrorRequestHandler)
 
 		// Swagger setup
 		const swags = swaggerjsdoc(swagOptions)
@@ -145,6 +123,10 @@ class Server {
 			swaggerui.serve as unknown as RequestHandler,
 			swaggerui.setup(swags) as unknown as RequestHandler,
 		)
+
+		// Add error handlers
+		this.app.use(notFoundHandler as unknown as RequestHandler)
+		this.app.use(errorHandler as unknown as ErrorRequestHandler)
 	}
 
 	public async start(): Promise<void> {
