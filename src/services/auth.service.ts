@@ -1,7 +1,7 @@
-import { User, UserAttributes } from '../models/user.model'
-import { AppError } from '../utils/appError'
+import { User, UserAttributes } from '@/models/user.model'
+import { AppError } from '@/utils/appError'
 import { TokenService } from './token.service'
-import { UserRole } from '../types'
+import { UserRole } from '@/types/index'
 
 export class AuthService {
 	public static async register(

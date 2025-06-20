@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
-import { errorHandler as globalErrorHandler } from '../utils/errors'
-import { logger } from '../config/logger'
+import { errorHandler as globalErrorHandler } from '@/utils/errors'
+import { logger } from '@/config/logger'
 import RESPONSE from '@/utils/response'
 
 // Error handler middleware

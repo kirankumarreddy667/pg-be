@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { UserRole } from '../types'
+import { UserRole } from '@/types/index'
 
 export const registerSchema = Joi.object({
 	email: Joi.string().email().required().messages({

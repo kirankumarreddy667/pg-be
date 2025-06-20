@@ -1,6 +1,6 @@
 import { Response } from 'express'
 import RESPONSE, { type FailureStatus } from './response'
-import { logAuditEvent } from '../config/logger'
+import { logAuditEvent } from '@/config/logger'
 
 // Base error class for all application errors
 export class AppError extends Error {

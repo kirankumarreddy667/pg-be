@@ -1,5 +1,5 @@
 import { Model, DataTypes, Sequelize } from 'sequelize'
-import { TokenAttributes } from '../types'
+import { TokenAttributes } from '@/types/index'
 
 export class Token extends Model<TokenAttributes> implements TokenAttributes {
 	public id!: string

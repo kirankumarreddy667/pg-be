@@ -1,7 +1,7 @@
 import session from 'express-session'
 import { RequestHandler } from 'express'
-import { env } from '../config/env'
-import { logger } from '../config/logger'
+import { env } from '@/config/env'
+import { logger } from '@/config/logger'
 
 // Session store configuration (you can add Redis or other stores here)
 const sessionConfig = {

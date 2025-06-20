@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express'
-import { TokenService } from '../services/token.service'
-import { authConfig } from '../config/auth.config'
-import { AuthenticatedRequest, UserRole } from '../types'
-import { AuthenticationError } from '../utils/errors'
+import { TokenService } from '@/services/token.service'
+import { authConfig } from '@/config/auth.config'
+import { AuthenticatedRequest, UserRole } from '@/types/index'
+import { AuthenticationError } from '@/utils/errors'
 import RESPONSE from '@/utils/response'
-import { AuthService } from '../services/auth.service'
+import { AuthService } from '@/services/auth.service'
 
 type AsyncRequestHandler = (
 	req: Request | AuthenticatedRequest,
@@ -48,13 +48,13 @@ export class AuthController {
 			})
 
 			// Generate CSRF token after successful registration
-			const csrfToken = req.csrfToken();
+			const csrfToken = req.csrfToken()
 			res.cookie('csrf-token', csrfToken, {
 				httpOnly: false,
 				secure: process.env.NODE_ENV === 'production',
 				sameSite: 'strict',
 				path: '/',
-			});
+			})
 			RESPONSE.SuccessResponse(res, 201, {
 				message: 'Registration successful',
 				data: {
@@ -164,13 +164,13 @@ export class AuthController {
 			})
 
 			// Generate new CSRF token
-			const csrfToken = req.csrfToken();
+			const csrfToken = req.csrfToken()
 			res.cookie('csrf-token', csrfToken, {
 				httpOnly: false,
 				secure: process.env.NODE_ENV === 'production',
 				sameSite: 'strict',
 				path: '/',
-			});
+			})
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Token refresh successful',
 				data: {

@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express'
-import { TokenService } from '../services/token.service'
-import { AuthenticatedRequest, User, UserRole } from '../types'
+import { TokenService } from '@/services/token.service'
+import { AuthenticatedRequest, User, UserRole } from '@/types/index'
 import RESPONSE from '@/utils/response'
 import { sanitize } from 'class-sanitizer'
 import { plainToClass } from 'class-transformer'
-import crypto from 'crypto'
 import { verify } from 'jsonwebtoken'
-import { env } from '../config/env'
+import { env } from '@/config/env'
+
+type ParamsDictionary = Record<string, string>
 
 // CSRF Protection middleware
 export const csrfProtection = (
@@ -39,11 +40,17 @@ export const xssProtection = (
 	}
 
 	// Sanitize request params
-	// if (req.params) {
-	// 	const sanitizedParams = plainToClass(Object, req.params) as ParamsDictionary
-	// 	sanitize(sanitizedParams)
-	// 	req.params = sanitizedParams
-	// }
+	if (req.params) {
+		const sanitizedParams = plainToClass(Object, req.params) as ParamsDictionary
+		sanitize(sanitizedParams)
+		req.params = sanitizedParams
+	}
+
+	if (req.query) {
+		const sanitizedQuery = plainToClass(Object, req.query) as ParamsDictionary
+		sanitize(sanitizedQuery)
+		req.query = sanitizedQuery
+	}
 
 	next()
 }

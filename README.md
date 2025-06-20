@@ -53,8 +53,8 @@ A production-ready Node.js backend application built with Express.js and TypeScr
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/powergotha_be.git
-cd powergotha_be
+git clone https://github.com/Ahex-Technologies-Pvt-ltd/pg-be.git
+cd pg-be
 ```
 
 2. Install dependencies:
@@ -106,10 +106,10 @@ pnpm dev
 
 The server will start on http://localhost:7777
 
-## API Documentation
+## API
 
-Once the server is running, you can access the API documentation at:
-http://localhost:7777/api/v1/docs
+- Base URL: `http://localhost:7777/api/v1`
+- Swagger Docs: `http://localhost:7777/api/v1/docs`
 
 ## Available Scripts
 
@@ -132,18 +132,23 @@ src/
 │   ├── auth.config.ts
 │   ├── database.ts
 │   ├── env.ts
+│   ├── env.validation.ts
 │   └── logger.ts
+├── constants/      # Constant values
 ├── controllers/    # Route controllers
 ├── middlewares/    # Custom middlewares
 │   ├── auth.middleware.ts
 │   ├── error.middleware.ts
-│   └── rateLimit.middleware.ts
+│   ├── rateLimit.middleware.ts
+│   └── validateRequest.ts
 ├── models/         # Database models
 ├── routes/         # API routes
 ├── services/       # Business logic
 ├── types/          # TypeScript types
 ├── utils/          # Utility functions
+├── validations/    # Request validation schemas
 └── app.ts          # Express app setup
+.env.example        # Example environment variables
 ```
 
 ## Security Features
@@ -207,6 +212,14 @@ Run tests with:
 
 ```bash
 pnpm test
+```
+
+## Database Migrations
+
+If you use Sequelize migrations, run:
+
+```bash
+pnpm sequelize db:migrate
 ```
 
 ## Production Deployment

@@ -1,6 +1,6 @@
 import { Model, DataTypes, Sequelize } from 'sequelize'
 import bcrypt from 'bcrypt'
-import { UserRole } from '../types'
+import { UserRole } from '@/types/index'
 
 export interface UserAttributes {
 	id?: number

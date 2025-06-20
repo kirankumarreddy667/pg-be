@@ -1,5 +1,5 @@
 import { Response } from 'express'
-import { ErrorResponse, SuccessResponse } from '../types'
+import { ErrorResponse, SuccessResponse } from '@/types/index'
 
 export type FailureStatus =
 	| 400

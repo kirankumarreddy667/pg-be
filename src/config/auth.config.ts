@@ -1,5 +1,5 @@
 import { config } from 'dotenv'
-import { JWT_EXPIRATION, COOKIE_EXPIRATION } from '../constants/time'
+import { JWT_EXPIRATION, COOKIE_EXPIRATION } from '@/constants/time'
 
 config()
 

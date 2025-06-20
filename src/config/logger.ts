@@ -1,7 +1,7 @@
 import winston from 'winston'
 import { Request, Response } from 'express'
 import { env } from './env'
-import { AuditLog, User } from '../types'
+import { AuditLog, User } from '@/types/index'
 
 // Extend Express Request interface to include 'user'
 declare module 'express' {

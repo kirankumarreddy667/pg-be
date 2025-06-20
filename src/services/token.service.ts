@@ -1,6 +1,6 @@
 import { sign, verify } from 'jsonwebtoken'
-import { env } from '../config/env'
-import { TokenPayload, User } from '../types'
+import { env } from '@/config/env'
+import { TokenPayload, User } from '@/types/index'
 
 export class TokenService {
 	private static tokenBlacklist = new Set<string>()

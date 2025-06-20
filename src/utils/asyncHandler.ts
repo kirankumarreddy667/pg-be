@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express'
-import { AuthenticatedRequest } from '../types'
+import { AuthenticatedRequest } from '@/types/index'
 
 type AsyncRequestHandler = (
 	req: Request | AuthenticatedRequest,

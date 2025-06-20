@@ -1,12 +1,12 @@
 import { Router } from 'express'
-import { AuthController } from '../controllers/auth.controller'
+import { AuthController } from '@/controllers/auth.controller'
 import {
 	refreshTokenMiddleware,
 	csrfProtection,
-} from '../middlewares/auth.middleware'
-import { wrapAsync } from '../utils/asyncHandler'
-import { validateRequest } from '../middlewares/validateRequest'
-import { registerSchema } from '../validations/auth.validation'
+} from '@/middlewares/auth.middleware'
+import { wrapAsync } from '@/utils/asyncHandler'
+import { validateRequest } from '@/middlewares/validateRequest'
+import { registerSchema } from '@/validations/auth.validation'
 
 const router: Router = Router()
 
