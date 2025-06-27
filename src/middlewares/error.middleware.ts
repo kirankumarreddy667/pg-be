@@ -1,18 +1,16 @@
 import { Request, Response, NextFunction } from 'express'
 import { errorHandler as globalErrorHandler } from '@/utils/errors'
-import { logger } from '@/config/logger'
 import RESPONSE from '@/utils/response'
 
 // Error handler middleware
-export const errorHandler = (err: Error, req: Request, res: Response): void => {
-	logger.error('Error:', {
-		error: err.message,
-		stack: err.stack,
-		path: req.path,
-		method: req.method,
-	})
-
-	globalErrorHandler(err, res)
+export const errorHandler = (
+	err: Error,
+	req: Request,
+	res: Response,
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	_next: NextFunction,
+): void => {
+	globalErrorHandler(err, req, res)
 }
 
 // Not found handler

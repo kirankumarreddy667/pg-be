@@ -1,30 +1,55 @@
 import { Router } from 'express'
 import { AuthController } from '@/controllers/auth.controller'
-import {
-	refreshTokenMiddleware,
-	csrfProtection,
-} from '@/middlewares/auth.middleware'
 import { wrapAsync } from '@/utils/asyncHandler'
 import { validateRequest } from '@/middlewares/validateRequest'
-import { registerSchema } from '@/validations/auth.validation'
+import {
+	userRegistrationSchema,
+	verifyOtpSchema,
+	resendOtpSchema,
+	loginSchema,
+	forgotPassword,
+	resetPassword,
+} from '@/validations/auth.validation'
 
 const router: Router = Router()
 
 // Public routes
 router.post(
-	'/register',
-	validateRequest(registerSchema),
-	wrapAsync(AuthController.register),
+	'/user-registration',
+	validateRequest(userRegistrationSchema),
+	wrapAsync(AuthController.userRegistration),
 )
-// router.post('/login', wrapAsync(AuthController.login))
-// router.post('/logout', wrapAsync(AuthController.logout))
 
-// Protected routes
 router.post(
-	'/refresh',
-	csrfProtection,
-	wrapAsync(refreshTokenMiddleware),
-	wrapAsync(AuthController.refreshToken),
+	'/verify-otp',
+	validateRequest(verifyOtpSchema),
+	wrapAsync(AuthController.verifyOtp),
 )
+
+router.post(
+	'/resend-otp',
+	validateRequest(resendOtpSchema),
+	wrapAsync(AuthController.resendOtp),
+)
+
+router.post(
+	'/login',
+	validateRequest(loginSchema),
+	wrapAsync(AuthController.login),
+)
+
+router.post(
+	'/forgot-password',
+	validateRequest(forgotPassword.body),
+	wrapAsync(AuthController.forgotPassword),
+)
+
+router.post(
+	'/reset-password',
+	validateRequest(resetPassword.body),
+	wrapAsync(AuthController.resetPassword),
+)
+
+// router.post('/logout', wrapAsync(AuthController.logout))
 
 export default router

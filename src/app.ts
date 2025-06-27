@@ -4,12 +4,10 @@ import express, {
 	ErrorRequestHandler,
 	Request,
 	Response,
-	NextFunction,
 } from 'express'
 import cors from 'cors'
 import path from 'path'
 import helmet from 'helmet'
-import cookieParser from 'cookie-parser'
 import swaggerjsdoc from 'swagger-jsdoc'
 import swaggerui from 'swagger-ui-express'
 import 'module-alias/register'
@@ -25,8 +23,6 @@ import { testConnection } from './config/database'
 import { validateEnv, EnvironmentError } from './config/env.validation'
 import { xssProtection } from './middlewares/auth.middleware'
 import { helmetOptions } from './utils/helmet'
-import csurf from 'csurf'
-// import RedisConnectionManager from "./config/RedisConn"
 
 // Validate environment variables before starting the app
 try {
@@ -34,18 +30,28 @@ try {
 } catch (error) {
 	if (error instanceof EnvironmentError) {
 		logger.error('\n❌ Environment Validation Failed:')
-		logger.error(error.message)
+		logger.error(String(error.message))
 		logger.error('\nPlease check your environment variables and try again.')
+		if (error instanceof Error && error.stack) {
+			logger.error(error.stack)
+		}
 	} else {
 		logger.error('\n❌ Unexpected error during environment validation:')
 		logger.error(error instanceof Error ? error.message : 'Unknown error')
+		if (error instanceof Error && error.stack) {
+			logger.error(error.stack)
+		}
 	}
 	process.exit(1)
 }
 
 process.on('uncaughtException', (err: Error): void => {
-	logger.error(`Error: ${err.message}`)
-	logAuditEvent({} as Request, {} as Response, 'Un caught exception', {
+	if (err.stack) {
+		logger.error(`Error: ${err.message}\n${err.stack}`)
+	} else {
+		logger.error(`Error: ${err.message}`)
+	}
+	logAuditEvent({ user: { id: 'system' } }, undefined, 'Un caught exception', {
 		userId: 'system',
 		action: 'uncaughtException',
 		details: err.message,
@@ -64,7 +70,6 @@ class Server {
 		this.port = parseInt(process.env.PORT as string, 10) || 3000
 		this.config()
 		this.routes()
-		// RedisConnectionManager.connect();
 	}
 
 	private config(): void {
@@ -76,7 +81,6 @@ class Server {
 		)
 		this.app.use(express.json({ limit: '10kb' }))
 		this.app.use(express.urlencoded({ extended: true, limit: '10kb' }))
-		this.app.use(cookieParser())
 		this.app.use(session)
 		this.app.use(
 			'/images',
@@ -98,21 +102,6 @@ class Server {
 
 		// Apply security middleware only to API routes
 		this.app.use('/api/v1', xssProtection as RequestHandler)
-
-		// Use csurf middleware for CSRF protection on API routes
-		this.app.use(
-			'/api/v1',
-			csurf({ cookie: true }) as unknown as RequestHandler,
-		)
-
-		// Provide CSRF token to clients (for SPAs, etc.)
-		this.app.use(
-			'/api/v1',
-			(req: Request, res: Response, next: NextFunction) => {
-				res.cookie('csrf-token', req.csrfToken())
-				next()
-			},
-		)
 
 		this.app.use('/api/v1', v1Router)
 
@@ -141,18 +130,29 @@ class Server {
 			this.handleUncaughtRejection()
 			this.handleGracefulShutdown()
 		} catch (error) {
-			logger.error('Failed to start server:', error)
+			if (error instanceof Error && error.stack) {
+				logger.error(`Failed to start server: ${error.message}\n${error.stack}`)
+			} else {
+				logger.error(
+					`Failed to start server: ${error instanceof Error ? error.message : String(error)}`,
+				)
+			}
 			process.exit(1)
 		}
 	}
 
 	private handleUncaughtRejection(): void {
 		process.on('unhandledRejection', (err: Error): void => {
-			logAuditEvent({} as Request, {} as Response, 'Un handled rejection', {
-				userId: 'system',
-				action: 'unhandledRejection',
-				details: err.message,
-			})
+			logAuditEvent(
+				{ user: { id: 'system' } },
+				undefined,
+				'Un handled rejection',
+				{
+					userId: 'system',
+					action: 'unhandledRejection',
+					details: err.message,
+				},
+			)
 			logger.error(`Shutting down the server for unhandled promise rejection`)
 			this.server?.close(() => {
 				process.exit(1)

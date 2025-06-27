@@ -46,12 +46,6 @@ export const xssProtection = (
 		req.params = sanitizedParams
 	}
 
-	if (req.query) {
-		const sanitizedQuery = plainToClass(Object, req.query) as ParamsDictionary
-		sanitize(sanitizedQuery)
-		req.query = sanitizedQuery
-	}
-
 	next()
 }
 
@@ -123,53 +117,5 @@ export const authorize = (roles: string[]) => {
 		}
 
 		next()
-	}
-}
-
-export const refreshTokenMiddleware = (
-	req: AuthenticatedRequest,
-	res: Response,
-	next: NextFunction,
-): void => {
-	try {
-		const refreshToken = req.cookies['refresh-token'] as string
-		if (!refreshToken) {
-			RESPONSE.FailureResponse(res, 401, {
-				message: 'No refresh token provided',
-			})
-			return
-		}
-
-		const decoded = verify(refreshToken, env.JWT_REFRESH_SECRET) as {
-			userId: number
-			role: UserRole
-			type: string
-		}
-		if (decoded.type !== 'refresh') {
-			RESPONSE.FailureResponse(res, 401, { message: 'Invalid token type' })
-			return
-		}
-
-		const isBlacklisted = TokenService.isTokenBlacklisted(refreshToken)
-		if (isBlacklisted) {
-			RESPONSE.FailureResponse(res, 401, { message: 'Token has been revoked' })
-			return
-		}
-
-		// Create a minimal user object with required fields
-		const user: User = {
-			id: decoded.userId,
-			email: '', // This will be populated by the database
-			role: decoded.role,
-		}
-
-		req.user = user
-		next()
-	} catch (error) {
-		if (error instanceof Error) {
-			RESPONSE.FailureResponse(res, 401, { message: error.message })
-		} else {
-			RESPONSE.FailureResponse(res, 401, { message: 'Token refresh failed' })
-		}
 	}
 }

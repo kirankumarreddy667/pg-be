@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { Schema } from 'joi'
-import { AppError } from '@/utils/appError'
+import RESPONSE from '@/utils/response'
 
 export const validateRequest = (schema: Schema) => {
 	return (req: Request, res: Response, next: NextFunction) => {
@@ -10,10 +10,20 @@ export const validateRequest = (schema: Schema) => {
 		})
 
 		if (error) {
-			const errorMessage = error.details
-				.map((detail) => detail.message)
-				.join(', ')
-			return next(new AppError(errorMessage, 400))
+			const errors = error.details.reduce(
+				(acc, el) => {
+					if (el.path.length > 0) {
+						acc[el.path[0]] = [...(acc[el.path[0]] || []), el.message]
+					}
+					return acc
+				},
+				{} as Record<string, string[]>,
+			)
+
+			return RESPONSE.FailureResponse(res, 422, {
+				message: 'The given data was invalid.',
+				errors: Object.values(errors).flat(),
+			})
 		}
 
 		next()

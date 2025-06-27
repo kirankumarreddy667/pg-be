@@ -1,67 +1,47 @@
 import winston from 'winston'
-import { Request, Response } from 'express'
 import { env } from './env'
-import { AuditLog, User } from '@/types/index'
 
-// Extend Express Request interface to include 'user'
-declare module 'express' {
-	interface Request {
-		user?: User
+// Custom filter to exclude error logs from a transport
+const ignoreErrors = winston.format((info) => {
+	if (info.level === 'error') {
+		return false
 	}
-}
+	return info
+})
 
-// Log levels
-const levels = {
-	error: 0,
-	warn: 1,
-	info: 2,
-	http: 3,
-	debug: 4,
-}
-
-// Log colors
-const colors = {
-	error: 'red',
-	warn: 'yellow',
-	info: 'green',
-	http: 'magenta',
-	debug: 'white',
-}
-
-winston.addColors(colors)
-
-// Log format
-const format = winston.format.combine(
+// Minimal, human-readable format for all logs
+const minimalFormat = winston.format.combine(
 	winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-	winston.format.colorize({ all: true }),
 	winston.format.printf((info) => {
-		// Ensure all values are strings
 		const timestamp = String(info.timestamp)
 		const level = String(info.level)
 		const message = String(info.message)
-		return `${timestamp} ${level}: ${message}`
+		const environment = String(env.NODE_ENV)
+		if (level === 'error') {
+			let msg = `Environment: ${environment}\nLevel: ${level}\nMessage: ${message}`
+			if (typeof info.stack === 'string') msg += `\nStack: ${info.stack}`
+			return `${timestamp}\n${msg}`
+		} else {
+			return `${timestamp} ${level}: ${message}`
+		}
 	}),
 )
-
-// Transports
-const transports = [
-	// Console transport for all environments
-	new winston.transports.Console(),
-	// File transport for errors
-	new winston.transports.File({
-		filename: 'logs/error.log',
-		level: 'error',
-	}),
-	// File transport for all logs
-	new winston.transports.File({ filename: 'logs/all.log' }),
-]
 
 // Create the logger instance
 export const logger = winston.createLogger({
 	level: env.NODE_ENV === 'development' ? 'debug' : 'info',
-	levels,
-	format,
-	transports,
+	transports: [
+		new winston.transports.Console({ format: minimalFormat }),
+		new winston.transports.File({
+			filename: 'logs/error.log',
+			level: 'error',
+			format: minimalFormat,
+		}),
+		new winston.transports.File({
+			filename: 'logs/all.log',
+			format: winston.format.combine(ignoreErrors(), minimalFormat),
+		}),
+	],
 	defaultMeta: {
 		service: 'powergotha-service',
 		environment: env.NODE_ENV,
@@ -77,21 +57,20 @@ export const stream = {
 
 // Audit logging
 export const logAuditEvent = (
-	req: Request,
-	res: Response,
+	req: { user?: { id?: string | number } },
+	_res: unknown,
 	action: string,
 	details: Record<string, unknown>,
 ): void => {
-	const auditLog: AuditLog = {
+	const auditLog = {
 		userId: String(req.user?.id || 'anonymous'),
 		action,
 		details,
-		timestamp: new Date(),
-		ipAddress: req.ip,
-		userAgent: req.get('user-agent') || undefined,
+		timestamp: new Date().toISOString(),
 	}
-
-	logger.info('Audit Log:', auditLog)
+	logger.info(
+		`Audit Log: userId=${auditLog.userId}, action=${auditLog.action}, details=${JSON.stringify(auditLog.details)}, timestamp=${auditLog.timestamp}`,
+	)
 }
 
 interface SecurityDetails {
@@ -119,16 +98,6 @@ export const logSecurityEvent = (
 	logger.warn('Security Event', securityLog)
 }
 
-interface DataAccessDetails {
-	type: 'data_access'
-	userId: string
-	dataType: string
-	operation: string
-	recordId: string
-	timestamp: string
-	[key: string]: unknown
-}
-
 // Data access logging
 export const logDataAccess = (
 	userId: string,
@@ -137,7 +106,7 @@ export const logDataAccess = (
 	recordId: string,
 	details: Record<string, unknown>,
 ): void => {
-	const dataAccessLog: DataAccessDetails = {
+	const dataAccessLog = {
 		type: 'data_access',
 		userId,
 		dataType,
@@ -146,8 +115,7 @@ export const logDataAccess = (
 		timestamp: new Date().toISOString(),
 		...details,
 	}
-
-	logger.info('Data Access', dataAccessLog)
+	logger.info(`Data Access: ${JSON.stringify(dataAccessLog)}`)
 }
 
 // Error logging with stack trace

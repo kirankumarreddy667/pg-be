@@ -1,8 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { TokenService } from '@/services/token.service'
-import { authConfig } from '@/config/auth.config'
-import { AuthenticatedRequest, UserRole } from '@/types/index'
-import { AuthenticationError } from '@/utils/errors'
+import { AuthenticatedRequest } from '@/types/index'
 import RESPONSE from '@/utils/response'
 import { AuthService } from '@/services/auth.service'
 
@@ -12,177 +9,121 @@ type AsyncRequestHandler = (
 	next: NextFunction,
 ) => Promise<void> | void
 
-interface RegisterBody {
-	email: string
+interface UserRegistrationBody {
+	name: string
+	phone_number: string
 	password: string
-	username: string
-	firstName: string
-	lastName: string
 }
 
-// interface LoginBody {
-// 	email: string
-// 	password: string
-// }
+interface VerifyOtpBody {
+	userId: number
+	otp: string
+}
+
+interface ResendOtpBody {
+	userId: number
+}
+
+interface LoginBody {
+	phone_number: string
+	password: string
+}
+
+interface ForgotPasswordBody {
+	phone_number: string
+}
+
+interface ResetPasswordBody {
+	phone_number: string
+	otp: string
+	password: string
+}
 
 export class AuthController {
-	static register: AsyncRequestHandler = async (req, res, next) => {
+	static userRegistration: AsyncRequestHandler = async (req, res, next) => {
 		try {
-			const { email, password, username, firstName, lastName } =
-				req.body as RegisterBody
-
-			// Register user and get tokens
-			const { user, accessToken, refreshToken } = await AuthService.register({
-				email,
+			const { name, phone_number, password } = req.body as UserRegistrationBody
+			const { user, otp } = await AuthService.userRegistration({
+				name,
+				phone_number,
 				password,
-				username,
-				firstName,
-				lastName,
-				role: UserRole.USER, // Default role for new users
-			})
-
-			// Set refresh token in HTTP-only cookie
-			res.cookie('refreshToken', refreshToken, {
-				...authConfig.cookie,
-				maxAge: authConfig.cookie.maxAge,
-			})
-
-			// Generate CSRF token after successful registration
-			const csrfToken = req.csrfToken()
-			res.cookie('csrf-token', csrfToken, {
-				httpOnly: false,
-				secure: process.env.NODE_ENV === 'production',
-				sameSite: 'strict',
-				path: '/',
 			})
 			RESPONSE.SuccessResponse(res, 201, {
-				message: 'Registration successful',
+				message:
+					'Success. Please verify the otp sent to your registered phone number',
 				data: {
-					user,
-					accessToken,
+					otp: otp,
+					user_id: user.id,
+					phone_number: user.phone_number,
 				},
 			})
-		} catch {
-			next(
-				new AuthenticationError('Registration failed', [
-					'Failed to create user',
-				]),
-			)
+		} catch (error) {
+			next(error)
 		}
 	}
 
-	// static login: AsyncRequestHandler = async (req, res, next) => {
-	// 	try {
-	// 		const { email } = req.body as LoginBody
-	// 		// Password is used in the TODO comment for future implementation
-	// 		// const { password } = req.body as LoginBody
-
-	// 		// TODO: Implement your user authentication logic here
-	// 		// This is a placeholder - you should validate against your database
-	// 		const user: User = {
-	// 			id: 1,
-	// 			email,
-	// 			role: UserRole.USER,
-	// 			createdAt: new Date(),
-	// 			updatedAt: new Date(),
-	// 		}
-
-	// 		// Generate tokens
-	// 		const accessToken = await TokenService.generateAccessToken(user)
-	// 		const refreshToken = await TokenService.generateRefreshToken(user)
-
-	// 		// Set refresh token in HTTP-only cookie
-	// 		res.cookie('refreshToken', refreshToken, {
-	// 			...authConfig.cookie,
-	// 			maxAge: authConfig.cookie.maxAge,
-	// 		})
-
-	// 		RESPONSE.SuccessResponse(res, 200, {
-	// 			message: 'Login successful',
-	// 			data: {
-	// 				user,
-	// 				accessToken,
-	// 			},
-	// 		})
-	// 	} catch {
-	// 		next(new AuthenticationError('Login failed', ['Invalid credentials']))
-	// 	}
-	// }
-
-	// static logout: AsyncRequestHandler = async (req, res, next) => {
-	// 	try {
-	// 		const authHeader = req.headers.authorization
-	// 		if (authHeader?.startsWith('Bearer ')) {
-	// 			const token = authHeader.split(' ')[1]
-	// 			await TokenService.revokeToken(token)
-	// 		}
-
-	// 		const refreshToken = req.cookies.refreshToken as string
-	// 		if (refreshToken) {
-	// 			await TokenService.revokeToken(refreshToken)
-	// 		}
-
-	// 		// Clear the refresh token cookie
-	// 		res.clearCookie('refreshToken', {
-	// 			httpOnly: true,
-	// 			secure: authConfig.cookie.secure,
-	// 			sameSite: authConfig.cookie.sameSite,
-	// 		})
-
-	// 		RESPONSE.SuccessResponse(res, 200, {
-	// 			message: 'Logout successful',
-	// 			data: {},
-	// 		})
-	// 	} catch {
-	// 		next(
-	// 			new AuthenticationError('Logout failed', ['Failed to clear session'])
-	// 		)
-	// 	}
-	// }
-
-	static refreshToken: AsyncRequestHandler = async (req, res, next) => {
+	static verifyOtp: AsyncRequestHandler = async (req, res, next) => {
 		try {
-			const user = (req as AuthenticatedRequest).user
-			if (!user) {
-				throw new AuthenticationError('User not found', ['Invalid session'])
-			}
-
-			// Revoke old refresh token
-			const oldRefreshToken = req.cookies.refreshToken as string
-			if (oldRefreshToken) {
-				TokenService.revokeToken(oldRefreshToken)
-			}
-
-			// Generate new tokens
-			const accessToken = await TokenService.generateAccessToken(user)
-			const refreshToken = await TokenService.generateRefreshToken(user)
-
-			// Set new refresh token in HTTP-only cookie
-			res.cookie('refreshToken', refreshToken, {
-				...authConfig.cookie,
-				maxAge: authConfig.cookie.maxAge,
-			})
-
-			// Generate new CSRF token
-			const csrfToken = req.csrfToken()
-			res.cookie('csrf-token', csrfToken, {
-				httpOnly: false,
-				secure: process.env.NODE_ENV === 'production',
-				sameSite: 'strict',
-				path: '/',
-			})
+			const { userId, otp } = req.body as VerifyOtpBody
+			await AuthService.verifyOtp(userId, otp)
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'Token refresh successful',
-				data: {
-					accessToken,
-				},
+				message: 'OTP verified successfully. Your account is now active.',
+				data: [],
 			})
-		} catch {
-			next(
-				new AuthenticationError('Token refresh failed', [
-					'Invalid refresh token',
-				]),
-			)
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static resendOtp: AsyncRequestHandler = async (req, res, next) => {
+		try {
+			const { userId } = req.body as ResendOtpBody
+			await AuthService.resendOtp(userId)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'A new OTP has been sent to your phone number.',
+				data: [],
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static login: AsyncRequestHandler = async (req, res, next) => {
+		try {
+			const { phone_number, password } = req.body as LoginBody
+			const loginData = await AuthService.login(phone_number, password)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success.',
+				data: loginData,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static forgotPassword: AsyncRequestHandler = async (req, res, next) => {
+		try {
+			const { phone_number } = req.body as ForgotPasswordBody
+			await AuthService.forgotPassword(phone_number)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'We have sent an OTP to your phone number.',
+				data: [],
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static resetPassword: AsyncRequestHandler = async (req, res, next) => {
+		try {
+			const { phone_number, otp, password } = req.body as ResetPasswordBody
+			await AuthService.resetPassword(phone_number, otp, password)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Your password has been changed!',
+				data: [],
+			})
+		} catch (error) {
+			next(error)
 		}
 	}
 }

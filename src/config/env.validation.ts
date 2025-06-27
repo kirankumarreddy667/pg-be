@@ -14,6 +14,9 @@ export interface EnvSchema {
 	JWT_REFRESH_SECRET: string
 	CORS_ORIGIN: string
 	LOG_LEVEL: 'error' | 'warn' | 'info' | 'debug'
+	MSG91_AUTH_KEY: string
+	MSG91_TEMPLATE_ID: string
+	MSG91_SENDER_ID: string
 }
 
 // Define environment schema
@@ -24,7 +27,7 @@ const envSchema = Joi.object<EnvSchema>({
 	PORT: Joi.string().default('3000'),
 
 	// Database configuration
-	DB_HOST: Joi.string().default('localhost'),
+	DB_HOST: Joi.string().required(),
 	DB_PORT: Joi.string().default('3306'),
 	DB_DATABASE: Joi.string().required(),
 	DB_USERNAME: Joi.string().required(),
@@ -55,6 +58,11 @@ const envSchema = Joi.object<EnvSchema>({
 	LOG_LEVEL: Joi.string()
 		.valid('error', 'warn', 'info', 'debug')
 		.default('info'),
+
+	// MSG91
+	MSG91_AUTH_KEY: Joi.string().required(),
+	MSG91_TEMPLATE_ID: Joi.string().required(),
+	MSG91_SENDER_ID: Joi.string().required(),
 })
 
 // Custom error class for environment validation

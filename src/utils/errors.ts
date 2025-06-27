@@ -1,6 +1,6 @@
-import { Response } from 'express'
+import { Response, Request } from 'express'
 import RESPONSE, { type FailureStatus } from './response'
-import { logAuditEvent } from '@/config/logger'
+import { logAuditEvent, logger } from '@/config/logger'
 
 // Base error class for all application errors
 export class AppError extends Error {
@@ -22,28 +22,36 @@ export class AppError extends Error {
 	}
 
 	// Method to send error response using RESPONSE utility
-	public sendErrorResponse(res: Response): void {
-		// Log the error for monitoring
-		logAuditEvent(
-			res.req,
-			res,
-			this.isOperational ? 'Operational Error' : 'Programming Error',
-			{
-				error: this.message,
-				statusCode: this.statusCode,
-				path: res.req.path,
-				method: res.req.method,
-				...(process.env.NODE_ENV !== 'production' && { stack: this.stack }),
-			},
-		)
-
-		// Send error response using RESPONSE utility with exact format
+	public sendErrorResponse(req: Request, res: Response): void {
+		// Send error response
 		RESPONSE.FailureResponse(res, this.statusCode as FailureStatus, {
 			message: this.message,
 			data: null,
 			errors: this.errors,
 			...(process.env.NODE_ENV !== 'production' && { stack: this.stack }),
 		})
+
+		// 1. Log to error.log
+		const errorMessage = `path=${req.path} method=${req.method} status=${this.statusCode} error=${this.message}`
+		logger.error(errorMessage, { stack: this.stack })
+
+		// 2. Log audit trail to all.log
+		let userId = 'anonymous'
+		if (typeof req === 'object' && req && 'user' in req) {
+			const user = (req as { user?: { id?: string | number } }).user
+			if (user && user.id) userId = String(user.id)
+		}
+		logAuditEvent(
+			{ user: { id: userId } },
+			undefined,
+			this.isOperational ? 'Operational Error' : 'Programming Error',
+			{
+				error: this.message,
+				statusCode: this.statusCode,
+				path: req.path,
+				method: req.method,
+			},
+		)
 	}
 }
 
@@ -100,18 +108,29 @@ export class DatabaseError extends AppError {
 }
 
 // Global error handler middleware
-export const errorHandler = (err: Error, res: Response): void => {
+export const errorHandler = (err: Error, req: Request, res: Response): void => {
 	if (err instanceof AppError) {
-		err.sendErrorResponse(res)
+		err.sendErrorResponse(req, res)
 		return
 	}
 
 	// Handle unknown errors
-	const unknownError = new AppError(
-		'Internal server error',
-		500,
-		['An unexpected error occurred'],
-		false,
-	)
-	unknownError.sendErrorResponse(res)
+	const message =
+		process.env.NODE_ENV === 'production'
+			? 'Internal server error'
+			: err.message
+
+	const errors =
+		process.env.NODE_ENV === 'production'
+			? ['An unexpected error occurred']
+			: [err.message]
+
+	const unknownError = new AppError(message, 500, errors, false)
+
+	// Preserve original stack in non-production
+	if (process.env.NODE_ENV !== 'production') {
+		unknownError.stack = err.stack
+	}
+
+	unknownError.sendErrorResponse(req, res)
 }

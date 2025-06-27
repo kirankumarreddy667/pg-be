@@ -22,7 +22,12 @@ const sessionMiddleware = session(sessionConfig) as unknown as RequestHandler
 
 // Handle session errors
 process.on('unhandledRejection', (error: Error) => {
-	logger.error('Session error:', error)
+	logger.error(
+		`Session error: ${error instanceof Error ? error.message : String(error)}`,
+	)
+	if (error instanceof Error && error.stack) {
+		logger.error(error.stack)
+	}
 })
 
 export default sessionMiddleware
