@@ -1,13 +1,13 @@
 import Joi from 'joi'
-import { UserRole } from '@/types/index'
 
-export const registerSchema = Joi.object({
-	email: Joi.string().email().required().messages({
-		'string.email': 'Please provide a valid email address',
-		'any.required': 'Email is required',
+export const userRegistrationSchema = Joi.object({
+	name: Joi.string().required().messages({
+		'any.required': 'Name is required',
+	}),
+	phone_number: Joi.string().required().messages({
+		'any.required': 'Phone number is required',
 	}),
 	password: Joi.string()
-		.min(8)
 		.pattern(
 			/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
 		)
@@ -18,21 +18,56 @@ export const registerSchema = Joi.object({
 				'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
 			'any.required': 'Password is required',
 		}),
-	firstName: Joi.string().required().messages({
-		'any.required': 'First name is required',
+})
+
+export const verifyOtpSchema = Joi.object({
+	userId: Joi.number().required().messages({
+		'any.required': 'User ID is required',
 	}),
-	lastName: Joi.string().required().messages({
-		'any.required': 'Last name is required',
+	otp: Joi.string().length(6).required().messages({
+		'string.length': 'OTP must be 6 characters long',
+		'any.required': 'OTP is required',
 	}),
-	username: Joi.string().min(3).max(30).required().messages({
-		'string.min': 'Username must be at least 3 characters long',
-		'string.max': 'Username must not exceed 30 characters',
-		'any.required': 'Username is required',
+})
+
+export const resendOtpSchema = Joi.object({
+	userId: Joi.number().required().messages({
+		'any.required': 'User ID is required',
 	}),
-	role: Joi.string()
-		.valid(...Object.values(UserRole))
-		.default(UserRole.USER)
+})
+
+export const loginSchema = Joi.object({
+	phone_number: Joi.string().required().messages({
+		'any.required': 'Phone number is required',
+	}),
+	password: Joi.string().required().messages({
+		'any.required': 'Password is required',
+	}),
+})
+
+export const forgotPassword = Joi.object().keys({
+	phone_number: Joi.string()
+		.pattern(/^[0-9]{10}$/)
+		.required()
 		.messages({
-			'any.only': 'Invalid role specified',
+			'string.pattern.base': 'Phone number must be 10 digits',
 		}),
+})
+
+export const resetPassword = Joi.object().keys({
+	phone_number: Joi.string()
+		.pattern(/^[0-9]{10}$/)
+		.required()
+		.messages({
+			'string.pattern.base': 'Phone number must be 10 digits',
+		}),
+	otp: Joi.string()
+		.length(6)
+		.pattern(/^[0-9]+$/)
+		.required()
+		.messages({
+			'string.length': 'OTP must be 6 digits',
+			'string.pattern.base': 'OTP must be numeric',
+		}),
+	password: Joi.string().min(8).required(),
 })

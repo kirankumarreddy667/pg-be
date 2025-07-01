@@ -9,16 +9,6 @@ export const authConfig = {
 			secret: process.env.JWT_ACCESS_SECRET,
 			expiresIn: JWT_EXPIRATION.ACCESS_TOKEN,
 		},
-		refreshToken: {
-			secret: process.env.JWT_REFRESH_SECRET,
-			expiresIn: JWT_EXPIRATION.REFRESH_TOKEN,
-		},
-	},
-	cookie: {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'strict' as const,
-		maxAge: COOKIE_EXPIRATION.REFRESH_TOKEN,
 	},
 	session: {
 		secret: process.env.SESSION_SECRET,

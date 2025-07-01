@@ -10,8 +10,8 @@ export interface User {
 }
 
 export enum UserRole {
-	ADMIN = 'admin',
-	USER = 'user',
+	SuperAdmin = 'superAdmin',
+	User = 'user',
 }
 
 export interface AuthenticatedRequest extends Request {

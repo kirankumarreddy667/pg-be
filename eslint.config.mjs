@@ -15,6 +15,7 @@ const compat = new FlatCompat({
 })
 
 export default [
+	// 1. Global ignores
 	{
 		ignores: [
 			'dist',
@@ -22,15 +23,46 @@ export default [
 			'documentation',
 			'logs',
 			'eslint.config.mjs',
-			'*.config.mjs',
+			'*.config.js',
+			'db.config.js',
+			'.sequelizerc',
 		],
 	},
-	...compat.extends(
-		'eslint:recommended',
-		'plugin:@typescript-eslint/recommended',
-		'plugin:@typescript-eslint/recommended-requiring-type-checking',
-		'prettier'
-	),
+
+	// 2. Base configuration for all files
+	...compat.extends('eslint:recommended', 'prettier'),
+	{
+		rules: {
+			'no-console': ['warn', { allow: ['warn', 'error'] }],
+			'no-debugger': 'error',
+			'no-duplicate-imports': 'error',
+			'no-unused-expressions': 'error',
+			'no-var': 'error',
+			'prefer-const': 'error',
+			'prefer-arrow-callback': 'error',
+			'prefer-template': 'error',
+			'no-restricted-syntax': [
+				'error',
+				{
+					selector: 'ForInStatement',
+					message:
+						'for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array.',
+				},
+				{
+					selector: 'LabeledStatement',
+					message:
+						'Labels are a form of GOTO; using them makes code confusing and hard to maintain and understand.',
+				},
+				{
+					selector: 'WithStatement',
+					message:
+						'`with` is disallowed in strict mode because it makes code impossible to predict and optimize.',
+				},
+			],
+		},
+	},
+
+	// 3. TypeScript specific configuration
 	{
 		files: ['**/*.ts'],
 		plugins: {
@@ -49,52 +81,30 @@ export default [
 			},
 		},
 		rules: {
-			// TypeScript specific rules
-			'@typescript-eslint/explicit-function-return-type': ['error', {
-				allowExpressions: true,
-				allowTypedFunctionExpressions: true,
-			}],
-			'@typescript-eslint/no-explicit-any': 'error',
-			'@typescript-eslint/no-unused-vars': ['error', {
-				argsIgnorePattern: '^_',
-				varsIgnorePattern: '^_',
-			}],
-			'@typescript-eslint/no-floating-promises': 'error',
-			'@typescript-eslint/no-misused-promises': 'error',
-			'@typescript-eslint/await-thenable': 'error',
-			'@typescript-eslint/no-unsafe-assignment': 'error',
-			'@typescript-eslint/no-unsafe-member-access': 'error',
-			'@typescript-eslint/no-unsafe-call': 'error',
-			'@typescript-eslint/no-unsafe-return': 'error',
-			'@typescript-eslint/restrict-template-expressions': 'error',
-			'@typescript-eslint/unbound-method': 'error',
-
-			// General rules
-			'no-console': ['warn', { allow: ['warn', 'error'] }],
-			'no-debugger': 'error',
-			'no-duplicate-imports': 'error',
-			'no-unused-expressions': 'error',
-			'no-var': 'error',
-			'prefer-const': 'error',
-			'prefer-arrow-callback': 'error',
-			'prefer-template': 'error',
-			'no-restricted-syntax': [
+			...typescriptEslint.configs['recommended'].rules,
+			...typescriptEslint.configs['recommended-requiring-type-checking'].rules,
+			'@typescript-eslint/explicit-function-return-type': [
 				'error',
 				{
-					selector: 'ForInStatement',
-					message: 'for..in loops iterate over the entire prototype chain, which is virtually never what you want. Use Object.{keys,values,entries}, and iterate over the resulting array.',
-				},
-				{
-					selector: 'LabeledStatement',
-					message: 'Labels are a form of GOTO; using them makes code confusing and hard to maintain and understand.',
-				},
-				{
-					selector: 'WithStatement',
-					message: '`with` is disallowed in strict mode because it makes code impossible to predict and optimize.',
+					allowExpressions: true,
+					allowTypedFunctionExpressions: true,
 				},
 			],
+			'@typescript-eslint/no-explicit-any': 'error',
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{
+					argsIgnorePattern: '^_',
+					varsIgnorePattern: '^_',
+				},
+			],
+			// Re-enable any specific type-aware rules you need
+			'@typescript-eslint/no-floating-promises': 'error',
+			'@typescript-eslint/no-misused-promises': 'error',
 		},
 	},
+
+	// 4. Test files override
 	{
 		files: ['**/*.test.ts', '**/*.spec.ts'],
 		rules: {
@@ -105,20 +115,23 @@ export default [
 			'@typescript-eslint/no-unsafe-return': 'off',
 		},
 	},
+
+	// 5. JS files specific config (if needed, mostly for globals)
 	{
 		files: ['**/*.js', '**/*.cjs', '**/*.mjs'],
 		languageOptions: {
-			parser: undefined,
-			parserOptions: {
-				ecmaVersion: 'latest',
-				sourceType: 'module',
+			globals: {
+				...globals.node,
 			},
 		},
 		rules: {
-			'@typescript-eslint/no-unsafe-assignment': 'off',
-			'@typescript-eslint/no-unsafe-member-access': 'off',
-			'@typescript-eslint/no-unsafe-call': 'off',
-			'@typescript-eslint/no-unsafe-return': 'off',
+			'no-unused-vars': [
+				'error',
+				{
+					argsIgnorePattern: '^_',
+					varsIgnorePattern: '^_',
+				},
+			],
 		},
 	},
 ]

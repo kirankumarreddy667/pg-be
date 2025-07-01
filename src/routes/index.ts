@@ -4,6 +4,6 @@ import authRoutes from './auth.routes'
 const v1Router: ExpressRouter = Router()
 
 //Routes
-v1Router.use('/auth', authRoutes)
+v1Router.use(authRoutes)
 
 export default v1Router
