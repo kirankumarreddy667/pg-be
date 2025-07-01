@@ -27,6 +27,11 @@ export interface UserAttributes {
 	deleted_at?: Date
 	created_at?: Date
 	updated_at?: Date
+	googleId?: string
+	facebookId?: string
+	provider?: string[]
+	avatar?: string
+	emailVerified?: boolean
 }
 
 export class User extends Model<UserAttributes> implements UserAttributes {
@@ -54,6 +59,11 @@ export class User extends Model<UserAttributes> implements UserAttributes {
 	public deleted_at?: Date
 	public readonly created_at!: Date
 	public readonly updated_at!: Date
+	public googleId?: string
+	public facebookId?: string
+	public provider?: string[]
+	public avatar?: string
+	public emailVerified?: boolean
 
 	public getRoles!: () => Promise<Role[]>
 }
@@ -156,13 +166,38 @@ const UserModel = (sequelize: Sequelize): typeof User => {
 				type: DataTypes.DATE,
 				allowNull: true,
 			},
+			googleId: {
+				type: DataTypes.STRING,
+				allowNull: true,
+				unique: true,
+			},
+			facebookId: {
+				type: DataTypes.STRING,
+				allowNull: true,
+				unique: true,
+			},
+			provider: {
+				type: DataTypes.JSON,
+				allowNull: false,
+				defaultValue: [],
+			},
+			avatar: {
+				type: DataTypes.STRING,
+				allowNull: true,
+			},
+			emailVerified: {
+				type: DataTypes.BOOLEAN,
+				allowNull: true,
+			},
 		},
 		{
 			sequelize,
 			tableName: 'users',
 			timestamps: true,
 			paranoid: true,
-			underscored: true,
+			createdAt: 'created_at',
+			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
 			hooks: {
 				beforeCreate: async (user: User) => {
 					const plainPassword = user.get('password')

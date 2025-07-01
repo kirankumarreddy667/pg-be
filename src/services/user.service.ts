@@ -35,14 +35,6 @@ export class UserService {
 			where: {
 				phone_number: phone_number,
 			},
-			include: [
-				{
-					model: db.Role,
-					as: 'roles',
-					where: { id: 2 }, // Role 'User'
-					attributes: ['name'],
-				},
-			],
 		})
 	}
 

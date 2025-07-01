@@ -1,13 +1,7 @@
-import { Request, Response, NextFunction } from 'express'
-import { AuthenticatedRequest } from '@/types/index'
+import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { AuthService } from '@/services/auth.service'
-
-type AsyncRequestHandler = (
-	req: Request | AuthenticatedRequest,
-	res: Response,
-	next: NextFunction,
-) => Promise<void> | void
+import { User } from '@/models/user.model'
 
 interface UserRegistrationBody {
 	name: string
@@ -40,7 +34,7 @@ interface ResetPasswordBody {
 }
 
 export class AuthController {
-	static userRegistration: AsyncRequestHandler = async (req, res, next) => {
+	static userRegistration: RequestHandler = async (req, res, next) => {
 		try {
 			const { name, phone_number, password } = req.body as UserRegistrationBody
 			const { user, otp } = await AuthService.userRegistration({
@@ -62,7 +56,7 @@ export class AuthController {
 		}
 	}
 
-	static verifyOtp: AsyncRequestHandler = async (req, res, next) => {
+	static verifyOtp: RequestHandler = async (req, res, next) => {
 		try {
 			const { userId, otp } = req.body as VerifyOtpBody
 			await AuthService.verifyOtp(userId, otp)
@@ -75,7 +69,7 @@ export class AuthController {
 		}
 	}
 
-	static resendOtp: AsyncRequestHandler = async (req, res, next) => {
+	static resendOtp: RequestHandler = async (req, res, next) => {
 		try {
 			const { userId } = req.body as ResendOtpBody
 			await AuthService.resendOtp(userId)
@@ -88,7 +82,7 @@ export class AuthController {
 		}
 	}
 
-	static login: AsyncRequestHandler = async (req, res, next) => {
+	static login: RequestHandler = async (req, res, next) => {
 		try {
 			const { phone_number, password } = req.body as LoginBody
 			const loginData = await AuthService.login(phone_number, password)
@@ -101,7 +95,7 @@ export class AuthController {
 		}
 	}
 
-	static forgotPassword: AsyncRequestHandler = async (req, res, next) => {
+	static forgotPassword: RequestHandler = async (req, res, next) => {
 		try {
 			const { phone_number } = req.body as ForgotPasswordBody
 			await AuthService.forgotPassword(phone_number)
@@ -114,7 +108,7 @@ export class AuthController {
 		}
 	}
 
-	static resetPassword: AsyncRequestHandler = async (req, res, next) => {
+	static resetPassword: RequestHandler = async (req, res, next) => {
 		try {
 			const { phone_number, otp, password } = req.body as ResetPasswordBody
 			await AuthService.resetPassword(phone_number, otp, password)
@@ -124,6 +118,45 @@ export class AuthController {
 			})
 		} catch (error) {
 			next(error)
+		}
+	}
+
+	public static googleOAuthCallback: RequestHandler = async (req, res) => {
+		const user = req.user as User
+		try {
+			const { token, user: userData } =
+				await AuthService.buildOAuthResponse(user)
+
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: {
+					token,
+					user: {
+						id: userData.get('id'),
+						email: userData.get('email'),
+						name: userData.get('name'),
+						googleId: userData.get('googleId'),
+						avatar: userData.get('avatar'),
+						emailVerified: userData.get('emailVerified'),
+					},
+				},
+			})
+		} catch {
+			RESPONSE.FailureResponse(res, 401, { message: 'Unauthorized' })
+		}
+	}
+
+	public static facebookOAuthCallback: RequestHandler = async (req, res) => {
+		const user = req.user as User
+		try {
+			const { token, user: userData } =
+				await AuthService.buildOAuthResponse(user)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: { token, user: userData },
+			})
+		} catch {
+			RESPONSE.FailureResponse(res, 401, { message: 'Unauthorized' })
 		}
 	}
 }

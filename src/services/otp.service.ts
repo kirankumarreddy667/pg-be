@@ -8,12 +8,10 @@ export class OtpService {
 		transaction?: Transaction,
 	): Promise<Otp> {
 		const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
-		let otp = await Otp.findOne({ where: { user_id: userId }, transaction })
-		if (otp) {
-			await otp.update({ otp: otpCode }, { transaction })
-		} else {
-			otp = await Otp.create({ user_id: userId, otp: otpCode }, { transaction })
-		}
+		// Always delete any existing OTP for this user
+		await Otp.destroy({ where: { user_id: userId }, transaction })
+		// Create a new OTP
+		const otp = await Otp.create({ user_id: userId, otp: otpCode }, { transaction })
 		return otp
 	}
 
@@ -42,8 +40,6 @@ export class OtpService {
 
 		const createdAt = new Date(otp.get('created_at')).getTime()
 		const now = Date.now()
-
-		console.log('now - createdAt ', now, createdAt)
 
 		return now - createdAt > expirationTimeInMillis
 	}

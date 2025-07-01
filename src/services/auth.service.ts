@@ -29,6 +29,7 @@ export class AuthService {
 
 			if (existingUser) {
 				await transaction.rollback()
+				transaction = undefined
 				throw new ConflictError('Phone number already registered.')
 			}
 
@@ -36,6 +37,7 @@ export class AuthService {
 				{
 					...userData,
 					otp_status: false,
+					provider: ['local'],
 				},
 				{ transaction },
 			)
@@ -150,17 +152,16 @@ export class AuthService {
 
 	public static async verifyOtp(userId: number, otp: string): Promise<void> {
 		try {
+			const user = await db.User.findByPk(userId)
+			if (!user) {
+				throw new NotFoundError('User not found.')
+			}
 			const isValid = await OtpService.verifyOtp(userId, otp)
 			if (!isValid) {
 				throw new AppError('Invalid or expired OTP.', 400)
 			}
 
-			const user = await db.User.findByPk(userId)
-			if (!user) {
-				throw new NotFoundError('User not found.')
-			}
-
-			user.otp_status = true // Set verified
+			user.set('otp_status', true) // Set verified
 			await user.save()
 		} catch (error) {
 			if (error instanceof AppError) throw error
@@ -200,10 +201,10 @@ export class AuthService {
 		}
 
 		// Generate and save OTP
-		const otp = await OtpService.generateOtp(user.id)
+		const otp = await OtpService.generateOtp(user.get('id'))
 
 		// Send OTP via SMS
-		await SmsService.sendOtpLegacy(user.phone_number, otp.otp)
+		await SmsService.sendOtpLegacy(user.get('phone_number'), otp.get('otp'))
 	}
 
 	static async resetPassword(
@@ -219,15 +220,53 @@ export class AuthService {
 		}
 
 		// Verify OTP
-		const isValidOtp = await OtpService.verifyOtp(user.id, otp)
+		const isValidOtp = await OtpService.verifyOtp(user.get('id'), otp)
+
 		if (!isValidOtp) {
 			throw new NotFoundError('Invalid OTP or phone number.')
 		}
 
 		// Update password
-		await UserService.updatePassword(user.id, password)
+		await UserService.updatePassword(user.get('id'), password)
 
 		// Invalidate the OTP
-		await OtpService.deleteOtp(user.id, otp)
+		await OtpService.deleteOtp(user.get('id'), otp)
+	}
+
+	/**
+	 * Handles OAuth callback logic: builds token and user response
+	 * @param user The authenticated user instance
+	 * @returns An object with token and user
+	 */
+	public static async handleOAuthCallback(
+		user: User,
+	): Promise<{ token: string; user: User }> {
+		if (!user) {
+			throw new AuthenticationError('Unauthorized')
+		}
+		const roles = await UserService.getUserRoles(user.id)
+		const roleNames = roles.map((r) => r.name)
+		const token = await TokenService.generateAccessToken({
+			id: user.id,
+			email: user.email || '',
+			roles: roleNames,
+		})
+		return {
+			token,
+			user,
+		}
+	}
+
+	public static async buildOAuthResponse(
+		user: User,
+	): Promise<{ token: string; user: User }> {
+		const roles = await UserService.getUserRoles(user.get('id'))
+		const roleNames = roles.map((r) => r.name)
+		const token = await TokenService.generateAccessToken({
+			id: user.id,
+			email: user.email || '',
+			roles: roleNames,
+		})
+		return { token, user }
 	}
 }

@@ -17,6 +17,7 @@ module.exports = {
 					email: 'admin@example.com',
 					password: hashedPassword,
 					phone_number: '1234567890',
+					provider: JSON.stringify(['local']),
 					created_at: new Date(),
 					updated_at: new Date(),
 				},
