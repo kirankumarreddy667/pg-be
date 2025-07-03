@@ -4,6 +4,7 @@ import OtpModel, { Otp } from './otp.model'
 import RoleModel, { Role } from './role.model'
 import RoleUserModel, { RoleUser } from './role_user.model'
 import LanguageModel, { Language } from './language.model'
+import ValidationRuleModel, { ValidationRule } from './validation_rule.model'
 
 interface Models {
 	User: typeof User
@@ -11,6 +12,7 @@ interface Models {
 	Role: typeof Role
 	RoleUser: typeof RoleUser
 	Language: typeof Language
+	ValidationRule: typeof ValidationRule
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -19,6 +21,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const Role = RoleModel(sequelize)
 	const RoleUser = RoleUserModel(sequelize)
 	const Language = LanguageModel(sequelize)
+	const ValidationRule = ValidationRuleModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -39,5 +42,5 @@ export const initModels = (sequelize: Sequelize): Models => {
 	User.belongsTo(Language, { foreignKey: 'language_id', as: 'Language' })
 	Language.hasMany(User, { foreignKey: 'language_id', as: 'Users' })
 
-	return { User, Otp, Role, RoleUser, Language }
+	return { User, Otp, Role, RoleUser, Language, ValidationRule }
 }
