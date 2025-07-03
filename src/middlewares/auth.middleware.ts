@@ -5,6 +5,7 @@ import { sanitize } from 'class-sanitizer'
 import { plainToClass } from 'class-transformer'
 import { verify, JwtPayload } from 'jsonwebtoken'
 import { env } from '@/config/env'
+import { UserService } from '@/services/user.service'
 
 type ParamsDictionary = Record<string, string>
 
@@ -72,19 +73,27 @@ export const authenticate = (
 }
 
 export const authorize = (roles: string[]) => {
-	return (req: Request, res: Response, next: NextFunction): void => {
+	return async (req: Request, res: Response, next: NextFunction) => {
 		if (!req.user) {
-			RESPONSE.FailureResponse(res, 401, { message: 'User not authenticated' })
+			RESPONSE.FailureResponse(res, 401, { message: 'Unauthorized action.' })
 			return
 		}
 
-		if (!((req.user as User).roles || []).some((r) => roles.includes(r))) {
-			RESPONSE.FailureResponse(res, 403, {
-				message: 'Insufficient permissions',
-			})
-			return
-		}
+		try {
+			const userRoles = await UserService.getUserRoles(
+				Number((req.user as User).id),
+			)
+			const userRoleNames = userRoles.map((role) => role.get('name'))
 
-		next()
+			if (!userRoleNames.some((r) => roles.includes(r))) {
+				RESPONSE.FailureResponse(res, 403, {
+					message: 'Unauthorized action.',
+				})
+				return
+			}
+			next()
+		} catch (error) {
+			next(error)
+		}
 	}
 }

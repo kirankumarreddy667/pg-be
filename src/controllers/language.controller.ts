@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express'
+import { RequestHandler } from 'express'
 import { LanguageService } from '@/services/language.service'
 import { UserService } from '@/services/user.service'
 import RESPONSE from '@/utils/response'
@@ -9,12 +9,7 @@ interface UpdateUserLanguageBody {
 }
 
 export class LanguageController {
-	static async getAllLanguages(
-		this: void,
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	): Promise<void> {
+	static getAllLanguages: RequestHandler = async (req, res, next) => {
 		try {
 			const languages = await LanguageService.getAllLanguages()
 			RESPONSE.SuccessResponse(res, 200, {
@@ -27,12 +22,7 @@ export class LanguageController {
 		}
 	}
 
-	static async createLanguage(
-		this: void,
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	): Promise<void> {
+	static createLanguage: RequestHandler = async (req, res, next) => {
 		try {
 			const { name, language_code } = req.body as {
 				name: string
@@ -52,12 +42,7 @@ export class LanguageController {
 		}
 	}
 
-	static async updateLanguage(
-		this: void,
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	): Promise<void> {
+	static updateLanguage: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const { name, language_code } = req.body as {
@@ -82,12 +67,7 @@ export class LanguageController {
 		}
 	}
 
-	static async updateUserLanguage(
-		this: void,
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	): Promise<void> {
+	static updateUserLanguage: RequestHandler = async (req, res, next) => {
 		try {
 			const userId = Number((req.user as User)?.id)
 			const { language_id } = req.body as UpdateUserLanguageBody

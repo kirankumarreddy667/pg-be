@@ -26,7 +26,7 @@ export class AppError extends Error {
 		// Send error response
 		RESPONSE.FailureResponse(res, this.statusCode as FailureStatus, {
 			message: this.message,
-			data: null,
+			data: [],
 			errors: this.errors,
 			...(process.env.NODE_ENV !== 'production' && { stack: this.stack }),
 		})
