@@ -1,4 +1,6 @@
 import { Request } from 'express'
+import type { LanguageAttributes } from '@/models/language.model'
+import type { UserAttributes } from '@/models/user.model'
 
 export interface User {
 	id: number
@@ -12,19 +14,20 @@ export interface User {
 }
 
 export enum UserRole {
-	SuperAdmin = 'superAdmin',
-	User = 'user',
+	SuperAdmin = 'SuperAdmin',
+	User = 'User',
 }
 
 export interface SuccessResponse<T = unknown> {
-	success: true
 	message: string
 	data?: T
+	status?: number
 }
 
 export interface ErrorResponse {
-	success: false
 	message: string
+	data?: unknown
+	status?: number
 }
 
 export type ApiResponse<T = unknown> = SuccessResponse<T> | ErrorResponse
@@ -69,3 +72,7 @@ export type TokenCreationAttributes = Omit<
 	TokenAttributes,
 	'id' | 'createdAt' | 'updatedAt'
 >
+
+export interface UserWithLanguage extends UserAttributes {
+	Language?: LanguageAttributes | null
+}

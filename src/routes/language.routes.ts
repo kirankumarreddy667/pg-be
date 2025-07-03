@@ -19,14 +19,14 @@ languageRouter.get(
 languageRouter.post(
 	'/language',
 	authenticate,
-	authorize(['superAdmin']),
+	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(createLanguageSchema),
 	wrapAsync(LanguageController.createLanguage),
 )
 languageRouter.put(
 	'/language/:id',
 	authenticate,
-	authorize(['superAdmin']),
+	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(updateLanguageSchema),
 	wrapAsync(LanguageController.updateLanguage),
 )

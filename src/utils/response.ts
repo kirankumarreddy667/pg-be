@@ -16,6 +16,7 @@ export type FailureStatus =
 interface ResponseData<T = unknown> {
 	message: string
 	data?: T
+	status?: number
 }
 
 const RESPONSE = {
@@ -24,10 +25,10 @@ const RESPONSE = {
 		status: number,
 		data: ResponseData<T>,
 	): void => {
-		const response: SuccessResponse<T> = {
-			success: true,
+		const response: SuccessResponse<T> & { status: number } = {
 			message: data.message,
 			data: data.data,
+			status,
 		}
 		res.status(status).json(response)
 	},
@@ -37,14 +38,16 @@ const RESPONSE = {
 		status: FailureStatus,
 		data: {
 			message: string
-			data?: null
+			data?: []
 			errors?: string[]
 			stack?: string
+			status?: number
 		},
 	): void => {
-		const response: ErrorResponse = {
-			success: false,
+		const response: ErrorResponse & { status: number } = {
 			message: data.message,
+			status,
+			data: [],
 			...(data.errors && { errors: data.errors }),
 			...(data.stack && { stack: data.stack }),
 		}

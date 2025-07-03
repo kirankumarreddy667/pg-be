@@ -34,5 +34,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 	Otp.belongsTo(User, { foreignKey: 'user_id' })
 	User.hasMany(Otp, { foreignKey: 'user_id' })
 	RoleUser.belongsTo(Role, { foreignKey: 'role_id', as: 'Role' })
+
+	// Add User-Language association
+	User.belongsTo(Language, { foreignKey: 'language_id', as: 'Language' })
+	Language.hasMany(User, { foreignKey: 'language_id', as: 'Users' })
+
 	return { User, Otp, Role, RoleUser, Language }
 }
