@@ -125,9 +125,7 @@ export class AuthService {
 			await user.save()
 
 			const token = await TokenService.generateAccessToken({
-				id: user.id,
-				email: user.email as string,
-				roles: roleNames.length > 0 ? roleNames : ['User'],
+				id: user.get('id'),
 			})
 
 			return {
@@ -244,13 +242,7 @@ export class AuthService {
 		if (!user) {
 			throw new AuthenticationError('Unauthorized')
 		}
-		const roles = await UserService.getUserRoles(user.id)
-		const roleNames = roles.map((r) => r.name)
-		const token = await TokenService.generateAccessToken({
-			id: user.id,
-			email: user.email || '',
-			roles: roleNames,
-		})
+		const token = await TokenService.generateAccessToken({ id: user.id })
 		return {
 			token,
 			user,
@@ -260,13 +252,7 @@ export class AuthService {
 	public static async buildOAuthResponse(
 		user: User,
 	): Promise<{ token: string; user: User }> {
-		const roles = await UserService.getUserRoles(user.get('id'))
-		const roleNames = roles.map((r) => r.name)
-		const token = await TokenService.generateAccessToken({
-			id: user.id,
-			email: user.email || '',
-			roles: roleNames,
-		})
+		const token = await TokenService.generateAccessToken({ id: user.id })
 		return { token, user }
 	}
 }
