@@ -1,27 +1,12 @@
 import { Request, Response, NextFunction } from 'express'
-import { TokenService } from '@/services/token.service'
-import { AuthenticatedRequest, User, UserRole } from '@/types/index'
+import { User } from '@/types/index'
 import RESPONSE from '@/utils/response'
 import { sanitize } from 'class-sanitizer'
 import { plainToClass } from 'class-transformer'
-import { verify } from 'jsonwebtoken'
+import { verify, JwtPayload } from 'jsonwebtoken'
 import { env } from '@/config/env'
 
 type ParamsDictionary = Record<string, string>
-
-// CSRF Protection middleware
-export const csrfProtection = (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-): void => {
-	const csrfToken = req.headers['x-csrf-token']
-	if (!csrfToken || csrfToken !== req.cookies['csrf-token']) {
-		RESPONSE.FailureResponse(res, 403, { message: 'Invalid CSRF token' })
-		return
-	}
-	next()
-}
 
 // XSS Protection middleware
 export const xssProtection = (
@@ -50,7 +35,7 @@ export const xssProtection = (
 }
 
 export const authenticate = (
-	req: AuthenticatedRequest,
+	req: Request,
 	res: Response,
 	next: NextFunction,
 ): void => {
@@ -63,28 +48,16 @@ export const authenticate = (
 		}
 
 		const token = authHeader.split(' ')[1]
-		const decoded = verify(token, env.JWT_ACCESS_SECRET) as {
-			userId: number
-			role: UserRole
-			type: string
-		}
+		const decoded = verify(token, env.JWT_ACCESS_SECRET) as JwtPayload
 
 		if (decoded.type !== 'access') {
 			RESPONSE.FailureResponse(res, 401, { message: 'Invalid token type' })
 			return
 		}
 
-		const isBlacklisted = TokenService.isTokenBlacklisted(token)
-		if (isBlacklisted) {
-			RESPONSE.FailureResponse(res, 401, { message: 'Token has been revoked' })
-			return
-		}
-
 		// Create a minimal user object with required fields
 		const user: User = {
-			id: decoded.userId,
-			email: '', // This will be populated by the database
-			role: decoded.role,
+			id: Number(decoded.sub),
 		}
 
 		req.user = user
@@ -99,17 +72,13 @@ export const authenticate = (
 }
 
 export const authorize = (roles: string[]) => {
-	return (
-		req: AuthenticatedRequest,
-		res: Response,
-		next: NextFunction,
-	): void => {
+	return (req: Request, res: Response, next: NextFunction): void => {
 		if (!req.user) {
 			RESPONSE.FailureResponse(res, 401, { message: 'User not authenticated' })
 			return
 		}
 
-		if (!roles.includes(req.user.role)) {
+		if (!((req.user as User).roles || []).some((r) => roles.includes(r))) {
 			RESPONSE.FailureResponse(res, 403, {
 				message: 'Insufficient permissions',
 			})

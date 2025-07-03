@@ -2,20 +2,18 @@ import { Request } from 'express'
 
 export interface User {
 	id: number
-	email: string
+	email?: string
 	password?: string
-	role: UserRole
+	role?: UserRole
+	roles?: string[]
 	createdAt?: Date
 	updatedAt?: Date
+	phone_number?: string
 }
 
 export enum UserRole {
 	SuperAdmin = 'superAdmin',
 	User = 'user',
-}
-
-export interface AuthenticatedRequest extends Request {
-	user?: User
 }
 
 export interface SuccessResponse<T = unknown> {
@@ -47,7 +45,8 @@ export interface AuditLog {
 
 export interface TokenPayload {
 	userId: number
-	role: UserRole
+	email: string
+	role: string
 	type: 'access' | 'refresh'
 }
 

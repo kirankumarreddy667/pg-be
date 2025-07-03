@@ -1,16 +1,14 @@
-import { sign, verify } from 'jsonwebtoken'
+import { sign, verify, JwtPayload } from 'jsonwebtoken'
 import { env } from '@/config/env'
-import { TokenPayload } from '@/types/index'
+import { v4 as uuidv4 } from 'uuid'
 
 interface UserPayload {
 	id: number
-	email: string
-	roles: string[]
 }
 
 export class TokenService {
 	private static tokenBlacklist = new Set<string>()
-
+	
 	static isTokenBlacklisted(token: string): boolean {
 		return this.tokenBlacklist.has(token)
 	}
@@ -25,11 +23,22 @@ export class TokenService {
 
 	static async generateAccessToken(payload: UserPayload): Promise<string> {
 		return new Promise((resolve, reject) => {
+			const now = Math.floor(Date.now() / 1000)
+			const expiresIn = 3600 // 1 hour
+			const tokenPayload = {
+				iss: env.APP_URL || 'http://your-app-url',
+				iat: now,
+				exp: now + expiresIn,
+				nbf: now,
+				jti: uuidv4(),
+				sub: payload.id,
+				type: 'access',
+			}
 			sign(
-				{ ...payload, type: 'access' },
+				tokenPayload,
 				env.JWT_ACCESS_SECRET,
 				{
-					expiresIn: 7776000, // 90 days
+					algorithm: 'HS256',
 				},
 				(err, token) => {
 					if (err) reject(err)
@@ -39,11 +48,11 @@ export class TokenService {
 		})
 	}
 
-	static async verifyAccessToken(token: string): Promise<TokenPayload> {
+	static async verifyAccessToken(token: string): Promise<JwtPayload> {
 		return new Promise((resolve, reject) => {
 			verify(token, env.JWT_ACCESS_SECRET, (err, decoded) => {
 				if (err) reject(err)
-				else resolve(decoded as TokenPayload)
+				else resolve(decoded as JwtPayload)
 			})
 		})
 	}

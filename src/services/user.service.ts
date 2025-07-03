@@ -49,4 +49,11 @@ export class UserService {
 			{ where: { id: userId } },
 		)
 	}
+
+	static async updateUserLanguage(userId: number, language_id: number): Promise<User | null> {
+		const user = await db.User.findByPk(userId);
+		if (!user) return null;
+		await user.update({ language_id });
+		return user;
+	}
 }
