@@ -15,7 +15,7 @@ export interface UserAttributes {
 	district?: string
 	state?: string
 	country?: string
-	payment_status?: 'free' | 'paid'
+	payment_status?: 'free' | 'premium'
 	remember_token?: string
 	village?: string
 	otp_status?: boolean
@@ -47,7 +47,7 @@ export class User extends Model<UserAttributes> implements UserAttributes {
 	public district?: string
 	public state?: string
 	public country?: string
-	public payment_status!: 'free' | 'paid'
+	public payment_status!: 'free' | 'premium'
 	public remember_token?: string
 	public village?: string
 	public otp_status!: boolean
@@ -127,7 +127,7 @@ const UserModel = (sequelize: Sequelize): typeof User => {
 				allowNull: true,
 			},
 			payment_status: {
-				type: DataTypes.STRING,
+				type: DataTypes.ENUM('free', 'premium'),
 				defaultValue: 'free',
 			},
 			remember_token: {

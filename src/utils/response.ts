@@ -39,7 +39,7 @@ const RESPONSE = {
 		data: {
 			message: string
 			data?: []
-			errors?: string[]
+			errors?: string[] | Record<string, string[]>
 			stack?: string
 			status?: number
 		},

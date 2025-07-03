@@ -20,9 +20,9 @@ export const notFoundHandler = (
 	_next: NextFunction,
 ): void => {
 	if (req.originalUrl === '/favicon.ico') {
-		RESPONSE.SuccessResponse(res, 204, { message: 'No content', data: {} })
+		RESPONSE.SuccessResponse(res, 204, { message: 'No content.', data: {} })
 		return
 	}
 
-	RESPONSE.FailureResponse(res, 404, { message: 'API endpoint not found' })
+	RESPONSE.FailureResponse(res, 404, { message: 'Not found.' })
 }
