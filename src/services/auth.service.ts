@@ -88,7 +88,7 @@ export class AuthService {
 		name: string
 		phone: string
 		farm_name: string | undefined
-		payment_status: 'free' | 'paid' | undefined
+		payment_status: 'free' | 'premium'
 		plan_expires_on: Date | null
 		otp_status: boolean
 	}> {

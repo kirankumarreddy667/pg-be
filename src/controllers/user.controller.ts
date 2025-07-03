@@ -2,28 +2,29 @@ import { RequestHandler } from 'express'
 import { UserService } from '@/services/user.service'
 import RESPONSE from '@/utils/response'
 import type { UserWithLanguage } from '@/types'
+import { User } from '@/models/user.model'
 
 export interface UserMapped {
-	user_id: number | null;
-	name: string | null;
-	email: string | null;
-	phone_number: string | null;
-	farm_name: string | null;
-	address: string | null;
-	pincode: string | null;
-	taluka: string | null;
-	district: string | null;
-	state_name: string | null;
-	country: string | null;
-	payment_status: string | null;
-	expDate: string | null;
-	registration_date: string | null;
-	Daily_record_update_count: number | null;
-	total_days: number | null;
-	answer_days_count: number | null;
-	percentage: number | null;
-	language_id: number | null;
-	language_name: string | null;
+	user_id: number | null
+	name: string | null
+	email: string | null
+	phone_number: string | null
+	farm_name: string | null
+	address: string | null
+	pincode: string | null
+	taluka: string | null
+	district: string | null
+	state_name: string | null
+	country: string | null
+	payment_status: string | null
+	expDate: string | null
+	registration_date: string | null
+	Daily_record_update_count: number | null
+	total_days: number | null
+	answer_days_count: number | null
+	percentage: number | null
+	language_id: number | null
+	language_name: string | null
 }
 
 export class UserController {
@@ -45,9 +46,9 @@ export class UserController {
 				payment_status: user.payment_status ?? null,
 				expDate: null,
 				registration_date: user.created_at
-					? (user.created_at instanceof Date
+					? user.created_at instanceof Date
 						? user.created_at.toISOString().replace('T', ' ').substring(0, 19)
-						: String(user.created_at))
+						: String(user.created_at)
 					: null,
 				Daily_record_update_count: null,
 				total_days: null,
@@ -98,9 +99,9 @@ export class UserController {
 					payment_status: user.payment_status ?? null,
 					expDate: null,
 					registration_date: user.created_at
-						? (user.created_at instanceof Date
+						? user.created_at instanceof Date
 							? user.created_at.toISOString().replace('T', ' ').substring(0, 19)
-							: String(user.created_at))
+							: String(user.created_at)
 						: null,
 					Daily_record_update_count: null,
 					total_days: null,
@@ -122,13 +123,14 @@ export class UserController {
 
 	static sortUsers: RequestHandler = async (req, res, next) => {
 		try {
-            const { payment_status, sort_by, start_date, end_date, type } = req.body as {
-                payment_status: string
-                sort_by: string
-                start_date?: string
-                end_date?: string
-                type?: string
-            }
+			const { payment_status, sort_by, start_date, end_date, type } =
+				req.body as {
+					payment_status: string
+					sort_by: string
+					start_date?: string
+					end_date?: string
+					type?: string
+				}
 
 			if (!payment_status || !sort_by) {
 				return RESPONSE.FailureResponse(res, 400, {
@@ -147,8 +149,128 @@ export class UserController {
 			return RESPONSE.SuccessResponse(res, 200, {
 				data: users,
 				message: 'Success',
-                status: 200
+				status: 200,
 			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static getUserById: RequestHandler = async (req, res, next) => {
+		try {
+			const { id } = req.params
+
+			if (Number((req.user as User).id) !== Number(req.params.id)) {
+				return RESPONSE.FailureResponse(res, 403, {
+					message: 'Unauthorized action.',
+				})
+			}
+
+			const user = await UserService.getUserById(Number(id))
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 404, {
+					message: 'User not found',
+				})
+			}
+
+			const mappedUser: UserMapped = {
+				user_id: user.id ?? null,
+				name: user.name ?? null,
+				email: user.email ?? null,
+				phone_number: user.phone_number ?? null,
+				farm_name: user.farm_name ?? null,
+				address: user.address ?? null,
+				pincode: user.pincode ?? null,
+				taluka: user.taluka ?? null,
+				district: user.district ?? null,
+				state_name: user.state ?? null,
+				country: user.country ?? null,
+				payment_status: user.payment_status ?? null,
+				expDate: null,
+				registration_date: user.created_at
+					? user.created_at instanceof Date
+						? user.created_at.toISOString().replace('T', ' ').substring(0, 19)
+						: String(user.created_at)
+					: null,
+				Daily_record_update_count: null,
+				total_days: null,
+				answer_days_count: null,
+				percentage: null,
+				language_id: user.language_id ?? null,
+				language_name: user.Language?.name ?? null,
+			}
+
+			return RESPONSE.SuccessResponse(res, 200, {
+				data: mappedUser,
+				message: 'success',
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static updateProfile: RequestHandler = async (req, res, next) => {
+		try {
+			const { id } = req.params
+			if (Number((req.user as User).id) !== Number(id)) {
+				return RESPONSE.FailureResponse(res, 403, { message: 'Unauthorized action.' })
+			}
+			// Uniqueness checks (excluding current user)
+			const userId = Number(id)
+
+            const user = await UserService.getUserById(userId)
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 404, {
+					message: 'User not found',
+				})
+			}
+			const value = req.body as Partial<User>
+			const existingFarm = await UserService.findByFarmName(value.farm_name ?? '')
+			if (existingFarm && existingFarm.id !== userId) {
+				return res.status(422).json({
+					message: 'The given data was invalid.',
+					errors: { farm_name: ['The farm name has already been taken.'] },
+				})
+			}
+			if (value.email) {
+				const existingEmail = await UserService.findByEmail(value.email)
+				if (existingEmail && existingEmail.id !== userId) {
+					return res.status(422).json({
+						message: 'The given data was invalid.',
+						errors: { email: ['The email has already been taken.'] },
+					})
+				}
+			}
+			// Update user
+			const updated = await UserService.updateUserProfile(userId, value)
+			return RESPONSE.SuccessResponse(res, 200, {
+				data: updated,
+				message: 'Success',
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static updatePaymentStatus: RequestHandler = async (req, res, next) => {
+		try {
+			const { user_id, payment_status, exp_date, amount } = req.body as { user_id: number, payment_status: string, exp_date: string, amount?: number }
+			const result = await UserService.updatePaymentStatus({
+				user_id,
+				payment_status,
+				exp_date,
+				amount,
+			})
+			if (result.success) {
+				return RESPONSE.SuccessResponse(res, 200, {
+					data: [],
+					message: 'Success',
+				})
+			} else {
+				return RESPONSE.FailureResponse(res, 400, {
+					message: result.message || 'Failed to update payment status.',
+				})
+			}
 		} catch (error) {
 			next(error)
 		}

@@ -22,7 +22,7 @@ export const validateRequest = (schema: Schema) => {
 
 			return RESPONSE.FailureResponse(res, 422, {
 				message: 'The given data was invalid.',
-				errors: Object.values(errors).flat(),
+				errors,
 			})
 		}
 

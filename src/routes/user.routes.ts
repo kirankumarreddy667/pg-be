@@ -3,7 +3,11 @@ import { authenticate, authorize } from '@/middlewares/auth.middleware'
 import { wrapAsync } from '@/utils/asyncHandler'
 import { UserController } from '@/controllers/user.controller'
 import { validateRequest } from '@/middlewares/validateRequest'
-import { sortUsersSchema } from '@/validations/user.validation'
+import {
+	sortUsersSchema,
+	updateProfileSchema,
+	updatePaymentStatusSchema,
+} from '@/validations/user.validation'
 const router: ExpressRouter = Router()
 
 router.get(
@@ -26,6 +30,27 @@ router.post(
 	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(sortUsersSchema),
 	wrapAsync(UserController.sortUsers),
+)
+
+router.get(
+	'/get_user_by_id/:id',
+	authenticate,
+	wrapAsync(UserController.getUserById),
+)
+
+router.put(
+	'/update_profile/:id',
+	authenticate,
+	validateRequest(updateProfileSchema),
+	wrapAsync(UserController.updateProfile),
+)
+
+router.post(
+	'/update_payment_status',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	validateRequest(updatePaymentStatusSchema),
+	wrapAsync(UserController.updatePaymentStatus),
 )
 
 export default router

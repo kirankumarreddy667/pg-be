@@ -334,4 +334,91 @@ export class UserService {
 		}
 		return result
 	}
+
+	static async getUserById(id: number): Promise<UserWithLanguage | null> {
+		return db.User.findOne({
+			where: { id },
+			attributes: [
+				'id',
+				'name',
+				'email',
+				'phone_number',
+				'farm_name',
+				'address',
+				'pincode',
+				'taluka',
+				'district',
+				'state',
+				'country',
+				'payment_status',
+				'record_milk_refresh',
+				'language_id',
+				'created_at',
+				'updated_at',
+			],
+			include: [
+				{
+					model: db.Language,
+					attributes: ['name'],
+					as: 'Language',
+				},
+			],
+			raw: true,
+			nest: true,
+		})
+	}
+
+	static async findByFarmName(farm_name: string): Promise<User | null> {
+		return db.User.findOne({ where: { farm_name } })
+	}
+
+	static async findByEmail(email: string): Promise<User | null> {
+		return db.User.findOne({ where: { email } })
+	}
+
+	static async updateUserProfile(
+		id: number,
+		fields: Partial<User>,
+	): Promise<User | null> {
+		const user = await db.User.findByPk(id)
+		if (!user) return null
+		await user.update(fields)
+		return user
+	}
+
+	static async updatePaymentStatus({
+		user_id,
+		payment_status
+	}: {
+		user_id: number
+		payment_status: string
+		exp_date: string
+		amount?: number
+	}): Promise<{ success: boolean; message?: string }> {
+		const status = payment_status.toLowerCase();
+		if (status !== 'free' && status !== 'premium') {
+			return { success: false, message: 'Invalid payment status. Must be "free" or "premium".' };
+		}
+		await db.User.update({ payment_status: status }, { where: { id: user_id } });
+		// Premium plan logic is commented out until UserPlanPayment model is available
+		/*
+		if (status === 'premium') {
+			let userPlan = await db.UserPlanPayment.findOne({ where: { user_id }, order: [['created_at', 'DESC']] });
+			if (userPlan) {
+				await userPlan.update({ plan_exp_date: exp_date, payment_history_id: 0, amount: amount ?? 0 });
+			} else {
+				await db.UserPlanPayment.create({
+					user_id,
+					plan_id: 1,
+					amount: amount ?? 0,
+					num_of_valid_years: 1,
+					plan_exp_date: exp_date,
+					payment_history_id: 0,
+					created_at: new Date()
+				});
+			}
+		}
+		*/
+		return { success: true };
+	}
 }
