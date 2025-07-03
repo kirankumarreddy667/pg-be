@@ -213,20 +213,24 @@ export class UserController {
 		try {
 			const { id } = req.params
 			if (Number((req.user as User).id) !== Number(id)) {
-				return RESPONSE.FailureResponse(res, 403, { message: 'Unauthorized action.' })
+				return RESPONSE.FailureResponse(res, 403, {
+					message: 'Unauthorized action.',
+				})
 			}
 			// Uniqueness checks (excluding current user)
 			const userId = Number(id)
 
-            const user = await UserService.getUserById(userId)
+			const user = await UserService.getUserById(userId)
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 404, {
 					message: 'User not found',
 				})
 			}
 			const value = req.body as Partial<User>
-			const existingFarm = await UserService.findByFarmName(value.farm_name ?? '')
-			if (existingFarm && existingFarm.id !== userId) {
+			const existingFarm = await UserService.findByFarmName(
+				value.farm_name ?? '',
+			)
+			if (existingFarm && existingFarm.get('id') !== userId) {
 				return res.status(422).json({
 					message: 'The given data was invalid.',
 					errors: { farm_name: ['The farm name has already been taken.'] },
@@ -234,7 +238,7 @@ export class UserController {
 			}
 			if (value.email) {
 				const existingEmail = await UserService.findByEmail(value.email)
-				if (existingEmail && existingEmail.id !== userId) {
+				if (existingEmail && existingEmail.get('id') !== userId) {
 					return res.status(422).json({
 						message: 'The given data was invalid.',
 						errors: { email: ['The email has already been taken.'] },
@@ -254,7 +258,12 @@ export class UserController {
 
 	static updatePaymentStatus: RequestHandler = async (req, res, next) => {
 		try {
-			const { user_id, payment_status, exp_date, amount } = req.body as { user_id: number, payment_status: string, exp_date: string, amount?: number }
+			const { user_id, payment_status, exp_date, amount } = req.body as {
+				user_id: number
+				payment_status: string
+				exp_date: string
+				amount?: number
+			}
 			const result = await UserService.updatePaymentStatus({
 				user_id,
 				payment_status,
