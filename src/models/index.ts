@@ -7,7 +7,11 @@ import LanguageModel, { Language } from './language.model'
 import ValidationRuleModel, { ValidationRule } from './validation_rule.model'
 import FormTypeModel, { FormType } from './form_type.model'
 import CategoryModel, { Category } from './category.model'
-import CategoryLanguageModel, { CategoryLanguage } from './category_language.model'
+import CategoryLanguageModel, {
+	CategoryLanguage,
+} from './category_language.model'
+import SubcategoryModel, { Subcategory } from './sub_category.model'
+import SubCategoryLanguageModel, { SubCategoryLanguage } from './sub_category_language.model'
 
 interface Models {
 	User: typeof User
@@ -19,6 +23,8 @@ interface Models {
 	FormType: typeof FormType
 	Category: typeof Category
 	CategoryLanguage: typeof CategoryLanguage
+	Subcategory: typeof Subcategory
+	SubCategoryLanguage: typeof SubCategoryLanguage
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -31,6 +37,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const FormType = FormTypeModel(sequelize)
 	const Category = CategoryModel(sequelize)
 	const CategoryLanguage = CategoryLanguageModel(sequelize)
+	const Subcategory = SubcategoryModel(sequelize)
+	const SubCategoryLanguage = SubCategoryLanguageModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -61,5 +69,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 		FormType,
 		Category,
 		CategoryLanguage,
+		Subcategory,
+		SubCategoryLanguage,
 	}
 }
