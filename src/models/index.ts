@@ -8,6 +8,7 @@ import ValidationRuleModel, { ValidationRule } from './validation_rule.model'
 import FormTypeModel, { FormType } from './form_type.model'
 import CategoryModel, { Category } from './category.model'
 import CategoryLanguageModel, { CategoryLanguage } from './category_language.model'
+import UnitModel, { Unit } from './unit.model'
 
 interface Models {
 	User: typeof User
@@ -19,6 +20,7 @@ interface Models {
 	FormType: typeof FormType
 	Category: typeof Category
 	CategoryLanguage: typeof CategoryLanguage
+	Unit: typeof Unit
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -31,6 +33,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const FormType = FormTypeModel(sequelize)
 	const Category = CategoryModel(sequelize)
 	const CategoryLanguage = CategoryLanguageModel(sequelize)
+	const Unit = UnitModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -61,5 +64,6 @@ export const initModels = (sequelize: Sequelize): Models => {
 		FormType,
 		Category,
 		CategoryLanguage,
+		Unit
 	}
 }
