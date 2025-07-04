@@ -11,7 +11,10 @@ import CategoryLanguageModel, {
 	CategoryLanguage,
 } from './category_language.model'
 import SubcategoryModel, { Subcategory } from './sub_category.model'
-import SubCategoryLanguageModel, { SubCategoryLanguage } from './sub_category_language.model'
+import SubCategoryLanguageModel, {
+	SubCategoryLanguage,
+} from './sub_category_language.model'
+import QuestionUnitModel, { QuestionUnit } from './question_unit.model'
 
 interface Models {
 	User: typeof User
@@ -25,6 +28,7 @@ interface Models {
 	CategoryLanguage: typeof CategoryLanguage
 	Subcategory: typeof Subcategory
 	SubCategoryLanguage: typeof SubCategoryLanguage
+	QuestionUnit: typeof QuestionUnit
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -39,6 +43,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const CategoryLanguage = CategoryLanguageModel(sequelize)
 	const Subcategory = SubcategoryModel(sequelize)
 	const SubCategoryLanguage = SubCategoryLanguageModel(sequelize)
+	const QuestionUnit = QuestionUnitModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -71,5 +76,6 @@ export const initModels = (sequelize: Sequelize): Models => {
 		CategoryLanguage,
 		Subcategory,
 		SubCategoryLanguage,
+		QuestionUnit,
 	}
 }
