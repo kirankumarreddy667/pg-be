@@ -8,7 +8,7 @@ export class UnitController {
       const units = await UnitService.getAllUnits()
       RESPONSE.SuccessResponse(res, 200, {
         data: units,
-        message: 'Units fetched successfully',
+        message: 'Success',
       })
     } catch (error) {
       next(error)
@@ -26,7 +26,7 @@ export class UnitController {
 
       RESPONSE.SuccessResponse(res, 200, {
         data: unit,
-        message: 'Unit fetched successfully',
+        message: 'Success',
       })
     } catch (error) {
       next(error)
@@ -39,8 +39,8 @@ export class UnitController {
       const unit = await UnitService.createUnit({ name, display_name })
 
       RESPONSE.SuccessResponse(res, 201, {
-        data: unit,
-        message: 'Unit created successfully',
+        data: [],
+        message: 'Success',
       })
     } catch (error) {
       next(error)
@@ -54,13 +54,13 @@ export class UnitController {
       const updated = await UnitService.updateUnit(id, { name, display_name })
 
       if (!updated) {
-        RESPONSE.FailureResponse(res, 404, { message: 'Unit not found' })
+        RESPONSE.FailureResponse(res, 404, { message: 'Not found.' })
         return
       }
 
       RESPONSE.SuccessResponse(res, 200, {
-        data: updated,
-        message: 'Unit updated successfully',
+        data: [],
+        message: 'Success',
       })
     } catch (error) {
       next(error)
@@ -73,13 +73,13 @@ export class UnitController {
       const deleted = await UnitService.deleteUnit(id)
 
       if (!deleted) {
-        RESPONSE.FailureResponse(res, 404, { message: 'Unit not found or already deleted' })
+        RESPONSE.FailureResponse(res, 404, { message: 'Not found.' })
         return
       }
 
       RESPONSE.SuccessResponse(res, 200, {
         data: [],
-        message: 'Unit deleted successfully',
+        message: 'Success',
       })
     } catch (error) {
       next(error)

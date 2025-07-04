@@ -7,8 +7,16 @@ import LanguageModel, { Language } from './language.model'
 import ValidationRuleModel, { ValidationRule } from './validation_rule.model'
 import FormTypeModel, { FormType } from './form_type.model'
 import CategoryModel, { Category } from './category.model'
-import CategoryLanguageModel, { CategoryLanguage } from './category_language.model'
 import UnitModel, { Unit } from './unit.model'
+import CategoryLanguageModel, {
+	CategoryLanguage,
+} from './category_language.model'
+import SubcategoryModel, { Subcategory } from './sub_category.model'
+import SubCategoryLanguageModel, {
+	SubCategoryLanguage,
+} from './sub_category_language.model'
+import QuestionUnitModel, { QuestionUnit } from './question_unit.model'
+import QuestionTagModel, { QuestionTag } from './question_tag.model'
 
 interface Models {
 	User: typeof User
@@ -21,6 +29,10 @@ interface Models {
 	Category: typeof Category
 	CategoryLanguage: typeof CategoryLanguage
 	Unit: typeof Unit
+	Subcategory: typeof Subcategory
+	SubCategoryLanguage: typeof SubCategoryLanguage
+	QuestionUnit: typeof QuestionUnit
+	QuestionTag: typeof QuestionTag
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -34,6 +46,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const Category = CategoryModel(sequelize)
 	const CategoryLanguage = CategoryLanguageModel(sequelize)
 	const Unit = UnitModel(sequelize)
+	const Subcategory = SubcategoryModel(sequelize)
+	const SubCategoryLanguage = SubCategoryLanguageModel(sequelize)
+	const QuestionUnit = QuestionUnitModel(sequelize)
+	const QuestionTag = QuestionTagModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -64,6 +80,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 		FormType,
 		Category,
 		CategoryLanguage,
-		Unit
+		Unit,
+		Subcategory,
+		SubCategoryLanguage,
+		QuestionUnit,
+		QuestionTag,
 	}
 }
