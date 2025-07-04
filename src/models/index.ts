@@ -6,6 +6,8 @@ import RoleUserModel, { RoleUser } from './role_user.model'
 import LanguageModel, { Language } from './language.model'
 import ValidationRuleModel, { ValidationRule } from './validation_rule.model'
 import FormTypeModel, { FormType } from './form_type.model'
+import CategoryModel, { Category } from './category.model'
+import CategoryLanguageModel, { CategoryLanguage } from './category_language.model'
 
 interface Models {
 	User: typeof User
@@ -15,6 +17,8 @@ interface Models {
 	Language: typeof Language
 	ValidationRule: typeof ValidationRule
 	FormType: typeof FormType
+	Category: typeof Category
+	CategoryLanguage: typeof CategoryLanguage
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -25,6 +29,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const Language = LanguageModel(sequelize)
 	const ValidationRule = ValidationRuleModel(sequelize)
 	const FormType = FormTypeModel(sequelize)
+	const Category = CategoryModel(sequelize)
+	const CategoryLanguage = CategoryLanguageModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -45,5 +51,15 @@ export const initModels = (sequelize: Sequelize): Models => {
 	User.belongsTo(Language, { foreignKey: 'language_id', as: 'Language' })
 	Language.hasMany(User, { foreignKey: 'language_id', as: 'Users' })
 
-	return { User, Otp, Role, RoleUser, Language, ValidationRule, FormType }
+	return {
+		User,
+		Otp,
+		Role,
+		RoleUser,
+		Language,
+		ValidationRule,
+		FormType,
+		Category,
+		CategoryLanguage,
+	}
 }
