@@ -4,6 +4,8 @@ import languageRouter from './language.routes'
 import userRouter from './user.routes'
 import questionValidationRoutes from './question_validation_rules.routes'
 import formTypeRouter from './form_type.routes'
+import categoryRouter from './category.routes'
+import categoryLanguageRouter from './category_language.routes'
 
 const v1Router: ExpressRouter = Router()
 
@@ -13,5 +15,7 @@ v1Router.use(languageRouter)
 v1Router.use(userRouter)
 v1Router.use(questionValidationRoutes)
 v1Router.use(formTypeRouter)
+v1Router.use(categoryRouter)
+v1Router.use(categoryLanguageRouter)
 
 export default v1Router
