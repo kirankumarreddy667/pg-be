@@ -9,6 +9,7 @@ import categoryLanguageRouter from './category_language.routes'
 import subCategoryRouter from './sub_category.routes'
 import subCategoryLanguageRouter from './sub_category_language.routes'
 import questionUnitRouter from './question_unit.routes'
+import questionTagRouter from './question_tag.routes'
 
 const v1Router: ExpressRouter = Router()
 
@@ -23,5 +24,6 @@ v1Router.use(categoryLanguageRouter)
 v1Router.use(subCategoryRouter)
 v1Router.use(subCategoryLanguageRouter)
 v1Router.use(questionUnitRouter)
+v1Router.use(questionTagRouter)
 
 export default v1Router
