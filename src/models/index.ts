@@ -9,7 +9,7 @@ import FormTypeModel, { FormType } from './form_type.model'
 import CategoryModel, { Category } from './category.model'
 import CategoryLanguageModel, { CategoryLanguage } from './category_language.model'
 import UnitModel, { Unit } from './unit.model'
-
+import OfferModel, { Offer } from './offer.model'
 interface Models {
 	User: typeof User
 	Otp: typeof Otp
@@ -21,7 +21,8 @@ interface Models {
 	Category: typeof Category
 	CategoryLanguage: typeof CategoryLanguage
 	Unit: typeof Unit
-}
+	Offer: typeof Offer
+}   
 
 export const initModels = (sequelize: Sequelize): Models => {
 	const User = UserModel(sequelize)
@@ -34,6 +35,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const Category = CategoryModel(sequelize)
 	const CategoryLanguage = CategoryLanguageModel(sequelize)
 	const Unit = UnitModel(sequelize)
+	const Offer = OfferModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -64,6 +66,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 		FormType,
 		Category,
 		CategoryLanguage,
-		Unit
+		Unit,
+		Offer
 	}
 }
