@@ -16,6 +16,10 @@ import SubCategoryLanguageModel, {
 } from './sub_category_language.model'
 import QuestionUnitModel, { QuestionUnit } from './question_unit.model'
 import QuestionTagModel, { QuestionTag } from './question_tag.model'
+import AdvertisementModel, { Advertisement } from './advertisement.model'
+import AdvertisementImageModel, {
+	AdvertisementImage,
+} from './advertisement_image.model'
 
 interface Models {
 	User: typeof User
@@ -31,6 +35,8 @@ interface Models {
 	SubCategoryLanguage: typeof SubCategoryLanguage
 	QuestionUnit: typeof QuestionUnit
 	QuestionTag: typeof QuestionTag
+	Advertisement: typeof Advertisement
+	AdvertisementImage: typeof AdvertisementImage
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -47,6 +53,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const SubCategoryLanguage = SubCategoryLanguageModel(sequelize)
 	const QuestionUnit = QuestionUnitModel(sequelize)
 	const QuestionTag = QuestionTagModel(sequelize)
+	const Advertisement = AdvertisementModel(sequelize)
+	const AdvertisementImage = AdvertisementImageModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -67,6 +75,15 @@ export const initModels = (sequelize: Sequelize): Models => {
 	User.belongsTo(Language, { foreignKey: 'language_id', as: 'Language' })
 	Language.hasMany(User, { foreignKey: 'language_id', as: 'Users' })
 
+	Advertisement.hasMany(AdvertisementImage, {
+		foreignKey: 'advertisement_id',
+		as: 'images',
+	})
+	AdvertisementImage.belongsTo(Advertisement, {
+		foreignKey: 'advertisement_id',
+		as: 'advertisement',
+	})
+
 	return {
 		User,
 		Otp,
@@ -81,5 +98,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 		SubCategoryLanguage,
 		QuestionUnit,
 		QuestionTag,
+		Advertisement,
+		AdvertisementImage,
 	}
 }
+
+export { Advertisement } from './advertisement.model'
+export { AdvertisementImage } from './advertisement_image.model'
