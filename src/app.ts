@@ -79,13 +79,10 @@ class Server {
 		this.app.use(
 			createRateLimiter(15 * 60 * 1000, 100) as unknown as RequestHandler,
 		)
-		this.app.use(express.json({ limit: '10kb' }))
-		this.app.use(express.urlencoded({ extended: true, limit: '10kb' }))
+		this.app.use(express.json({ limit: '20mb' }))
+		this.app.use(express.urlencoded({ extended: true, limit: '20mb' }))
 		this.app.use(session)
-		this.app.use(
-			'/images',
-			express.static(path.join(__dirname, '../src/public/images')),
-		)
+		this.app.use(express.static(path.join(process.cwd(), 'public')))
 	}
 
 	private routes(): void {
