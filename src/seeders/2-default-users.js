@@ -6,17 +6,17 @@ module.exports = {
 		await queryInterface.bulkDelete('users', null, {})
 
 		const salt = await bcrypt.genSalt(10)
-		const hashedPassword = await bcrypt.hash('Admin@123', salt)
+		const hashedPassword = await bcrypt.hash('powergotha123', salt)
 
 		await queryInterface.bulkInsert(
 			'users',
 			[
 				{
 					id: 1,
-					name: 'Super Admin',
-					email: 'admin@example.com',
+					name: 'admin',
+					email: 'powergotha@powergotha.com',
 					password: hashedPassword,
-					phone_number: '1234567890',
+					phone_number: '7207063149',
 					provider: JSON.stringify(['local']),
 					created_at: new Date(),
 					updated_at: new Date(),
