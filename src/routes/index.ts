@@ -11,6 +11,7 @@ import subCategoryLanguageRouter from './sub_category_language.routes'
 import questionUnitRouter from './question_unit.routes'
 import questionTagRouter from './question_tag.routes'
 import advertisementRouter from './advertisement.routes'
+import businessOutletRouter from './business_outlet.routes'
 
 const v1Router: ExpressRouter = Router()
 
@@ -27,5 +28,6 @@ v1Router.use(subCategoryLanguageRouter)
 v1Router.use(questionUnitRouter)
 v1Router.use(questionTagRouter)
 v1Router.use(advertisementRouter)
+v1Router.use(businessOutletRouter)
 
 export default v1Router
