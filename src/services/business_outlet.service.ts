@@ -1,6 +1,5 @@
 import { BusinessOutlet, User, Role, RoleUser } from '@/models/index'
 import { generateRandomPassword } from '@/utils/password'
-import bcrypt from 'bcryptjs'
 import { addToEmailQueue } from '@/queues/email.queue'
 import db from '@/config/database'
 import { Transaction } from 'sequelize'
