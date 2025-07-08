@@ -23,6 +23,9 @@ import AdvertisementImageModel, {
 	AdvertisementImage,
 } from './advertisement_image.model'
 import BusinessOutletModel, { BusinessOutlet } from './business_outlet.model'
+import summernoteModel, { Summernote } from './summernote.model'
+import SliderArticleModel, { SliderArticle } from './slider_article.model'
+import AppAboutContentModel, { AppAboutContent } from './app_about_content.model'
 
 interface Models {
 	User: typeof User
@@ -43,6 +46,9 @@ interface Models {
 	Advertisement: typeof Advertisement
 	AdvertisementImage: typeof AdvertisementImage
 	BusinessOutlet: typeof BusinessOutlet
+	Summernote: typeof Summernote
+	SliderArticle: typeof SliderArticle
+	AppAboutContent: typeof AppAboutContent
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -64,6 +70,9 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const Advertisement = AdvertisementModel(sequelize)
 	const AdvertisementImage = AdvertisementImageModel(sequelize)
 	const BusinessOutlet = BusinessOutletModel(sequelize)
+	const Summernote = summernoteModel(sequelize)
+	const SliderArticle = SliderArticleModel(sequelize)
+	const AppAboutContent = AppAboutContentModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -112,6 +121,9 @@ export const initModels = (sequelize: Sequelize): Models => {
 		Advertisement,
 		AdvertisementImage,
 		BusinessOutlet,
+		Summernote,
+		SliderArticle,
+		AppAboutContent,
 	}
 }
 

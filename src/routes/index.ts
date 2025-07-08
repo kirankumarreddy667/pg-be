@@ -14,6 +14,9 @@ import questionUnitRouter from './question_unit.routes'
 import questionTagRouter from './question_tag.routes'
 import advertisementRouter from './advertisement.routes'
 import businessOutletRouter from './business_outlet.routes'
+import summernoteRouter from './summernote.routes'
+import sliderArticleRouter from './slider_article.routes'
+import appAboutContentRouter from './app_about_content.routes'
 
 const v1Router: ExpressRouter = Router()
 
@@ -33,5 +36,8 @@ v1Router.use(questionUnitRouter)
 v1Router.use(questionTagRouter)
 v1Router.use(advertisementRouter)
 v1Router.use(businessOutletRouter)
+v1Router.use(summernoteRouter)
+v1Router.use(sliderArticleRouter)
+v1Router.use(appAboutContentRouter)
 
 export default v1Router
