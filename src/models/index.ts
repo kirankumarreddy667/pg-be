@@ -7,6 +7,7 @@ import LanguageModel, { Language } from './language.model'
 import ValidationRuleModel, { ValidationRule } from './validation_rule.model'
 import FormTypeModel, { FormType } from './form_type.model'
 import CategoryModel, { Category } from './category.model'
+import UnitModel, { Unit } from './unit.model'
 import CategoryLanguageModel, {
 	CategoryLanguage,
 } from './category_language.model'
@@ -32,6 +33,7 @@ interface Models {
 	FormType: typeof FormType
 	Category: typeof Category
 	CategoryLanguage: typeof CategoryLanguage
+	Unit: typeof Unit
 	Subcategory: typeof Subcategory
 	SubCategoryLanguage: typeof SubCategoryLanguage
 	QuestionUnit: typeof QuestionUnit
@@ -51,6 +53,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const FormType = FormTypeModel(sequelize)
 	const Category = CategoryModel(sequelize)
 	const CategoryLanguage = CategoryLanguageModel(sequelize)
+	const Unit = UnitModel(sequelize)
 	const Subcategory = SubcategoryModel(sequelize)
 	const SubCategoryLanguage = SubCategoryLanguageModel(sequelize)
 	const QuestionUnit = QuestionUnitModel(sequelize)
@@ -97,6 +100,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 		FormType,
 		Category,
 		CategoryLanguage,
+		Unit,
 		Subcategory,
 		SubCategoryLanguage,
 		QuestionUnit,

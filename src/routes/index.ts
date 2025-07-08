@@ -6,6 +6,7 @@ import questionValidationRoutes from './question_validation_rules.routes'
 import formTypeRouter from './form_type.routes'
 import categoryRouter from './category.routes'
 import categoryLanguageRouter from './category_language.routes'
+import unitRouter from './unit.routes'
 import subCategoryRouter from './sub_category.routes'
 import subCategoryLanguageRouter from './sub_category_language.routes'
 import questionUnitRouter from './question_unit.routes'
@@ -23,6 +24,7 @@ v1Router.use(questionValidationRoutes)
 v1Router.use(formTypeRouter)
 v1Router.use(categoryRouter)
 v1Router.use(categoryLanguageRouter)
+v1Router.use(unitRouter)
 v1Router.use(subCategoryRouter)
 v1Router.use(subCategoryLanguageRouter)
 v1Router.use(questionUnitRouter)
