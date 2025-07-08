@@ -9,9 +9,13 @@ import {
 	loginSchema,
 	forgotPassword,
 	resetPassword,
+	businessLoginSchema,
+	businessForgotPasswordSchema,
+	changePasswordSchema,
 } from '@/validations/auth.validation'
 import passport from '@/config/passport.config'
 import { oauthFailureHandler } from '@/utils/oauthFailureHandler'
+import { authenticate } from '@/middlewares/auth.middleware'
 
 const router: Router = Router()
 
@@ -50,6 +54,25 @@ router.post(
 	'/reset-password',
 	validateRequest(resetPassword),
 	wrapAsync(AuthController.resetPassword),
+)
+
+router.post(
+	'/business/login',
+	validateRequest(businessLoginSchema),
+	AuthController.businessUserLogin,
+)
+
+router.post(
+	'/business/forgot_password',
+	validateRequest(businessForgotPasswordSchema),
+	AuthController.businessForgotPassword,
+)
+
+router.post(
+	'/change_password',
+	authenticate,
+	validateRequest(changePasswordSchema),
+	AuthController.changePassword,
 )
 
 // Initiate Google OAuth login

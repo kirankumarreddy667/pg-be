@@ -1,8 +1,5 @@
 import { Model, DataTypes, Sequelize } from 'sequelize'
 
-// Add a type for valid role names
-export type RoleName = 'User' | 'SuperAdmin' | 'Business'
-
 export interface RoleUserAttributes {
 	user_id: number
 	role_id: number
