@@ -12,7 +12,6 @@ export class SliderArticleService {
 		}>,
 	): Promise<boolean> {
 
-		console.log(articles)
 		await db.SliderArticle.bulkCreate(articles)
 		return true
 	}
