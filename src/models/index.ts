@@ -17,6 +17,11 @@ import SubCategoryLanguageModel, {
 } from './sub_category_language.model'
 import QuestionUnitModel, { QuestionUnit } from './question_unit.model'
 import QuestionTagModel, { QuestionTag } from './question_tag.model'
+import AdvertisementModel, { Advertisement } from './advertisement.model'
+import AdvertisementImageModel, {
+	AdvertisementImage,
+} from './advertisement_image.model'
+import BusinessOutletModel, { BusinessOutlet } from './business_outlet.model'
 
 interface Models {
 	User: typeof User
@@ -33,6 +38,9 @@ interface Models {
 	SubCategoryLanguage: typeof SubCategoryLanguage
 	QuestionUnit: typeof QuestionUnit
 	QuestionTag: typeof QuestionTag
+	Advertisement: typeof Advertisement
+	AdvertisementImage: typeof AdvertisementImage
+	BusinessOutlet: typeof BusinessOutlet
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -50,6 +58,9 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const SubCategoryLanguage = SubCategoryLanguageModel(sequelize)
 	const QuestionUnit = QuestionUnitModel(sequelize)
 	const QuestionTag = QuestionTagModel(sequelize)
+	const Advertisement = AdvertisementModel(sequelize)
+	const AdvertisementImage = AdvertisementImageModel(sequelize)
+	const BusinessOutlet = BusinessOutletModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -70,6 +81,15 @@ export const initModels = (sequelize: Sequelize): Models => {
 	User.belongsTo(Language, { foreignKey: 'language_id', as: 'Language' })
 	Language.hasMany(User, { foreignKey: 'language_id', as: 'Users' })
 
+	Advertisement.hasMany(AdvertisementImage, {
+		foreignKey: 'advertisement_id',
+		as: 'images',
+	})
+	AdvertisementImage.belongsTo(Advertisement, {
+		foreignKey: 'advertisement_id',
+		as: 'advertisement',
+	})
+
 	return {
 		User,
 		Otp,
@@ -85,5 +105,25 @@ export const initModels = (sequelize: Sequelize): Models => {
 		SubCategoryLanguage,
 		QuestionUnit,
 		QuestionTag,
+		Advertisement,
+		AdvertisementImage,
+		BusinessOutlet,
 	}
 }
+
+export { Advertisement } from './advertisement.model'
+export { AdvertisementImage } from './advertisement_image.model'
+export { BusinessOutlet } from './business_outlet.model'
+export { User } from './user.model'
+export { Role } from './role.model'
+export { RoleUser } from './role_user.model'
+export { Otp } from './otp.model'
+export { Language } from './language.model'
+export { ValidationRule } from './validation_rule.model'
+export { FormType } from './form_type.model'
+export { Category } from './category.model'
+export { CategoryLanguage } from './category_language.model'
+export { Subcategory } from './sub_category.model'
+export { SubCategoryLanguage } from './sub_category_language.model'
+export { QuestionUnit } from './question_unit.model'
+export { QuestionTag } from './question_tag.model'

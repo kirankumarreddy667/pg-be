@@ -2,6 +2,12 @@ import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { AuthService } from '@/services/auth.service'
 import { User } from '@/models/user.model'
+import {
+	businessLoginSchema,
+	businessForgotPasswordSchema,
+	changePasswordSchema,
+} from '@/validations/auth.validation'
+import { BusinessLoginService } from '@/services/business_login.service'
 
 interface UserRegistrationBody {
 	name: string
@@ -157,6 +163,57 @@ export class AuthController {
 			})
 		} catch {
 			RESPONSE.FailureResponse(res, 401, { message: 'Unauthorized' })
+		}
+	}
+
+	static businessUserLogin: RequestHandler = async (req, res, next) => {
+		try {
+			const { email, password } = req.body as {
+				email: string
+				password: string
+			}
+			const result = await BusinessLoginService.businessUserLogin(
+				email,
+				password,
+			)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Login successful',
+				data: result,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static businessForgotPassword: RequestHandler = async (req, res, next) => {
+		try {
+			const { email } = req.body as { email: string }
+			await BusinessLoginService.businessForgotPassword(email)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'A new password has been sent to your email.',
+				data: [],
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	static changePassword: RequestHandler = async (req, res, next) => {
+		try {
+			const userId = (req.user as { id: number })?.id
+			if (!userId) throw new Error('User not found')
+			const { old_password, password } = req.body as {
+				old_password: string
+				password: string
+				confirm_password: string
+			}
+			await BusinessLoginService.changePassword(userId, old_password, password)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Password changed successfully',
+				data: [],
+			})
+		} catch (error) {
+			next(error)
 		}
 	}
 }

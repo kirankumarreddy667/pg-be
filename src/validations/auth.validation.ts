@@ -71,3 +71,37 @@ export const resetPassword = Joi.object().keys({
 		}),
 	password: Joi.string().min(8).required(),
 })
+
+export const businessLoginSchema = Joi.object({
+	email: Joi.string().email().required().messages({
+		'any.required': 'Email is required',
+		'string.email': 'Email must be a valid email address',
+	}),
+	password: Joi.string().required().messages({
+		'any.required': 'Password is required',
+	}),
+})
+
+export const businessForgotPasswordSchema = Joi.object({
+	email: Joi.string().email().required().messages({
+		'any.required': 'Email is required',
+		'string.email': 'Email must be a valid email address',
+	}),
+})
+
+export const changePasswordSchema = Joi.object({
+	old_password: Joi.string().required().messages({
+		'any.required': 'Old password is required',
+	}),
+	password: Joi.string().min(8).required().messages({
+		'any.required': 'New password is required',
+		'string.min': 'New password must be at least 8 characters',
+	}),
+	confirm_password: Joi.string()
+		.required()
+		.valid(Joi.ref('password'))
+		.messages({
+			'any.required': 'Confirm password is required',
+			'any.only': 'Confirm password must match new password',
+		}),
+})
