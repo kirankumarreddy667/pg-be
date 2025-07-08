@@ -83,6 +83,8 @@ class Server {
 		this.app.use(express.urlencoded({ extended: true, limit: '20mb' }))
 		this.app.use(session)
 		this.app.use(express.static(path.join(process.cwd(), 'public')))
+		this.app.set('view engine', 'ejs')
+		this.app.set('views', path.join(__dirname, 'views'))
 	}
 
 	private routes(): void {
