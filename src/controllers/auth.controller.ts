@@ -2,11 +2,6 @@ import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { AuthService } from '@/services/auth.service'
 import { User } from '@/models/user.model'
-import {
-	businessLoginSchema,
-	businessForgotPasswordSchema,
-	changePasswordSchema,
-} from '@/validations/auth.validation'
 import { BusinessLoginService } from '@/services/business_login.service'
 
 interface UserRegistrationBody {

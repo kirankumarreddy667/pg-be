@@ -1,5 +1,4 @@
 import { User } from '@/models/user.model'
-import bcrypt from 'bcryptjs'
 import { TokenService } from './token.service'
 import { AuthorizationError } from '@/utils/errors'
 import { generateRandomPassword } from '@/utils/password'
