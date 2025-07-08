@@ -9,13 +9,11 @@ const offerRouter: Router = Router()
 
 offerRouter.get(
   '/offers',
-  authenticate,
   wrapAsync(offerController.getAllOffers)
 )
 
 offerRouter.get(
   '/offers/:language_id',
-  authenticate,
   wrapAsync(offerController.getOffersByLanguage)
 )
 
