@@ -29,6 +29,11 @@ import AppAboutContentModel, {
 	AppAboutContent,
 } from './app_about_content.model'
 import ContactModel, { ContactUs } from './contact_us.model'
+import productModel, { Product } from './product.model'
+import ProductsCategoryFactory, {
+	ProductsCategory,
+} from './products_category.model'
+import ProductPaymentFactory, { ProductPayment } from './product_payment.model'
 
 interface Models {
 	User: typeof User
@@ -53,6 +58,9 @@ interface Models {
 	SliderArticle: typeof SliderArticle
 	AppAboutContent: typeof AppAboutContent
 	ContactUs: typeof ContactUs
+	Product: typeof Product
+	ProductsCategory: typeof ProductsCategory
+	ProductPayment: typeof ProductPayment
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -78,6 +86,9 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const SliderArticle = SliderArticleModel(sequelize)
 	const AppAboutContent = AppAboutContentModel(sequelize)
 	const ContactUs = ContactModel(sequelize)
+	const Product = productModel(sequelize)
+	const ProductsCategory = ProductsCategoryFactory(sequelize)
+	const ProductPayment = ProductPaymentFactory(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -130,6 +141,9 @@ export const initModels = (sequelize: Sequelize): Models => {
 		SliderArticle,
 		AppAboutContent,
 		ContactUs,
+		Product,
+		ProductsCategory,
+		ProductPayment,
 	}
 }
 
