@@ -1,7 +1,11 @@
 import { Router } from 'express'
 import { BusinessOutletController } from '@/controllers/business_outlet.controller'
 import { validateRequest } from '@/middlewares/validateRequest'
-import { businessOutletSchema } from '@/validations/business_outlet.validation'
+import {
+	businessOutletSchema,
+	farmersListSchema,
+	businessOutletFarmerMappingSchema,
+} from '@/validations/business_outlet.validation'
 import { wrapAsync } from '@/utils/asyncHandler'
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
 
@@ -190,6 +194,204 @@ router.delete(
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
 	wrapAsync(BusinessOutletController.delete),
+)
+
+/**
+ * @swagger
+ * /business_outlet_farmer_mapping:
+ *   post:
+ *     summary: Map a farmer (user) to a business outlet
+ *     tags: [BusinessOutlet]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user_id:
+ *                 type: integer
+ *               business_outlet_id:
+ *                 type: integer
+ *             required:
+ *               - user_id
+ *               - business_outlet_id
+ *     responses:
+ *       201:
+ *         description: Mapping created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/business_outlet_farmer_mapping',
+	authenticate,
+	validateRequest(businessOutletFarmerMappingSchema),
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(BusinessOutletController.mapUserWithBusinessOutlet),
+)
+
+/**
+ * @swagger
+ * /business_outlet_farmer/{id}:
+ *   get:
+ *     summary: Get all farmers mapped to a business outlet
+ *     tags: [BusinessOutlet]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Business outlet ID
+ *     responses:
+ *       200:
+ *         description: List of mapped farmers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/business_outlet_farmer/:id',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(BusinessOutletController.businessOutletFarmers),
+)
+
+/**
+ * @swagger
+ * /business/list_of_users:
+ *   post:
+ *     summary: Get list of farmers mapped to a business outlet (with filters)
+ *     tags: [BusinessOutlet]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               business_outlet_id:
+ *                 type: integer
+ *               start_date:
+ *                 type: string
+ *                 format: date
+ *                 description: 'YYYY-MM-DD'
+ *               end_date:
+ *                 type: string
+ *                 format: date
+ *                 description: 'YYYY-MM-DD'
+ *               search:
+ *                 type: string
+ *             required:
+ *               - business_outlet_id
+ *               - search
+ *     responses:
+ *       200:
+ *         description: List of mapped farmers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/business/list_of_users',
+	authenticate,
+	validateRequest(farmersListSchema),
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(BusinessOutletController.farmersList),
+)
+
+/**
+ * @swagger
+ * /business_outlet/delete_farmer/{farmer_id}/{business_outlet_id}:
+ *   delete:
+ *     summary: Delete a mapped farmer from a business outlet
+ *     tags: [BusinessOutlet]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: farmer_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Farmer user ID
+ *       - in: path
+ *         name: business_outlet_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Business outlet ID
+ *     responses:
+ *       200:
+ *         description: Mapping deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Mapping not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.delete(
+	'/business_outlet/delete_farmer/:farmer_id/:business_outlet_id',
+	authenticate,
+	wrapAsync(authorize(['Business'])),
+	wrapAsync(BusinessOutletController.deleteMappedFarmerToBusinessOutlet),
 )
 
 export default router

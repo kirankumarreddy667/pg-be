@@ -7,3 +7,18 @@ export const businessOutletSchema = Joi.object({
 	mobile: Joi.string().pattern(/^\d+$/).required(),
 	business_address: Joi.string().required(),
 })
+
+export const farmersListSchema = Joi.object({
+	start_date: Joi.string()
+		.optional()
+		.pattern(/^\d{4}-\d{2}-\d{2}$/),
+	end_date: Joi.string()
+		.optional()
+		.pattern(/^\d{4}-\d{2}-\d{2}$/),
+	search: Joi.string().required(),
+})
+
+export const businessOutletFarmerMappingSchema = Joi.object({
+	user_id: Joi.number().integer().positive().required(),
+	business_outlet_id: Joi.number().integer().positive().required(),
+})
