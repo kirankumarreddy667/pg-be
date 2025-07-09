@@ -112,21 +112,7 @@ const swagOptions = {
 			{
 				bearerAuth: [],
 			},
-		],
-		tags: [
-			{
-				name: 'Auth',
-				description: 'Authentication endpoints',
-			},
-			{
-				name: 'Cattle',
-				description: 'Cattle management endpoints',
-			},
-			{
-				name: 'Users',
-				description: 'User management endpoints',
-			},
-		],
+		]
 	},
 	apis: [
 		'./src/services/**/*.ts',
