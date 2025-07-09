@@ -19,6 +19,7 @@ import sliderArticleRouter from './slider_article.routes'
 import appAboutContentRouter from './app_about_content.routes'
 import contactRouter from './contact_us.routes'
 import productRouter from './product.routes'
+import farmManagementRoutes from './farm_management.routes'
 
 const v1Router: ExpressRouter = Router()
 
@@ -43,5 +44,6 @@ v1Router.use(sliderArticleRouter)
 v1Router.use(appAboutContentRouter)
 v1Router.use(contactRouter)
 v1Router.use(productRouter)
+v1Router.use(farmManagementRoutes)
 
 export default v1Router

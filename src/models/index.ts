@@ -34,6 +34,21 @@ import ProductsCategoryFactory, {
 	ProductsCategory,
 } from './products_category.model'
 import ProductPaymentFactory, { ProductPayment } from './product_payment.model'
+import UserFarmDetailsFactory, {
+	UserFarmDetails,
+} from './user_farm_details.model'
+import FarmTypesLanguageFactory, {
+	FarmTypesLanguage,
+} from './farm_types_language.model'
+import FixedInvestmentDetailsFactory, {
+	FixedInvestmentDetails,
+} from './fixed_investment_details.model'
+import InvestmentTypesFactory, {
+	InvestmentTypes,
+} from './investment_types.model'
+import InvestmentTypesLanguageFactory, {
+	InvestmentTypesLanguage,
+} from './investment_types_language.model'
 
 interface Models {
 	User: typeof User
@@ -61,6 +76,11 @@ interface Models {
 	Product: typeof Product
 	ProductsCategory: typeof ProductsCategory
 	ProductPayment: typeof ProductPayment
+	UserFarmDetails: typeof UserFarmDetails
+	FarmTypesLanguage: typeof FarmTypesLanguage
+	FixedInvestmentDetails: typeof FixedInvestmentDetails
+	InvestmentTypes: typeof InvestmentTypes
+	InvestmentTypesLanguage: typeof InvestmentTypesLanguage
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -89,6 +109,11 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const Product = productModel(sequelize)
 	const ProductsCategory = ProductsCategoryFactory(sequelize)
 	const ProductPayment = ProductPaymentFactory(sequelize)
+	const UserFarmDetails = UserFarmDetailsFactory(sequelize)
+	const FarmTypesLanguage = FarmTypesLanguageFactory(sequelize)
+	const FixedInvestmentDetails = FixedInvestmentDetailsFactory(sequelize)
+	const InvestmentTypes = InvestmentTypesFactory(sequelize)
+	const InvestmentTypesLanguage = InvestmentTypesLanguageFactory(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -144,6 +169,11 @@ export const initModels = (sequelize: Sequelize): Models => {
 		Product,
 		ProductsCategory,
 		ProductPayment,
+		UserFarmDetails,
+		FarmTypesLanguage,
+		FixedInvestmentDetails,
+		InvestmentTypes,
+		InvestmentTypesLanguage,
 	}
 }
 
