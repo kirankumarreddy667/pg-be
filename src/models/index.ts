@@ -49,6 +49,9 @@ import InvestmentTypesFactory, {
 import InvestmentTypesLanguageFactory, {
 	InvestmentTypesLanguage,
 } from './investment_types_language.model'
+import UserBusinessOutletModel, {
+	UserBusinessOutlet,
+} from './user_business_outlet.model'
 
 interface Models {
 	User: typeof User
@@ -81,6 +84,7 @@ interface Models {
 	FixedInvestmentDetails: typeof FixedInvestmentDetails
 	InvestmentTypes: typeof InvestmentTypes
 	InvestmentTypesLanguage: typeof InvestmentTypesLanguage
+	UserBusinessOutlet: typeof UserBusinessOutlet
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -114,6 +118,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const FixedInvestmentDetails = FixedInvestmentDetailsFactory(sequelize)
 	const InvestmentTypes = InvestmentTypesFactory(sequelize)
 	const InvestmentTypesLanguage = InvestmentTypesLanguageFactory(sequelize)
+	const UserBusinessOutlet = UserBusinessOutletModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -174,6 +179,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 		FixedInvestmentDetails,
 		InvestmentTypes,
 		InvestmentTypesLanguage,
+		UserBusinessOutlet,
 	}
 }
 
@@ -193,3 +199,4 @@ export { Subcategory } from './sub_category.model'
 export { SubCategoryLanguage } from './sub_category_language.model'
 export { QuestionUnit } from './question_unit.model'
 export { QuestionTag } from './question_tag.model'
+export { UserBusinessOutlet } from './user_business_outlet.model'
