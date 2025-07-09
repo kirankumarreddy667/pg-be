@@ -1,4 +1,4 @@
-import { Request, Response } from 'express'
+import { RequestHandler } from 'express'
 import { Transaction } from 'sequelize'
 import {
 	Advertisement as AdvertisementModel,
@@ -27,8 +27,8 @@ interface AdvertisementPayload {
 // 	image: string
 // }
 
-export const AdvertisementController = {
-	create: async (req: Request, res: Response): Promise<void> => {
+export class AdvertisementController {
+	static create: RequestHandler = async (req, res, next): Promise<void> => {
 		const {
 			name,
 			description,
@@ -78,14 +78,11 @@ export const AdvertisementController = {
 			})
 		} catch (error) {
 			await t.rollback()
-			RESPONSE.FailureResponse(res, 500, {
-				message: 'Failed to create advertisement or save images',
-				errors: [error instanceof Error ? error.message : String(error)],
-			})
+			next(error)
 		}
-	},
+	}
 
-	index: async (req: Request, res: Response): Promise<void> => {
+	static index: RequestHandler = async (req, res): Promise<void> => {
 		const ads = await AdvertisementModel.findAll({
 			include: [{ model: AdvertisementImage, as: 'images' }],
 			order: [['created_at', 'DESC']],
@@ -118,9 +115,9 @@ export const AdvertisementController = {
 			message: 'Success',
 			data,
 		})
-	},
+	}
 
-	show: async (req: Request, res: Response): Promise<void> => {
+	static show: RequestHandler = async (req, res): Promise<void> => {
 		const { id } = req.params
 		const ad = await AdvertisementModel.findByPk(id, {
 			include: [{ model: AdvertisementImage, as: 'images' }],
@@ -155,9 +152,9 @@ export const AdvertisementController = {
 			message: 'Success',
 			data,
 		})
-	},
+	}
 
-	update: async (req: Request, res: Response): Promise<void> => {
+	static update: RequestHandler = async (req, res): Promise<void> => {
 		const { id } = req.params
 		const t = await sequelize.transaction()
 		try {
@@ -221,9 +218,9 @@ export const AdvertisementController = {
 				errors: [error instanceof Error ? error.message : String(error)],
 			})
 		}
-	},
+	}
 
-	destroy: async (req: Request, res: Response): Promise<void> => {
+	static destroy: RequestHandler = async (req, res): Promise<void> => {
 		const { id } = req.params
 		const t = await sequelize.transaction()
 		try {
@@ -252,5 +249,5 @@ export const AdvertisementController = {
 				errors: [error instanceof Error ? error.message : String(error)],
 			})
 		}
-	},
+	}
 }

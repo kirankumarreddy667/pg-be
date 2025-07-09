@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { offerController } from '@/controllers/offer.controller' // ✅ correct instance
+import { OfferController } from '@/controllers/offer.controller' // ✅ correct instance
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
 import { validateRequest } from '@/middlewares/validateRequest'
 import { createOfferSchema } from '@/validations/offer.validation'
@@ -34,7 +34,7 @@ const offerRouter: Router = Router()
  *             schema:
  *               $ref: '#/components/schemas/FailureResponse'
  */
-offerRouter.get('/offers', wrapAsync(offerController.getAllOffers))
+offerRouter.get('/offers', wrapAsync(OfferController.getAllOffers))
 
 /**
  * @swagger
@@ -71,7 +71,7 @@ offerRouter.get('/offers', wrapAsync(offerController.getAllOffers))
  */
 offerRouter.get(
 	'/offers/:language_id',
-	wrapAsync(offerController.getOffersByLanguage),
+	wrapAsync(OfferController.getOffersByLanguage),
 )
 
 /**
@@ -113,7 +113,7 @@ offerRouter.post(
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(createOfferSchema),
-	wrapAsync(offerController.createOffer),
+	wrapAsync(OfferController.createOffer),
 )
 
 export default offerRouter

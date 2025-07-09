@@ -1,13 +1,9 @@
-import { NextFunction, Request, Response } from 'express'
+import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { BusinessOutletService } from '@/services/business_outlet.service'
 
-export const BusinessOutletController = {
-	store: async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	): Promise<void> => {
+export class BusinessOutletController {
+	static store: RequestHandler = async (req, res, next): Promise<void> => {
 		try {
 			await BusinessOutletService.create(
 				req.body as {
@@ -26,26 +22,18 @@ export const BusinessOutletController = {
 		} catch (error) {
 			next(error)
 		}
-	},
+	}
 
-	list: async (
-		_req: Request,
-		res: Response,
-		next: NextFunction,
-	): Promise<void> => {
+	static list: RequestHandler = async (_req, res, next): Promise<void> => {
 		try {
 			const outlets = await BusinessOutletService.list()
 			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: outlets })
 		} catch (error) {
 			next(error)
 		}
-	},
+	}
 
-	update: async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	): Promise<void> => {
+	static update: RequestHandler = async (req, res, next): Promise<void> => {
 		try {
 			const id = Number(req.params.id)
 			await BusinessOutletService.update(
@@ -65,13 +53,9 @@ export const BusinessOutletController = {
 		} catch (error) {
 			next(error)
 		}
-	},
+	}
 
-	delete: async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	): Promise<void> => {
+	static delete: RequestHandler = async (req, res, next): Promise<void> => {
 		try {
 			const id = Number(req.params.id)
 			await BusinessOutletService.delete(id)
@@ -79,12 +63,12 @@ export const BusinessOutletController = {
 		} catch (error) {
 			next(error)
 		}
-	},
+	}
 
-	mapUserWithBusinessOutlet: async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
+	static mapUserWithBusinessOutlet: RequestHandler = async (
+		req,
+		res,
+		next,
 	): Promise<void> => {
 		try {
 			const { user_id, business_outlet_id } = req.body as {
@@ -102,12 +86,12 @@ export const BusinessOutletController = {
 		} catch (error) {
 			next(error)
 		}
-	},
+	}
 
-	businessOutletFarmers: async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
+	static businessOutletFarmers: RequestHandler = async (
+		req,
+		res,
+		next,
 	): Promise<void> => {
 		try {
 			const business_outlet_id = Number(req.params.id)
@@ -120,12 +104,12 @@ export const BusinessOutletController = {
 		} catch (error) {
 			next(error)
 		}
-	},
+	}
 
-	farmersList: async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
+	static farmersList: RequestHandler = async (
+		req,
+		res,
+		next,
 	): Promise<void> => {
 		try {
 			const { start_date, end_date, search } = req.body as {
@@ -145,12 +129,12 @@ export const BusinessOutletController = {
 		} catch (error) {
 			next(error)
 		}
-	},
+	}
 
-	deleteMappedFarmerToBusinessOutlet: async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
+	static deleteMappedFarmerToBusinessOutlet: RequestHandler = async (
+		req,
+		res,
+		next,
 	): Promise<void> => {
 		try {
 			const farmer_id = Number(req.params.farmer_id)
@@ -166,5 +150,5 @@ export const BusinessOutletController = {
 		} catch (error) {
 			next(error)
 		}
-	},
+	}
 }
