@@ -13,8 +13,8 @@
 		"lint": "eslint . --ext .ts",
 		"lint:fix": "eslint . --ext .ts --fix",
 		"test": "jest",
-		"db:migrate": "cross-env NODE_OPTIONS=\"--loader ts-node/esm\" pnpm exec sequelize-cli db:migrate",
-		"db:seed:all": "cross-env NODE_OPTIONS=\"--loader ts-node/esm\" pnpm exec sequelize-cli db:seed:all",
+		"db:migrate": "cross-env NODE_OPTIONS=\"-r ts-node/register\" sequelize-cli db:migrate",
+		"db:seed:all": "cross-env NODE_OPTIONS=\"-r ts-node/register\" sequelize-cli db:seed:all",
 		"db:seed:generate": "sequelize-cli seed:generate --name"
 	},
 	"_moduleAliases": {
