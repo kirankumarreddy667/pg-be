@@ -52,6 +52,10 @@ import InvestmentTypesLanguageFactory, {
 import UserBusinessOutletModel, {
 	UserBusinessOutlet,
 } from './user_business_outlet.model'
+import AnimalModel, { Animal } from './animal.model'
+import TypeModel, { Type } from './type.model'
+import AnimalTypeModel, { AnimalType } from './animal_type.model'
+import AnimalLanguageModel, { AnimalLanguage } from './animal_language.model'
 
 interface Models {
 	User: typeof User
@@ -85,6 +89,10 @@ interface Models {
 	InvestmentTypes: typeof InvestmentTypes
 	InvestmentTypesLanguage: typeof InvestmentTypesLanguage
 	UserBusinessOutlet: typeof UserBusinessOutlet
+	Animal: typeof Animal
+	Type: typeof Type
+	AnimalType: typeof AnimalType
+	AnimalLanguage: typeof AnimalLanguage
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -119,6 +127,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const InvestmentTypes = InvestmentTypesFactory(sequelize)
 	const InvestmentTypesLanguage = InvestmentTypesLanguageFactory(sequelize)
 	const UserBusinessOutlet = UserBusinessOutletModel(sequelize)
+	const Animal = AnimalModel(sequelize)
+	const Type = TypeModel(sequelize)
+	const AnimalType = AnimalTypeModel(sequelize)
+	const AnimalLanguage = AnimalLanguageModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -147,6 +159,14 @@ export const initModels = (sequelize: Sequelize): Models => {
 		foreignKey: 'advertisement_id',
 		as: 'advertisement',
 	})
+
+	BusinessOutlet.belongsTo(User, { foreignKey: 'user_id' })
+	User.hasMany(BusinessOutlet, { foreignKey: 'user_id' })
+
+	AnimalType.belongsTo(Animal, { foreignKey: 'animal_id' })
+	AnimalType.belongsTo(Type, { foreignKey: 'type_id' })
+	Animal.hasMany(AnimalType, { foreignKey: 'animal_id' })
+	Type.hasMany(AnimalType, { foreignKey: 'type_id' })
 
 	return {
 		User,
@@ -180,6 +200,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 		InvestmentTypes,
 		InvestmentTypesLanguage,
 		UserBusinessOutlet,
+		Animal,
+		Type,
+		AnimalType,
+		AnimalLanguage,
 	}
 }
 
@@ -200,3 +224,5 @@ export { SubCategoryLanguage } from './sub_category_language.model'
 export { QuestionUnit } from './question_unit.model'
 export { QuestionTag } from './question_tag.model'
 export { UserBusinessOutlet } from './user_business_outlet.model'
+export { Animal } from './animal.model'
+export { AnimalType } from './animal_type.model'
