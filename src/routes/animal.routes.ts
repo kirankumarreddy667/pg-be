@@ -544,4 +544,30 @@ router.delete(
 	wrapAsync(AnimalController.deleteAnimalType),
 )
 
+/**
+ * @swagger
+ * /get_all_animals/{language_id}:
+ *   get:
+ *     summary: Get all animals by language
+ *     tags: [Animal]
+ *     parameters:
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ */
+router.get(
+	'/get_all_animals/:language_id',
+	wrapAsync(AnimalController.getAllAnimals),
+)
+
 export default router

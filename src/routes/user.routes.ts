@@ -1,7 +1,7 @@
 import { Router, type Router as ExpressRouter } from 'express'
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
 import { wrapAsync } from '@/utils/asyncHandler'
-import { UserController } from '@/controllers/user.controller'
+import { UserController, redirectUser } from '@/controllers/user.controller'
 import { validateRequest } from '@/middlewares/validateRequest'
 import {
 	sortUsersSchema,
@@ -254,5 +254,17 @@ router.post(
 	validateRequest(updatePaymentStatusSchema),
 	wrapAsync(UserController.updatePaymentStatus),
 )
+
+/**
+ * @swagger
+ * /daily_record_phone:
+ *   get:
+ *     summary: Redirect user to PowerGotha app on Play Store
+ *     tags: [User]
+ *     responses:
+ *       302:
+ *         description: Redirect to Play Store
+ */
+router.get('/daily_record_phone', redirectUser)
 
 export default router

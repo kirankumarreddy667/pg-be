@@ -1,4 +1,4 @@
-import { RequestHandler } from 'express'
+import { RequestHandler, Request, Response } from 'express'
 import { UserService } from '@/services/user.service'
 import RESPONSE from '@/utils/response'
 import type { UserWithLanguage } from '@/types'
@@ -284,4 +284,10 @@ export class UserController {
 			next(error)
 		}
 	}
+}
+
+export const redirectUser = (req: Request, res: Response): void => {
+	res.redirect(
+		'https://play.google.com/store/apps/details?id=com.app.powergotha',
+	)
 }

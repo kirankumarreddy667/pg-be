@@ -144,4 +144,23 @@ export class AnimalService {
 	static async findAnimalTypeById(id: number): Promise<AnimalType | null> {
 		return db.AnimalType.findByPk(id)
 	}
+
+	static async getAllAnimals(language_id: number): Promise<{
+		message: string
+		data: { id: number; name: string; language_id: number }[]
+	}> {
+		const animals = await db.AnimalLanguage.findAll({
+			where: { language_id },
+			attributes: ['animal_id', 'name', 'language_id'],
+			raw: true,
+		})
+
+		const resData = animals.map((value) => ({
+			id: value.animal_id,
+			name: value.name,
+			language_id: value.language_id,
+		}))
+
+		return { message: 'Success', data: resData }
+	}
 }

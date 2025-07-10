@@ -151,4 +151,21 @@ export class AnimalController {
 			next(error)
 		}
 	}
+
+	static getAllAnimals: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
+		try {
+			const language_id = Number(req.params.language_id)
+			const result = await AnimalService.getAllAnimals(language_id)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: result.message,
+				data: result.data,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
 }
