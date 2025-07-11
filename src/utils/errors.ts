@@ -39,7 +39,7 @@ export class AppError extends Error {
 		let userId = 'anonymous'
 		if (typeof req === 'object' && req && 'user' in req) {
 			const user = (req as { user?: { id?: string | number } }).user
-			if (user && user.id) userId = String(user.id)
+			userId = user?.id ? String(user.id) : userId
 		}
 		logAuditEvent(
 			{ user: { id: userId } },

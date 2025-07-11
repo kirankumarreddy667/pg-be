@@ -15,7 +15,11 @@ interface Product {
 	thumbnail: string
 }
 export class ProductController {
-	static addProducts: RequestHandler = async (req, res, next) => {
+	public static readonly addProducts: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const data = (req.body as { data: Product[] }).data
 			await ProductService.addProducts(data)
@@ -26,7 +30,11 @@ export class ProductController {
 		}
 	}
 
-	static getProducts: RequestHandler = async (req, res, next) => {
+	public static readonly getProducts: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const category_id = Number(req.params.category_id)
 			const language_id = Number(req.params.language_id)

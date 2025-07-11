@@ -3,7 +3,11 @@ import RESPONSE from '@/utils/response'
 import { BusinessOutletService } from '@/services/business_outlet.service'
 
 export class BusinessOutletController {
-	static store: RequestHandler = async (req, res, next): Promise<void> => {
+	public static readonly store: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
 		try {
 			await BusinessOutletService.create(
 				req.body as {
@@ -24,7 +28,11 @@ export class BusinessOutletController {
 		}
 	}
 
-	static list: RequestHandler = async (_req, res, next): Promise<void> => {
+	public static readonly list: RequestHandler = async (
+		_req,
+		res,
+		next,
+	): Promise<void> => {
 		try {
 			const outlets = await BusinessOutletService.list()
 			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: outlets })
@@ -33,7 +41,11 @@ export class BusinessOutletController {
 		}
 	}
 
-	static update: RequestHandler = async (req, res, next): Promise<void> => {
+	public static readonly update: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
 		try {
 			const id = Number(req.params.id)
 			await BusinessOutletService.update(
@@ -55,7 +67,11 @@ export class BusinessOutletController {
 		}
 	}
 
-	static delete: RequestHandler = async (req, res, next): Promise<void> => {
+	public static readonly delete: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
 		try {
 			const id = Number(req.params.id)
 			await BusinessOutletService.delete(id)
@@ -65,7 +81,7 @@ export class BusinessOutletController {
 		}
 	}
 
-	static mapUserWithBusinessOutlet: RequestHandler = async (
+	public static readonly mapUserWithBusinessOutlet: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -88,7 +104,7 @@ export class BusinessOutletController {
 		}
 	}
 
-	static businessOutletFarmers: RequestHandler = async (
+	public static readonly businessOutletFarmers: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -106,7 +122,7 @@ export class BusinessOutletController {
 		}
 	}
 
-	static farmersList: RequestHandler = async (
+	public static readonly farmersList: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -131,24 +147,21 @@ export class BusinessOutletController {
 		}
 	}
 
-	static deleteMappedFarmerToBusinessOutlet: RequestHandler = async (
-		req,
-		res,
-		next,
-	): Promise<void> => {
-		try {
-			const farmer_id = Number(req.params.farmer_id)
-			const business_outlet_id = Number(req.params.business_outlet_id)
-			await BusinessOutletService.deleteMappedFarmerToBusinessOutlet(
-				farmer_id,
-				business_outlet_id,
-			)
-			RESPONSE.SuccessResponse(res, 200, {
-				message: 'Mapping deleted',
-				data: [],
-			})
-		} catch (error) {
-			next(error)
+	public static readonly deleteMappedFarmerToBusinessOutlet: RequestHandler =
+		async (req, res, next): Promise<void> => {
+			try {
+				const farmer_id = Number(req.params.farmer_id)
+				const business_outlet_id = Number(req.params.business_outlet_id)
+				await BusinessOutletService.deleteMappedFarmerToBusinessOutlet(
+					farmer_id,
+					business_outlet_id,
+				)
+				RESPONSE.SuccessResponse(res, 200, {
+					message: 'Mapping deleted',
+					data: [],
+				})
+			} catch (error) {
+				next(error)
+			}
 		}
-	}
 }

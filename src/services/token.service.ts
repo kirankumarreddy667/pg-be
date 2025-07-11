@@ -26,7 +26,7 @@ export class TokenService {
 			const now = Math.floor(Date.now() / 1000)
 			const expiresIn = 3600 // 1 hour
 			const tokenPayload = {
-				iss: env.APP_URL || 'http://your-app-url',
+				iss: env.APP_URL,
 				iat: now,
 				exp: now + expiresIn,
 				nbf: now,

@@ -11,9 +11,13 @@ interface SliderArticle {
 	thumbnail: string
 }
 export class SliderArticleController {
-	static addArticle: RequestHandler = async (req, res, next): Promise<void> => {
+	public static readonly addArticle: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
 		try {
-			const data = (req.body as { data?: SliderArticle[] }).data ?? [];
+			const data = (req.body as { data?: SliderArticle[] }).data ?? []
 
 			await SliderArticleService.addArticles(data)
 
@@ -23,7 +27,11 @@ export class SliderArticleController {
 		}
 	}
 
-	static getArticle: RequestHandler = async (req, res, next): Promise<void> => {
+	public static readonly getArticle: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
 		try {
 			const language_id = Number(req.params.language_id)
 			const data = await SliderArticleService.getArticlesByLanguage(language_id)

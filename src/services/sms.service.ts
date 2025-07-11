@@ -99,11 +99,7 @@ export class SmsService {
 				`Response from MSG91 Legacy HTTP API. Status: ${response.status}. Data:`,
 				response.data,
 			)
-			if (
-				response.data &&
-				response.data.type &&
-				response.data.type !== 'success'
-			) {
+			if (response.data?.type && response.data.type !== 'success') {
 				throw new Error(
 					`MSG91 Legacy HTTP API did not return success: ${JSON.stringify(response.data)}`,
 				)

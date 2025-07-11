@@ -3,7 +3,11 @@ import { AppAboutContentService } from '@/services/app_about_content.service'
 import RESPONSE from '@/utils/response'
 
 export class AppAboutContentController {
-	static getAppAboutContents: RequestHandler = async (req, res, next) => {
+	public static readonly getAppAboutContents: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const language_id = Number(req.params.language_id)
 			const type = req.params.name

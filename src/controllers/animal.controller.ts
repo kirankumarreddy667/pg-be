@@ -1,9 +1,14 @@
 import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { AnimalService } from '@/services/animal.service'
+import type { User } from '@/types/index'
 
 export class AnimalController {
-	static addAnimal: RequestHandler = async (req, res, next): Promise<void> => {
+	public static readonly addAnimal: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
 		try {
 			await AnimalService.create(
 				req.body as {
@@ -20,7 +25,7 @@ export class AnimalController {
 		}
 	}
 
-	static updateAnimalDetails: RequestHandler = async (
+	public static readonly updateAnimalDetails: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -43,7 +48,7 @@ export class AnimalController {
 		}
 	}
 
-	static deleteAnimal: RequestHandler = async (
+	public static readonly deleteAnimal: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -67,7 +72,7 @@ export class AnimalController {
 		}
 	}
 
-	static getAnimalById: RequestHandler = async (
+	public static readonly getAnimalById: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -84,7 +89,7 @@ export class AnimalController {
 		}
 	}
 
-	static addTypeOfAnAnimal: RequestHandler = async (
+	public static readonly addTypeOfAnAnimal: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -99,7 +104,7 @@ export class AnimalController {
 		}
 	}
 
-	static getTypesOfAnAnimal: RequestHandler = async (
+	public static readonly getTypesOfAnAnimal: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -116,7 +121,7 @@ export class AnimalController {
 		}
 	}
 
-	static getAllAnimalsWithTheirTypes: RequestHandler = async (
+	public static readonly getAllAnimalsWithTheirTypes: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -129,7 +134,7 @@ export class AnimalController {
 		}
 	}
 
-	static deleteAnimalType: RequestHandler = async (
+	public static readonly deleteAnimalType: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -152,7 +157,7 @@ export class AnimalController {
 		}
 	}
 
-	static getAllAnimals: RequestHandler = async (
+	public static readonly getAllAnimals: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -160,6 +165,33 @@ export class AnimalController {
 		try {
 			const language_id = Number(req.params.language_id)
 			const result = await AnimalService.getAllAnimals(language_id)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: result.message,
+				data: result.data,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly getAnimalNumberByAnimalId: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
+		try {
+			const user = req.user as User
+			const animal_id = Number(req.params.animal_id)
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const result = await AnimalService.getAnimalNumberByAnimalId(
+				animal_id,
+				user.id,
+			)
 			RESPONSE.SuccessResponse(res, 200, {
 				message: result.message,
 				data: result.data,

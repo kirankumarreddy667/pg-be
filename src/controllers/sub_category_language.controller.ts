@@ -3,7 +3,7 @@ import { SubCategoryLanguageService } from '@/services/sub_category_language.ser
 import RESPONSE from '@/utils/response'
 
 export class SubCategoryLanguageController {
-	static add: RequestHandler = async (req, res, next) => {
+	public static readonly add: RequestHandler = async (req, res, next) => {
 		try {
 			const { sub_category_id, language_id, sub_category_language_name } =
 				req.body as {
@@ -54,7 +54,7 @@ export class SubCategoryLanguageController {
 		}
 	}
 
-	static getAll: RequestHandler = async (req, res, next) => {
+	public static readonly getAll: RequestHandler = async (req, res, next) => {
 		try {
 			const { language_id } = req.params
 			const records = await SubCategoryLanguageService.getAllByLanguage(
@@ -69,11 +69,11 @@ export class SubCategoryLanguageController {
 		}
 	}
 
-	static getById: RequestHandler = async (req, res, next) => {
+	public static readonly getById: RequestHandler = async (req, res, next) => {
 		try {
 			const { sub_category_id, language_id } = req.params
 			const record =
-				await SubCategoryLanguageService.getSubCategoryDetailsByLanguage(
+				await SubCategoryLanguageService.getBySubCategoryAndLanguage(
 					Number(sub_category_id),
 					Number(language_id),
 				)
@@ -92,7 +92,7 @@ export class SubCategoryLanguageController {
 		}
 	}
 
-	static update: RequestHandler = async (req, res, next) => {
+	public static readonly update: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const { sub_category_language_name, language_id } = req.body as {

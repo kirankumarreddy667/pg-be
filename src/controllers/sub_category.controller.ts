@@ -3,7 +3,7 @@ import { SubcategoryService } from '@/services/sub_category.service'
 import RESPONSE from '@/utils/response'
 
 export class SubcategoryController {
-	static create: RequestHandler = async (req, res, next) => {
+	public static readonly create: RequestHandler = async (req, res, next) => {
 		try {
 			const { name } = req.body as { name: string }
 			const existing = await SubcategoryService.getByName(name)
@@ -25,7 +25,7 @@ export class SubcategoryController {
 		}
 	}
 
-	static getAll: RequestHandler = async (req, res, next) => {
+	public static readonly getAll: RequestHandler = async (req, res, next) => {
 		try {
 			const subcategories = await SubcategoryService.getAll()
 			return RESPONSE.SuccessResponse(res, 200, {
@@ -37,7 +37,7 @@ export class SubcategoryController {
 		}
 	}
 
-	static getById: RequestHandler = async (req, res, next) => {
+	public static readonly getById: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const subcategory = await SubcategoryService.getById(Number(id))
@@ -56,7 +56,7 @@ export class SubcategoryController {
 		}
 	}
 
-	static update: RequestHandler = async (req, res, next) => {
+	public static readonly update: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const { name } = req.body as { name: string }
@@ -85,7 +85,7 @@ export class SubcategoryController {
 		}
 	}
 
-	static delete: RequestHandler = async (req, res, next) => {
+	public static readonly delete: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const deleted = await SubcategoryService.deleteById(Number(id))

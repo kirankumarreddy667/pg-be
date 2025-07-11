@@ -56,7 +56,3 @@ const RESPONSE = {
 }
 
 export default RESPONSE
-
-// if (skip >= countDocuments) {
-//     return RESPONSE.SuccessResponse(res, { message: "This page does not exist" , data:[]});
-//   }

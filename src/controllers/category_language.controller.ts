@@ -3,11 +3,7 @@ import { CategoryLanguageService } from '@/services/category_language.service'
 import RESPONSE from '@/utils/response'
 
 export class CategoryLanguageController {
-	static addCategoryInOtherLanguage: RequestHandler = async (
-		req,
-		res,
-		next,
-	) => {
+	public static readonly add: RequestHandler = async (req, res, next) => {
 		try {
 			const { category_id, language_id, category_language_name } = req.body as {
 				category_id: number
@@ -57,7 +53,7 @@ export class CategoryLanguageController {
 		}
 	}
 
-	static getAll: RequestHandler = async (req, res, next) => {
+	public static readonly getAll: RequestHandler = async (req, res, next) => {
 		try {
 			const { language_id } = req.params
 			const records = await CategoryLanguageService.getAllByLanguage(
@@ -72,10 +68,10 @@ export class CategoryLanguageController {
 		}
 	}
 
-	static getById: RequestHandler = async (req, res, next) => {
+	public static readonly getById: RequestHandler = async (req, res, next) => {
 		try {
 			const { category_id, language_id } = req.params
-			const record = await CategoryLanguageService.getCategoryDetailsByLanguage(
+			const record = await CategoryLanguageService.getByCategoryAndLanguage(
 				Number(category_id),
 				Number(language_id),
 			)
@@ -94,7 +90,7 @@ export class CategoryLanguageController {
 		}
 	}
 
-	static update: RequestHandler = async (req, res, next) => {
+	public static readonly update: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const { category_language_name, language_id } = req.body as {

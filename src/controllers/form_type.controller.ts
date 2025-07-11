@@ -3,7 +3,11 @@ import { FormTypeService } from '@/services/form_type.service'
 import RESPONSE from '@/utils/response'
 
 export class FormTypeController {
-	static createFormType: RequestHandler = async (req, res, next) => {
+	public static readonly createFormType: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { name, description } = req.body as {
 				name: string
@@ -31,7 +35,11 @@ export class FormTypeController {
 		}
 	}
 
-	static updateFormType: RequestHandler = async (req, res, next) => {
+	public static readonly updateFormType: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { id } = req.params
 			const { name, description } = req.body as {
@@ -52,7 +60,7 @@ export class FormTypeController {
 				name,
 				description,
 			})
-			
+
 			RESPONSE.SuccessResponse(res, 200, {
 				data: [],
 				message: 'Success',
@@ -62,7 +70,11 @@ export class FormTypeController {
 		}
 	}
 
-	static getAllFormTypes: RequestHandler = async (req, res, next) => {
+	public static readonly getAllFormTypes: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const formTypes = await FormTypeService.getAll()
 			RESPONSE.SuccessResponse(res, 200, {
@@ -74,7 +86,11 @@ export class FormTypeController {
 		}
 	}
 
-	static getFormTypeById: RequestHandler = async (req, res, next) => {
+	public static readonly getFormTypeById: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { id } = req.params
 			const formType = await FormTypeService.getById(Number(id))
@@ -90,7 +106,11 @@ export class FormTypeController {
 		}
 	}
 
-	static deleteFormTypeById: RequestHandler = async (req, res, next) => {
+	public static readonly deleteFormTypeById: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { id } = req.params
 			const deleted = await FormTypeService.deleteById(Number(id))

@@ -61,7 +61,7 @@ categoryLanguageRouter.post(
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(categoryLanguageSchema),
-	wrapAsync(CategoryLanguageController.addCategoryInOtherLanguage),
+	wrapAsync(CategoryLanguageController.add),
 )
 
 /**

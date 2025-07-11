@@ -163,4 +163,27 @@ export class AnimalService {
 
 		return { message: 'Success', data: resData }
 	}
+
+	static async getAnimalNumberByAnimalId(
+		animal_id: number,
+		user_id: number,
+	): Promise<{ message: string; data: string[] }> {
+		type AnimalNumberResult = { animal_number: string }
+		const animalNumbers = await db.AnimalQuestionAnswer.findAll({
+			where: {
+				animal_id,
+				user_id,
+				status: false,
+			},
+			attributes: [
+				[
+					db.Sequelize.fn('DISTINCT', db.Sequelize.col('animal_number')),
+					'animal_number',
+				],
+			],
+			raw: true,
+		}) as AnimalNumberResult[]
+		const numbers = animalNumbers.map((a) => a.animal_number)
+		return { message: 'Success', data: numbers }
+	}
 }

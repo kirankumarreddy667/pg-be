@@ -3,7 +3,7 @@ import RESPONSE from '@/utils/response'
 import { TypeService } from '@/services/type.service'
 
 export class TypeController {
-	static addType: RequestHandler = async (req, res, next) => {
+	public static readonly addType: RequestHandler = async (req, res, next) => {
 		try {
 			const result = await TypeService.create(
 				req.body as {
@@ -19,7 +19,11 @@ export class TypeController {
 		}
 	}
 
-	static updateType: RequestHandler = async (req, res, next) => {
+	public static readonly updateType: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const id = Number(req.params.id)
 			const result = await TypeService.update(
@@ -37,7 +41,11 @@ export class TypeController {
 		}
 	}
 
-	static getTypeById: RequestHandler = async (req, res, next) => {
+	public static readonly getTypeById: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const id = Number(req.params.id)
 			const type = await TypeService.findById(id)
@@ -50,7 +58,11 @@ export class TypeController {
 		}
 	}
 
-	static getAllTypes: RequestHandler = async (req, res, next) => {
+	public static readonly getAllTypes: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const types = await TypeService.listAll()
 			RESPONSE.SuccessResponse(res, 200, {
@@ -62,7 +74,11 @@ export class TypeController {
 		}
 	}
 
-	static deleteType: RequestHandler = async (req, res, next) => {
+	public static readonly deleteType: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const id = Number(req.params.id)
 			const result = await TypeService.delete(id)

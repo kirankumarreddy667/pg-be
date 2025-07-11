@@ -47,7 +47,7 @@ export const loginSchema = Joi.object({
 
 export const forgotPassword = Joi.object().keys({
 	phone_number: Joi.string()
-		.pattern(/^[0-9]{10}$/)
+		.pattern(/^\d{10}$/)
 		.required()
 		.messages({
 			'string.pattern.base': 'Phone number must be 10 digits',
@@ -56,19 +56,15 @@ export const forgotPassword = Joi.object().keys({
 
 export const resetPassword = Joi.object().keys({
 	phone_number: Joi.string()
-		.pattern(/^[0-9]{10}$/)
+		.pattern(/^\d{10}$/)
 		.required()
 		.messages({
 			'string.pattern.base': 'Phone number must be 10 digits',
 		}),
-	otp: Joi.string()
-		.length(6)
-		.pattern(/^[0-9]+$/)
-		.required()
-		.messages({
-			'string.length': 'OTP must be 6 digits',
-			'string.pattern.base': 'OTP must be numeric',
-		}),
+	otp: Joi.string().length(6).pattern(/^\d+$/).required().messages({
+		'string.length': 'OTP must be 6 digits',
+		'string.pattern.base': 'OTP must be numeric',
+	}),
 	password: Joi.string().min(8).required(),
 })
 

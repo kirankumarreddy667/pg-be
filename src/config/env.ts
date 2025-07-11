@@ -7,7 +7,7 @@ config()
 // Export validated environment variables
 export const env = {
 	...validateEnv(),
-	APP_URL: process.env.APP_URL || 'http://your-app-url',
+	APP_URL: process.env.APP_URL,
 }
 
 // Type for environment variables

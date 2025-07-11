@@ -570,4 +570,39 @@ router.get(
 	wrapAsync(AnimalController.getAllAnimals),
 )
 
+/**
+ * @swagger
+ * /get_animal_number/{animal_id}:
+ *   get:
+ *     summary: Get animal number by animal ID
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/get_animal_number/:animal_id',
+	authenticate,
+	wrapAsync(AnimalController.getAnimalNumberByAnimalId),
+)
+
 export default router

@@ -56,6 +56,9 @@ import AnimalModel, { Animal } from './animal.model'
 import TypeModel, { Type } from './type.model'
 import AnimalTypeModel, { AnimalType } from './animal_type.model'
 import AnimalLanguageModel, { AnimalLanguage } from './animal_language.model'
+import AnimalQuestionAnswerModel, {
+	AnimalQuestionAnswer,
+} from './animal_question_answers.model'
 
 interface Models {
 	User: typeof User
@@ -93,6 +96,7 @@ interface Models {
 	Type: typeof Type
 	AnimalType: typeof AnimalType
 	AnimalLanguage: typeof AnimalLanguage
+	AnimalQuestionAnswer: typeof AnimalQuestionAnswer
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -131,6 +135,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const Type = TypeModel(sequelize)
 	const AnimalType = AnimalTypeModel(sequelize)
 	const AnimalLanguage = AnimalLanguageModel(sequelize)
+	const AnimalQuestionAnswer = AnimalQuestionAnswerModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -204,6 +209,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 		Type,
 		AnimalType,
 		AnimalLanguage,
+		AnimalQuestionAnswer,
 	}
 }
 
@@ -226,3 +232,4 @@ export { QuestionTag } from './question_tag.model'
 export { UserBusinessOutlet } from './user_business_outlet.model'
 export { Animal } from './animal.model'
 export { AnimalType } from './animal_type.model'
+export { AnimalQuestionAnswer } from './animal_question_answers.model'

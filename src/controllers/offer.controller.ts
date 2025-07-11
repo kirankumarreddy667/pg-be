@@ -10,7 +10,7 @@ export interface CreateOfferBody {
 }
 
 export class OfferController {
-	static getAllOffers: RequestHandler = async (
+	public static readonly getAllOffers: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -26,7 +26,7 @@ export class OfferController {
 		}
 	}
 
-	static getOffersByLanguage: RequestHandler = async (
+	public static readonly getOffersByLanguage: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -43,7 +43,7 @@ export class OfferController {
 		}
 	}
 
-	static createOffer: RequestHandler = async (
+	public static readonly createOffer: RequestHandler = async (
 		req,
 		res,
 		next,

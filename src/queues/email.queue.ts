@@ -23,37 +23,50 @@ export const emailQueue = new Queue('email', {
 })
 
 export const addToEmailQueue = (email: Email): void => {
-	void emailQueue.add(
-		{ ...email },
-		{ attempts: 3, backoff: 5000, removeOnComplete: true, removeOnFail: true },
-	)
+	emailQueue
+		.add(
+			{ ...email },
+			{
+				attempts: 3,
+				backoff: 5000,
+				removeOnComplete: true,
+				removeOnFail: true,
+			},
+		)
+		.catch((err) => {
+			console.error('Failed to add email to queue:', err)
+		})
 }
 
-void emailQueue.process(
-	async <K extends keyof EmailTemplateMap>(
-		job: Job<{
-			to: string
-			subject: string
-			template: K
-			data: EmailTemplateMap[K]
-			text?: string
-			attachments?: { filename: string; path: string }[]
-		}> & {
-			data: {
+emailQueue
+	.process(
+		async <K extends keyof EmailTemplateMap>(
+			job: Job<{
 				to: string
 				subject: string
 				template: K
 				data: EmailTemplateMap[K]
 				text?: string
 				attachments?: { filename: string; path: string }[]
+			}> & {
+				data: {
+					to: string
+					subject: string
+					template: K
+					data: EmailTemplateMap[K]
+					text?: string
+					attachments?: { filename: string; path: string }[]
+				}
+			},
+		) => {
+			try {
+				await sendEmail(job.data)
+			} catch (error) {
+				console.error('Failed to send email:', error)
+				throw error
 			}
 		},
-	) => {
-		try {
-			await sendEmail(job.data)
-		} catch (error) {
-			console.error('Failed to send email:', error)
-			throw error
-		}
-	},
-)
+	)
+	.catch((err) => {
+		console.error('Failed to register email queue processor:', err)
+	})

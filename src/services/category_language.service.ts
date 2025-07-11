@@ -59,13 +59,4 @@ export class CategoryLanguageService {
 	): Promise<CategoryLanguage[]> {
 		return await db.CategoryLanguage.findAll({ where: { language_id } })
 	}
-
-	static async getCategoryDetailsByLanguage(
-		category_id: number,
-		language_id: number,
-	): Promise<CategoryLanguage | null> {
-		return await db.CategoryLanguage.findOne({
-			where: { category_id, language_id },
-		})
-	}
 }

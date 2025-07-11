@@ -61,8 +61,8 @@ process.on('uncaughtException', (err: Error): void => {
 })
 
 class Server {
-	private app: Application
-	private port: number
+	private readonly app: Application
+	private readonly port: number
 	private server: ReturnType<Application['listen']> | undefined
 
 	constructor() {

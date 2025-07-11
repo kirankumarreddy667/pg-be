@@ -4,7 +4,7 @@ import RESPONSE from '@/utils/response'
 import { ValidationRuleService } from '@/services/validation_rule.service'
 
 export class ValidationRuleController {
-	static create: RequestHandler = async (req, res, next) => {
+	public static readonly create: RequestHandler = async (req, res, next) => {
 		try {
 			const value = req.body as ValidationRule
 			const existingRule = await ValidationRuleService.getValidationRuleByName(
@@ -28,7 +28,7 @@ export class ValidationRuleController {
 		}
 	}
 
-	static update: RequestHandler = async (req, res, next) => {
+	public static readonly update: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const value = req.body as ValidationRule
@@ -55,7 +55,7 @@ export class ValidationRuleController {
 		}
 	}
 
-	static getAll: RequestHandler = async (req, res, next) => {
+	public static readonly getAll: RequestHandler = async (req, res, next) => {
 		try {
 			const rules = await ValidationRuleService.getAll()
 			return RESPONSE.SuccessResponse(res, 200, {
@@ -67,7 +67,7 @@ export class ValidationRuleController {
 		}
 	}
 
-	static getById: RequestHandler = async (req, res, next) => {
+	public static readonly getById: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const rule = await ValidationRuleService.getById(Number(id))
@@ -83,7 +83,11 @@ export class ValidationRuleController {
 		}
 	}
 
-	static deleteById: RequestHandler = async (req, res, next) => {
+	public static readonly deleteById: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { id } = req.params
 			const deleted = await ValidationRuleService.deleteById(Number(id))

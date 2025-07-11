@@ -3,7 +3,7 @@ import { QuestionUnitService } from '@/services/question_unit.service'
 import RESPONSE from '@/utils/response'
 
 export class QuestionUnitController {
-	static getAll: RequestHandler = async (req, res, next) => {
+	public static readonly getAll: RequestHandler = async (req, res, next) => {
 		try {
 			const units = await QuestionUnitService.getAll()
 			return RESPONSE.SuccessResponse(res, 200, {

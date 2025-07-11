@@ -23,12 +23,12 @@ interface AdvertisementPayload {
 	photos: string[]
 }
 
-// interface AdvertisementImageAttributes {
-// 	image: string
-// }
-
 export class AdvertisementController {
-	static create: RequestHandler = async (req, res, next): Promise<void> => {
+	public static readonly create: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
 		const {
 			name,
 			description,
@@ -82,7 +82,10 @@ export class AdvertisementController {
 		}
 	}
 
-	static index: RequestHandler = async (req, res): Promise<void> => {
+	public static readonly index: RequestHandler = async (
+		req,
+		res,
+	): Promise<void> => {
 		const ads = await AdvertisementModel.findAll({
 			include: [{ model: AdvertisementImage, as: 'images' }],
 			order: [['created_at', 'DESC']],
@@ -117,7 +120,10 @@ export class AdvertisementController {
 		})
 	}
 
-	static show: RequestHandler = async (req, res): Promise<void> => {
+	public static readonly show: RequestHandler = async (
+		req,
+		res,
+	): Promise<void> => {
 		const { id } = req.params
 		const ad = await AdvertisementModel.findByPk(id, {
 			include: [{ model: AdvertisementImage, as: 'images' }],
@@ -154,7 +160,10 @@ export class AdvertisementController {
 		})
 	}
 
-	static update: RequestHandler = async (req, res): Promise<void> => {
+	public static readonly update: RequestHandler = async (
+		req,
+		res,
+	): Promise<void> => {
 		const { id } = req.params
 		const t = await sequelize.transaction()
 		try {
@@ -220,7 +229,10 @@ export class AdvertisementController {
 		}
 	}
 
-	static destroy: RequestHandler = async (req, res): Promise<void> => {
+	public static readonly destroy: RequestHandler = async (
+		req,
+		res,
+	): Promise<void> => {
 		const { id } = req.params
 		const t = await sequelize.transaction()
 		try {

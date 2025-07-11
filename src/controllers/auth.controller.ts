@@ -35,7 +35,11 @@ interface ResetPasswordBody {
 }
 
 export class AuthController {
-	static userRegistration: RequestHandler = async (req, res, next) => {
+	public static readonly userRegistration: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { name, phone_number, password } = req.body as UserRegistrationBody
 			const { user, otp } = await AuthService.userRegistration({
@@ -57,7 +61,7 @@ export class AuthController {
 		}
 	}
 
-	static verifyOtp: RequestHandler = async (req, res, next) => {
+	public static readonly verifyOtp: RequestHandler = async (req, res, next) => {
 		try {
 			const { userId, otp } = req.body as VerifyOtpBody
 			await AuthService.verifyOtp(userId, otp)
@@ -70,7 +74,7 @@ export class AuthController {
 		}
 	}
 
-	static resendOtp: RequestHandler = async (req, res, next) => {
+	public static readonly resendOtp: RequestHandler = async (req, res, next) => {
 		try {
 			const { userId } = req.body as ResendOtpBody
 			await AuthService.resendOtp(userId)
@@ -83,7 +87,7 @@ export class AuthController {
 		}
 	}
 
-	static login: RequestHandler = async (req, res, next) => {
+	public static readonly login: RequestHandler = async (req, res, next) => {
 		try {
 			const { phone_number, password } = req.body as LoginBody
 			const loginData = await AuthService.login(phone_number, password)
@@ -96,7 +100,11 @@ export class AuthController {
 		}
 	}
 
-	static forgotPassword: RequestHandler = async (req, res, next) => {
+	public static readonly forgotPassword: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { phone_number } = req.body as ForgotPasswordBody
 			await AuthService.forgotPassword(phone_number)
@@ -109,7 +117,11 @@ export class AuthController {
 		}
 	}
 
-	static resetPassword: RequestHandler = async (req, res, next) => {
+	public static readonly resetPassword: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { phone_number, otp, password } = req.body as ResetPasswordBody
 			await AuthService.resetPassword(phone_number, otp, password)
@@ -122,7 +134,10 @@ export class AuthController {
 		}
 	}
 
-	public static googleOAuthCallback: RequestHandler = async (req, res) => {
+	public static readonly googleOAuthCallback: RequestHandler = async (
+		req,
+		res,
+	) => {
 		const user = req.user as User
 		try {
 			const { token, user: userData } =
@@ -147,7 +162,10 @@ export class AuthController {
 		}
 	}
 
-	public static facebookOAuthCallback: RequestHandler = async (req, res) => {
+	public static readonly facebookOAuthCallback: RequestHandler = async (
+		req,
+		res,
+	) => {
 		const user = req.user as User
 		try {
 			const { token, user: userData } =
@@ -161,7 +179,11 @@ export class AuthController {
 		}
 	}
 
-	static businessUserLogin: RequestHandler = async (req, res, next) => {
+	public static readonly businessUserLogin: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { email, password } = req.body as {
 				email: string
@@ -180,7 +202,11 @@ export class AuthController {
 		}
 	}
 
-	static businessForgotPassword: RequestHandler = async (req, res, next) => {
+	public static readonly businessForgotPassword: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { email } = req.body as { email: string }
 			await BusinessLoginService.businessForgotPassword(email)
@@ -193,7 +219,11 @@ export class AuthController {
 		}
 	}
 
-	static changePassword: RequestHandler = async (req, res, next) => {
+	public static readonly changePassword: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const userId = (req.user as { id: number })?.id
 			if (!userId) throw new Error('User not found')

@@ -21,8 +21,11 @@ export interface InvestmentDetails {
 }
 
 export class FarmManagementController {
-	// POST /farm_details
-	static storeFarmDetails: RequestHandler = async (req, res, next) => {
+	public static readonly storeFarmDetails: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const userId = Number((req.user as User)?.id)
 			const result = await FarmManagementService.storeFarmDetails(
@@ -38,8 +41,11 @@ export class FarmManagementController {
 		}
 	}
 
-	// GET /farm_details/:id
-	static showFarmDetails: RequestHandler = async (req, res, next) => {
+	public static readonly showFarmDetails: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const userId = Number(req.params.id)
 			const result = await FarmManagementService.showFarmDetails(userId)
@@ -52,8 +58,11 @@ export class FarmManagementController {
 		}
 	}
 
-	// PUT /farm_details/:id
-	static updateFarmDetails: RequestHandler = async (req, res, next) => {
+	public static readonly updateFarmDetails: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const userId = Number(req.params.id)
 			const result = await FarmManagementService.updateFarmDetails(
@@ -69,8 +78,7 @@ export class FarmManagementController {
 		}
 	}
 
-	// GET /farm_types/:language_id
-	static farmTypes: RequestHandler = async (req, res, next) => {
+	public static readonly farmTypes: RequestHandler = async (req, res, next) => {
 		try {
 			const language_id = Number(req.params.language_id)
 			const result = await FarmManagementService.farmTypes(language_id)
@@ -83,8 +91,7 @@ export class FarmManagementController {
 		}
 	}
 
-	// POST /farm_investment_details
-	static storeFixedInvestmentDetails: RequestHandler = async (
+	public static readonly storeFixedInvestmentDetails: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -104,8 +111,11 @@ export class FarmManagementController {
 		}
 	}
 
-	// GET /investment_type/:language_id
-	static investmentTypes: RequestHandler = async (req, res, next) => {
+	public static readonly investmentTypes: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const language_id = Number(req.params.language_id)
 			const result = await FarmManagementService.investmentTypes(language_id)
@@ -118,8 +128,11 @@ export class FarmManagementController {
 		}
 	}
 
-	// GET /investment_details_report/:id
-	static investmentDetailsReport: RequestHandler = async (req, res, next) => {
+	public static readonly investmentDetailsReport: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const userId = Number(req.params.id)
 			const result = await FarmManagementService.investmentDetailsReport(userId)

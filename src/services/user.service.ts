@@ -153,29 +153,16 @@ export class UserService {
 		})
 	}
 
-	static async sortUsers({
-		payment_status,
-		sort_by,
-		start_date,
-		end_date,
-		type,
-	}: {
-		payment_status: string
-		sort_by: string
-		start_date?: string
-		end_date?: string
-		type?: string
-	}): Promise<UserSortResult[]> {
-		const status = payment_status.toLowerCase()
-		const sortBy = sort_by.toLowerCase()
-		const roleId = 2
-		let users: UserWithLanguage[] = []
-
+	private static async fetchSortedUsers(
+		sortBy: string,
+		status: string,
+		roleId: number,
+	): Promise<UserWithLanguage[]> {
 		if (
 			sortBy === 'registered_date' &&
 			(status === 'premium' || status === 'free')
 		) {
-			users = (await db.User.findAll({
+			return db.User.findAll({
 				include: [
 					{
 						model: db.RoleUser,
@@ -202,9 +189,9 @@ export class UserService {
 				],
 				raw: true,
 				nest: true,
-			})) as UserWithLanguage[]
+			}) as Promise<UserWithLanguage[]>
 		} else if (sortBy === 'validity_exp_date' && status === 'premium') {
-			users = (await db.User.findAll({
+			return db.User.findAll({
 				include: [
 					{
 						model: db.RoleUser,
@@ -212,9 +199,9 @@ export class UserService {
 						attributes: [],
 					},
 					// {
-					// 	model: db.UserPayment,
-					// 	attributes: ['plan_exp_date'],
-					// 	required: true,
+					//  model: db.UserPayment,
+					//  attributes: ['plan_exp_date'],
+					//  required: true,
 					// },
 				],
 				where: { payment_status: status },
@@ -236,82 +223,82 @@ export class UserService {
 				],
 				raw: true,
 				nest: true,
-			})) as UserWithLanguage[]
-		} else {
-			return []
+			}) as Promise<UserWithLanguage[]>
+		}
+		return []
+	}
+
+	private static calculateDiffDays(
+		registrationDate: Date,
+		now: Date,
+		type?: string,
+		start_date?: string,
+		end_date?: string,
+	): number {
+		if (type === 'all_time' || (!start_date && !end_date)) {
+			return (
+				Math.floor(
+					(now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24),
+				) + 1
+			)
 		}
 
+		if (start_date && end_date) {
+			const regDate = registrationDate
+			const startDate = new Date(start_date)
+			const endDate = new Date(end_date)
+			if (regDate > endDate) return 0
+			const from = regDate <= startDate ? startDate : regDate
+			return (
+				Math.floor(
+					(endDate.getTime() - from.getTime()) / (1000 * 60 * 60 * 24),
+				) + 1
+			)
+		}
+		return (
+			Math.floor(
+				(now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24),
+			) + 1
+		)
+	}
+
+	static async sortUsers({
+		payment_status,
+		sort_by,
+		start_date,
+		end_date,
+		type,
+	}: {
+		payment_status: string
+		sort_by: string
+		start_date?: string
+		end_date?: string
+		type?: string
+	}): Promise<UserSortResult[]> {
+		const status = payment_status.toLowerCase()
+		const sortBy = sort_by.toLowerCase()
+		const roleId = 2
+		const users = await this.fetchSortedUsers(sortBy, status, roleId)
+		if (!users.length) return []
+
 		const now = new Date()
-		const result: UserSortResult[] = []
-		for (const user of users) {
-			// const userId = user.id
+		return users.map((user) => {
 			const expDate = ''
-			// if (
-			// 	status === 'premium'
-			// 	user.UserPayment &&
-			// 	user.UserPayment.plan_exp_date
-			// ) {
-			// 	expDate = user.UserPayment.plan_exp_date
-			// }
-
-			const registrationDate = user.created_at
-			let date1: Date,
-				date2: Date,
-				diffDays = 0
-			if (type === 'all_time') {
-				date1 = new Date(registrationDate as Date)
-				date2 = now
-				diffDays =
-					Math.floor(
-						(date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24),
-					) + 1
-			} else if (start_date && end_date) {
-				const regDate = new Date(registrationDate as Date)
-				const startDate = new Date(start_date)
-				const endDate = new Date(end_date)
-				if (regDate <= new Date(end_date)) {
-					if (regDate <= new Date(start_date)) {
-						date1 = startDate
-						date2 = endDate
-						diffDays =
-							Math.floor(
-								(date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24),
-							) + 1
-					} else {
-						date1 = regDate
-						date2 = endDate
-						diffDays =
-							Math.floor(
-								(date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24),
-							) + 1
-					}
-				} else {
-					diffDays = 0
-				}
-			} else {
-				date1 = new Date(registrationDate as Date)
-				date2 = now
-				diffDays =
-					Math.floor(
-						(date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24),
-					) + 1
-			}
-
-			// Daily record answer count (stub, replace with real query if model exists)
-			const answerDaysCount = 0
-			// TODO: Replace with actual query to count distinct answer days for the user
-			// let answerDaysCount = await db.DailyRecordAnswer.count({ ... })
-
-			// Daily record update count (stub, replace with real query if model exists)
-			const dailyRecordUpdateCount = 0
-			// TODO: Replace with actual query to count distinct answer days for the user
-
+			const registrationDate = user.created_at as Date
+			const diffDays = this.calculateDiffDays(
+				registrationDate,
+				now,
+				type,
+				start_date,
+				end_date,
+			)
+			const answerDaysCount = 0 // TODO: Replace with actual query
+			const dailyRecordUpdateCount = 0 // TODO: Replace with actual query
 			const percentage =
 				diffDays > 0
 					? Number(((answerDaysCount / diffDays) * 100).toFixed(2))
 					: 0
-
-			result.push({
+			return {
 				user_id: user.id ?? 0,
 				name: user.name ?? '',
 				email: user.email ?? '',
@@ -330,9 +317,8 @@ export class UserService {
 				total_days: diffDays,
 				answer_days_count: answerDaysCount,
 				percentage,
-			})
-		}
-		return result
+			}
+		})
 	}
 
 	static async getUserById(id: number): Promise<UserWithLanguage | null> {

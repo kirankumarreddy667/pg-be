@@ -9,7 +9,11 @@ interface UpdateUserLanguageBody {
 }
 
 export class LanguageController {
-	static getAllLanguages: RequestHandler = async (req, res, next) => {
+	public static readonly getAllLanguages: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const languages = await LanguageService.getAllLanguages()
 			RESPONSE.SuccessResponse(res, 200, {
@@ -22,7 +26,11 @@ export class LanguageController {
 		}
 	}
 
-	static createLanguage: RequestHandler = async (req, res, next) => {
+	public static readonly createLanguage: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { name, language_code } = req.body as {
 				name: string
@@ -42,7 +50,11 @@ export class LanguageController {
 		}
 	}
 
-	static updateLanguage: RequestHandler = async (req, res, next) => {
+	public static readonly updateLanguage: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const { id } = req.params
 			const { name, language_code } = req.body as {
@@ -67,7 +79,11 @@ export class LanguageController {
 		}
 	}
 
-	static updateUserLanguage: RequestHandler = async (req, res, next) => {
+	public static readonly updateUserLanguage: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const userId = Number((req.user as User)?.id)
 			const { language_id } = req.body as UpdateUserLanguageBody

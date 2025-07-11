@@ -33,15 +33,6 @@ export class SubCategoryLanguageService {
 		return await db.SubCategoryLanguage.findAll({ where: { language_id } })
 	}
 
-	static async getSubCategoryDetailsByLanguage(
-		sub_category_id: number,
-		language_id: number,
-	): Promise<SubCategoryLanguage | null> {
-		return await db.SubCategoryLanguage.findOne({
-			where: { sub_category_id, language_id },
-		})
-	}
-
 	static async update(
 		id: number,
 		data: { sub_category_language_name: string; language_id: number },

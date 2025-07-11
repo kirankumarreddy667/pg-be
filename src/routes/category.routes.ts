@@ -52,7 +52,7 @@ categoryRouter.post(
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(categorySchema),
-	wrapAsync(CategoryController.createCategory),
+	wrapAsync(CategoryController.create),
 )
 
 /**
@@ -80,7 +80,7 @@ categoryRouter.post(
 categoryRouter.get(
 	'/category',
 	authenticate,
-	wrapAsync(CategoryController.getAllCategories),
+	wrapAsync(CategoryController.getAll),
 )
 
 /**
@@ -115,7 +115,7 @@ categoryRouter.get(
 categoryRouter.get(
 	'/category/:id',
 	authenticate,
-	wrapAsync(CategoryController.getCategoryById),
+	wrapAsync(CategoryController.getById),
 )
 
 /**
@@ -163,7 +163,7 @@ categoryRouter.put(
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(categorySchema),
-	wrapAsync(CategoryController.updateCategory),
+	wrapAsync(CategoryController.update),
 )
 
 /**
@@ -199,7 +199,7 @@ categoryRouter.delete(
 	'/category/:id',
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
-	wrapAsync(CategoryController.deleteCategoryById),
+	wrapAsync(CategoryController.delete),
 )
 
 export default categoryRouter

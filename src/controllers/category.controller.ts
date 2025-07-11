@@ -3,7 +3,7 @@ import { CategoryService } from '@/services/category.service'
 import RESPONSE from '@/utils/response'
 
 export class CategoryController {
-	static createCategory: RequestHandler = async (req, res, next) => {
+	public static  create: RequestHandler = async (req, res, next) => {
 		try {
 			const { name } = req.body as { name: string }
 			const existingCategory = await CategoryService.getCategoryByName(name)
@@ -25,7 +25,7 @@ export class CategoryController {
 		}
 	}
 
-	static getAllCategories: RequestHandler = async (req, res, next) => {
+	public static readonly getAll: RequestHandler = async (req, res, next) => {
 		try {
 			const categories = await CategoryService.getAll()
 			return RESPONSE.SuccessResponse(res, 200, {
@@ -37,7 +37,7 @@ export class CategoryController {
 		}
 	}
 
-	static getCategoryById: RequestHandler = async (req, res, next) => {
+	public static readonly getById: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const category = await CategoryService.getById(Number(id))
@@ -56,7 +56,7 @@ export class CategoryController {
 		}
 	}
 
-	static updateCategory: RequestHandler = async (req, res, next) => {
+	public static readonly update: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const { name } = req.body as { name: string }
@@ -82,7 +82,7 @@ export class CategoryController {
 		}
 	}
 
-	static deleteCategoryById: RequestHandler = async (req, res, next) => {
+	public static readonly delete: RequestHandler = async (req, res, next) => {
 		try {
 			const { id } = req.params
 			const deleted = await CategoryService.deleteById(Number(id))

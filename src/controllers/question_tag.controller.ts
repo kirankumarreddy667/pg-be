@@ -3,7 +3,7 @@ import { QuestionTagService } from '@/services/question_tag.service'
 import RESPONSE from '@/utils/response'
 
 export class QuestionTagController {
-	static getAll: RequestHandler = async (req, res, next) => {
+	public static readonly getAll: RequestHandler = async (req, res, next) => {
 		try {
 			const tags = await QuestionTagService.getAll()
 			return RESPONSE.SuccessResponse(res, 200, {
@@ -15,7 +15,7 @@ export class QuestionTagController {
 		}
 	}
 
-	static create: RequestHandler = async (req, res, next) => {
+	public static readonly create: RequestHandler = async (req, res, next) => {
 		try {
 			const { name, description } = req.body as {
 				name: string

@@ -1,17 +1,21 @@
 import { Otp } from '@/models/otp.model'
 import { TIME } from '@/constants/time'
 import { Transaction } from 'sequelize'
+import { randomInt } from 'crypto'
 
 export class OtpService {
 	static async generateOtp(
 		userId: number,
 		transaction?: Transaction,
 	): Promise<Otp> {
-		const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
+		const otpCode = randomInt(100000, 1000000).toString()
 		// Always delete any existing OTP for this user
 		await Otp.destroy({ where: { user_id: userId }, transaction })
 		// Create a new OTP
-		const otp = await Otp.create({ user_id: userId, otp: otpCode }, { transaction })
+		const otp = await Otp.create(
+			{ user_id: userId, otp: otpCode },
+			{ transaction },
+		)
 		return otp
 	}
 
