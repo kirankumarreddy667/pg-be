@@ -388,18 +388,21 @@ export class UserService {
 
 	static async updatePaymentStatus({
 		user_id,
-		payment_status
+		payment_status,
 	}: {
 		user_id: number
 		payment_status: string
 		exp_date: string
 		amount?: number
 	}): Promise<{ success: boolean; message?: string }> {
-		const status = payment_status.toLowerCase();
+		const status = payment_status.toLowerCase()
 		if (status !== 'free' && status !== 'premium') {
-			return { success: false, message: 'Invalid payment status. Must be "free" or "premium".' };
+			return {
+				success: false,
+				message: 'Invalid payment status. Must be "free" or "premium".',
+			}
 		}
-		await db.User.update({ payment_status: status }, { where: { id: user_id } });
+		await db.User.update({ payment_status: status }, { where: { id: user_id } })
 		// Premium plan logic is commented out until UserPlanPayment model is available
 		/*
 		if (status === 'premium') {
@@ -419,6 +422,25 @@ export class UserService {
 			}
 		}
 		*/
-		return { success: true };
+		return { success: true }
+	}
+
+	static async saveUserDevice(
+		userId: number,
+		data: {
+			firebase_token: string
+			device_id: string
+			deviceType: string
+		},
+	): Promise<{ success: boolean; message?: string }> {
+		await db.User.update(
+			{
+				firebase_token: data.firebase_token,
+				device_id: data.device_id,
+				device_type: data.deviceType,
+			},
+			{ where: { id: userId } },
+		)
+		return { success: true, message: 'Device details saved successfully' }
 	}
 }
