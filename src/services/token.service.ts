@@ -7,8 +7,8 @@ interface UserPayload {
 }
 
 export class TokenService {
-	private static tokenBlacklist = new Set<string>()
-	
+	private static readonly tokenBlacklist = new Set<string>()
+
 	static isTokenBlacklisted(token: string): boolean {
 		return this.tokenBlacklist.has(token)
 	}
@@ -41,7 +41,7 @@ export class TokenService {
 					algorithm: 'HS256',
 				},
 				(err, token) => {
-					if (err) reject(err)
+					if (err) reject(err instanceof Error ? err : new Error(String(err)))
 					else resolve(token as string)
 				},
 			)
@@ -51,7 +51,7 @@ export class TokenService {
 	static async verifyAccessToken(token: string): Promise<JwtPayload> {
 		return new Promise((resolve, reject) => {
 			verify(token, env.JWT_ACCESS_SECRET, (err, decoded) => {
-				if (err) reject(err)
+				if (err) reject(err instanceof Error ? err : new Error(String(err)))
 				else resolve(decoded as JwtPayload)
 			})
 		})

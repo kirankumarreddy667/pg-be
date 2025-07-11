@@ -28,9 +28,9 @@ export class SummernoteService {
 			if (images) {
 				images.forEach((img, k) => {
 					const data = img.getAttribute('src')
-					if (data && data.startsWith('data:')) {
+					if (data?.startsWith('data:')) {
 						const matches = data.match(/^data:(.+);base64,(.+)$/)
-						if (matches && matches[1] && matches[2]) {
+						if (matches?.[1] && matches?.[2]) {
 							const ext = matches[1].split('/')[1] || 'png'
 							const base64Data = matches[2]
 							const buffer = Buffer.from(base64Data, 'base64')
