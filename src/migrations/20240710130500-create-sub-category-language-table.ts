@@ -1,4 +1,4 @@
-import { QueryInterface, Sequelize } from 'sequelize'
+import { QueryInterface } from 'sequelize'
 
 module.exports = {
 	up: async (

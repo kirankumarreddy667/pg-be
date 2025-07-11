@@ -7,6 +7,7 @@ import {
 	sortUsersSchema,
 	updateProfileSchema,
 	updatePaymentStatusSchema,
+	saveUserDeviceSchema,
 } from '@/validations/user.validation'
 const router: ExpressRouter = Router()
 
@@ -266,5 +267,67 @@ router.post(
  *         description: Redirect to Play Store
  */
 router.get('/daily_record_phone', redirectUser)
+
+/**
+ * @swagger
+ * /save_user_device_detail:
+ *   post:
+ *     summary: Save user device details
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firebase_token
+ *               - device_id
+ *               - deviceType
+ *             properties:
+ *               firebase_token:
+ *                 type: string
+ *                 description: Firebase token for push notifications
+ *               device_id:
+ *                 type: string
+ *                 description: Unique device identifier
+ *               deviceType:
+ *                 type: string
+ *                 enum: [android, ios, web]
+ *                 description: Type of device
+ *     responses:
+ *       200:
+ *         description: Device details saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/save_user_device_detail',
+	authenticate,
+	validateRequest(saveUserDeviceSchema),
+	wrapAsync(UserController.saveUserDevice),
+)
 
 export default router

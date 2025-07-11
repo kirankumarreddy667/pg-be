@@ -11,14 +11,14 @@ export const sortUsersSchema = Joi.object({
 export const updateProfileSchema = Joi.object({
 	farm_name: Joi.string().required().messages({
 		'any.required': 'The farm name field is required.',
-		'string.empty': 'The farm name field is required.'
+		'string.empty': 'The farm name field is required.',
 	}),
 	name: Joi.string().required().messages({
 		'any.required': 'The name field is required.',
-		'string.empty': 'The name field is required.'
+		'string.empty': 'The name field is required.',
 	}),
 	email: Joi.string().email().optional().messages({
-		'string.email': 'The email must be a valid email address.'
+		'string.email': 'The email must be a valid email address.',
 	}),
 	address: Joi.string().optional(),
 	pincode: Joi.string().optional(),
@@ -31,14 +31,34 @@ export const updateProfileSchema = Joi.object({
 
 export const updatePaymentStatusSchema = Joi.object({
 	user_id: Joi.number().required().messages({
-		'any.required': 'The user_id field is required.'
+		'any.required': 'The user_id field is required.',
 	}),
 	payment_status: Joi.string().required().messages({
-		'any.required': 'The payment_status field is required.'
+		'any.required': 'The payment_status field is required.',
 	}),
-	exp_date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required().messages({
-		'any.required': 'The exp_date field is required.',
-		'string.pattern.base': 'The exp_date must be a valid date in Y-m-d format.'
+	exp_date: Joi.string()
+		.pattern(/^\d{4}-\d{2}-\d{2}$/)
+		.required()
+		.messages({
+			'any.required': 'The exp_date field is required.',
+			'string.pattern.base':
+				'The exp_date must be a valid date in Y-m-d format.',
+		}),
+	amount: Joi.number().optional(),
+})
+
+export const saveUserDeviceSchema = Joi.object({
+	firebase_token: Joi.string().required().messages({
+		'any.required': 'The firebase_token field is required.',
+		'string.empty': 'The firebase_token field is required.',
 	}),
-	amount: Joi.number().optional()
+	device_id: Joi.string().required().messages({
+		'any.required': 'The device_id field is required.',
+		'string.empty': 'The device_id field is required.',
+	}),
+	deviceType: Joi.string().valid('android', 'ios', 'web').required().messages({
+		'any.required': 'The deviceType field is required.',
+		'string.empty': 'The deviceType field is required.',
+		'any.only': 'The deviceType must be one of: android, ios, web.',
+	}),
 })

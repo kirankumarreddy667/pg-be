@@ -284,6 +284,43 @@ export class UserController {
 			next(error)
 		}
 	}
+
+	static saveUserDevice: RequestHandler = async (req, res, next) => {
+		try {
+			const userId = (req.user as User).id
+
+			const user = await UserService.getUserById(Number(userId))
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 404, {
+					message: 'User not found',
+				})
+			}
+			const { firebase_token, device_id, deviceType } = req.body as {
+				firebase_token: string
+				device_id: string
+				deviceType: string
+			}
+
+			const result = await UserService.saveUserDevice(userId, {
+				firebase_token,
+				device_id,
+				deviceType,
+			})
+
+			if (result.success) {
+				return RESPONSE.SuccessResponse(res, 200, {
+					data: [],
+					message: result.message || 'Device details saved successfully',
+				})
+			} else {
+				return RESPONSE.FailureResponse(res, 400, {
+					message: result.message || 'Failed to save device details',
+				})
+			}
+		} catch (error) {
+			next(error)
+		}
+	}
 }
 
 export const redirectUser = (req: Request, res: Response): void => {
