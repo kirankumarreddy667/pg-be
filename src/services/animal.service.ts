@@ -2,6 +2,12 @@ import db from '@/config/database'
 import { Animal, AnimalType } from '@/models'
 import { Op } from 'sequelize'
 
+type AnimalInfoResult =
+	| { [animalName: string]: number }
+	| { male: number }
+	| { female: number }
+	| { heifer: number }
+
 export class AnimalService {
 	static async create(data: {
 		name: string
@@ -269,56 +275,65 @@ export class AnimalService {
 		return result
 	}
 
-	static async animalInfo(user_id: number, animal_id: number) {
-		const dbModels = db
-		// Get animal name
-		const animal = await dbModels.Animal.findOne({
+	static async animalInfo(
+		user_id: number,
+		animal_id: number,
+	): Promise<{ message: string; data: AnimalInfoResult[] }> {
+		const animal = await db.Animal.findOne({
 			where: { id: animal_id },
 			raw: true,
 		})
 		if (!animal) return { message: 'Animal not found', data: [] }
 
-		// Count distinct animal_number for this animal and user, status != 1
-		const animalNumbers = await dbModels.AnimalQuestionAnswer.findAll({
+		const animalNumbers = await db.AnimalQuestionAnswer.findAll({
 			where: { animal_id, user_id, status: { [Op.ne]: 1 } },
 			attributes: [
 				[
-					dbModels.Sequelize.fn(
-						'DISTINCT',
-						dbModels.Sequelize.col('animal_number'),
-					),
+					db.Sequelize.fn('DISTINCT', db.Sequelize.col('animal_number')),
 					'animal_number',
 				],
 			],
 			raw: true,
 		})
-		const resData: any[] = []
+		const resData: AnimalInfoResult[] = []
 		resData.push({ [animal.name]: animalNumbers.length })
 
-		// Get all animal_numbers for this animal/user/status != 1 (for gender breakdown)
-		const animalGenderNumbers = await dbModels.AnimalQuestionAnswer.findAll({
-			where: { animal_id, user_id, status: { [Op.ne]: 1 } },
-			attributes: [
-				[
-					dbModels.Sequelize.fn(
-						'DISTINCT',
-						dbModels.Sequelize.col('animal_number'),
-					),
-					'animal_number',
-				],
-			],
-			raw: true,
-		})
+		const animalGenderNumbers = animalNumbers.map((a) => a.animal_number)
 
-		let gender: Record<string, string[]> = {}
+		const { gender, cow1 } = await AnimalService.getGenderBreakdown(
+			animal_id,
+			user_id,
+			animalGenderNumbers,
+		)
+		const maleCount = gender['male'] ? gender['male'].length : 0
+		const femaleCount = await AnimalService.getFemaleCount(
+			animal_id,
+			user_id,
+			gender['female'] || [],
+			cow1,
+		)
+		const heiferCount = await AnimalService.getHeiferCount(animal_id, user_id)
+
+		resData.push({ male: maleCount })
+		resData.push({ female: femaleCount })
+		resData.push({ heifer: heiferCount })
+
+		return { message: 'Success', data: resData }
+	}
+
+	private static async getGenderBreakdown(
+		animal_id: number,
+		user_id: number,
+		animalNumbers: string[],
+	): Promise<{ gender: Record<string, string[]>; cow1: number }> {
+		const gender: Record<string, string[]> = {}
 		let cow1 = 0
-		for (const value of animalGenderNumbers) {
-			// Get latest gender answer for this animal_number
-			const animalGenderLatest = await dbModels.AnimalQuestionAnswer.findOne({
-				where: { animal_id, animal_number: value.animal_number, user_id },
+		for (const animal_number of animalNumbers) {
+			const animalGenderLatest = await db.AnimalQuestionAnswer.findOne({
+				where: { animal_id, animal_number, user_id },
 				include: [
 					{
-						model: dbModels.CommonQuestions,
+						model: db.CommonQuestions,
 						as: 'CommonQuestion',
 						where: { question_tag: 8 },
 						required: false,
@@ -327,12 +342,11 @@ export class AnimalService {
 				order: [['created_at', 'DESC']],
 				raw: true,
 			})
-			// Get latest heifer answer for this animal_number
-			const heifer3 = await dbModels.AnimalQuestionAnswer.findOne({
-				where: { animal_id, animal_number: value.animal_number, user_id },
+			const heifer3 = await db.AnimalQuestionAnswer.findOne({
+				where: { animal_id, animal_number, user_id },
 				include: [
 					{
-						model: dbModels.CommonQuestions,
+						model: db.CommonQuestions,
 						as: 'CommonQuestion',
 						where: { question_tag: 60 },
 						required: false,
@@ -341,82 +355,36 @@ export class AnimalService {
 				order: [['created_at', 'DESC']],
 				raw: true,
 			})
-			if (
-				(!animalGenderLatest || !animalGenderLatest.answer) &&
-				(!heifer3 || !heifer3.answer)
-			) {
+			if (!animalGenderLatest?.answer && !heifer3?.answer) {
 				cow1++
 			} else if (
-				(!animalGenderLatest || !animalGenderLatest.answer) &&
-				heifer3 &&
-				heifer3.logic_value &&
+				!animalGenderLatest?.answer &&
+				heifer3?.logic_value &&
 				['cow', 'buffalo'].includes(heifer3.logic_value.toLowerCase())
 			) {
 				cow1++
-			} else if (animalGenderLatest && animalGenderLatest.answer) {
+			} else if (animalGenderLatest?.answer) {
 				const ans = animalGenderLatest.answer.toLowerCase()
 				if (!gender[ans]) gender[ans] = []
 				gender[ans].push(animalGenderLatest.animal_number)
 			}
 		}
+		return { gender, cow1 }
+	}
 
-		// Male count
-		const maleCount = gender['male'] ? gender['male'].length : 0
-		// Female count (with cow1 logic)
-		let femaleCount = 0
-		if (gender['female']) {
-			let cow = 0
-			for (const value1 of gender['female']) {
-				const heifer1 = await dbModels.AnimalQuestionAnswer.findOne({
-					where: { animal_id, animal_number: value1, user_id },
-					include: [
-						{
-							model: dbModels.CommonQuestions,
-							as: 'CommonQuestion',
-							where: { question_tag: 60 },
-							required: false,
-						},
-					],
-					order: [['created_at', 'DESC']],
-					raw: true,
-				})
-				if (
-					heifer1 &&
-					heifer1.logic_value &&
-					['cow', 'buffalo'].includes(heifer1.logic_value.toLowerCase())
-				) {
-					cow++
-				} else if (!heifer1 || !heifer1.logic_value) {
-					cow++
-				}
-			}
-			femaleCount = cow + cow1
-		} else {
-			femaleCount = cow1
-		}
-
-		// Heifer count
-		const heiferNumbers = await dbModels.AnimalQuestionAnswer.findAll({
-			where: { animal_id, user_id, status: { [Op.ne]: 1 } },
-			attributes: [
-				[
-					dbModels.Sequelize.fn(
-						'DISTINCT',
-						dbModels.Sequelize.col('animal_number'),
-					),
-					'animal_number',
-				],
-			],
-			raw: true,
-		})
-		let heiferData: Record<string, string[]> = {}
-		let heifer2 = 0
-		for (const value1 of heiferNumbers) {
-			const heiferVal = await dbModels.AnimalQuestionAnswer.findOne({
-				where: { animal_id, animal_number: value1.animal_number, user_id },
+	private static async getFemaleCount(
+		animal_id: number,
+		user_id: number,
+		femaleNumbers: string[],
+		cow1: number,
+	): Promise<number> {
+		let cow = 0
+		for (const animal_number of femaleNumbers) {
+			const heifer1 = await db.AnimalQuestionAnswer.findOne({
+				where: { animal_id, animal_number, user_id },
 				include: [
 					{
-						model: dbModels.CommonQuestions,
+						model: db.CommonQuestions,
 						as: 'CommonQuestion',
 						where: { question_tag: 60 },
 						required: false,
@@ -425,11 +393,53 @@ export class AnimalService {
 				order: [['created_at', 'DESC']],
 				raw: true,
 			})
-			const animalGender1 = await dbModels.AnimalQuestionAnswer.findOne({
-				where: { animal_id, animal_number: value1.animal_number, user_id },
+			if (
+				['cow', 'buffalo'].includes(heifer1?.logic_value?.toLowerCase?.() ?? '')
+			) {
+				cow++
+			} else if (!heifer1?.logic_value) {
+				cow++
+			}
+		}
+		return cow + cow1
+	}
+
+	private static async getHeiferCount(
+		animal_id: number,
+		user_id: number,
+	): Promise<number> {
+		const heiferNumbers = await db.AnimalQuestionAnswer.findAll({
+			where: { animal_id, user_id, status: { [Op.ne]: 1 } },
+			attributes: [
+				[
+					db.Sequelize.fn('DISTINCT', db.Sequelize.col('animal_number')),
+					'animal_number',
+				],
+			],
+			raw: true,
+		})
+		const heiferData: Record<string, string[]> = {}
+		let heifer2 = 0
+		for (const value1 of heiferNumbers) {
+			const animal_number = value1.animal_number
+			const heiferVal = await db.AnimalQuestionAnswer.findOne({
+				where: { animal_id, animal_number, user_id },
 				include: [
 					{
-						model: dbModels.CommonQuestions,
+						model: db.CommonQuestions,
+						as: 'CommonQuestion',
+						where: { question_tag: 60 },
+						required: false,
+					},
+				],
+				order: [['created_at', 'DESC']],
+				raw: true,
+			})
+			const animalGender1 = await db.AnimalQuestionAnswer.findOne({
+				where: { animal_id, animal_number, user_id },
+				include: [
+					{
+						model: db.CommonQuestions,
 						as: 'CommonQuestion',
 						where: { question_tag: 8 },
 						required: false,
@@ -438,33 +448,18 @@ export class AnimalService {
 				order: [['created_at', 'DESC']],
 				raw: true,
 			})
-			if (
-				animalGender1 &&
-				animalGender1.answer &&
-				animalGender1.answer.toLowerCase() === 'female'
+			if (animalGender1?.answer?.toLowerCase() === 'female') {
+				const key = heiferVal?.logic_value?.toLowerCase() || ''
+				if (!heiferData[key]) heiferData[key] = []
+				heiferData[key].push(animal_number)
+			} else if (
+				!animalGender1?.answer &&
+				heiferVal?.logic_value?.toLowerCase() === 'calf'
 			) {
-				if (!heiferData[heiferVal?.logic_value?.toLowerCase() || ''])
-					heiferData[heiferVal?.logic_value?.toLowerCase() || ''] = []
-				heiferData[heiferVal?.logic_value?.toLowerCase() || ''].push(
-					value1.animal_number,
-				)
-			} else {
-				if (
-					(!animalGender1 || !animalGender1.answer) &&
-					heiferVal &&
-					heiferVal.logic_value &&
-					heiferVal.logic_value.toLowerCase() === 'calf'
-				) {
-					heifer2++
-				}
+				heifer2++
 			}
 		}
 		const heiferCount = heiferData['calf'] ? heiferData['calf'].length : 0
-		const Heifer = { heifer: heiferCount + heifer2 }
-
-		resData.push({ male: maleCount })
-		resData.push({ female: femaleCount })
-		resData.push(Heifer)
-		return { message: 'Success', data: resData }
+		return heiferCount + heifer2
 	}
 }
