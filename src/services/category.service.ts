@@ -30,6 +30,6 @@ export class CategoryService {
 
 	static async deleteById(id: number): Promise<boolean> {
 		const deleted = await db.Category.destroy({ where: { id } })
-		return !!deleted
+		return Boolean(deleted)
 	}
 }

@@ -37,10 +37,8 @@ export class AppError extends Error {
 
 		// 2. Log audit trail to all.log
 		let userId = 'anonymous'
-		if (typeof req === 'object' && req && 'user' in req) {
-			const user = (req as { user?: { id?: string | number } }).user
-			userId = user?.id ? String(user.id) : userId
-		}
+		const { user } = req as { user?: { id?: string | number } }
+		userId = user?.id ? String(user.id) : userId
 		logAuditEvent(
 			{ user: { id: userId } },
 			undefined,

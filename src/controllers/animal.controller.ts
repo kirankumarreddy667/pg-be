@@ -200,4 +200,101 @@ export class AnimalController {
 			next(error)
 		}
 	}
+
+	public static readonly deleteUserAnimal: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
+		try {
+			const user = req.user as User
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const { animal_id, animal_number, answers } = req.body as {
+				animal_id: number
+				animal_number: string
+				answers: { question_id: number; answer: string }[]
+			}
+			await AnimalService.deleteUserAnimal(
+				user?.id,
+				animal_id,
+				animal_number,
+				answers,
+			)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: [],
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly farmAnimalCount: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
+		try {
+			const user = req.user as User
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const result = await AnimalService.farmAnimalCount(user.id)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: result,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly animalInfo: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
+		try {
+			const user = req.user as User
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const animal_id = Number(req.params.animal_id)
+			const result = await AnimalService.animalInfo(user.id, animal_id)
+			RESPONSE.SuccessResponse(res, 200, result)
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly updateAnimalNumberAnswer: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
+		try {
+			const user = req.user as User
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			await AnimalService.updateAnimalNumberAnswer(user.id)
+			RESPONSE.SuccessResponse(res, 200, { message: 'success', data: [] })
+		} catch (error) {
+			next(error)
+		}
+	}
 }

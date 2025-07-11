@@ -21,9 +21,8 @@ const minimalFormat = winston.format.combine(
 			let msg = `Environment: ${environment}\nLevel: ${level}\nMessage: ${message}`
 			if (typeof info.stack === 'string') msg += `\nStack: ${info.stack}`
 			return `${timestamp}\n${msg}`
-		} else {
-			return `${timestamp} ${level}: ${message}`
 		}
+		return `${timestamp} ${level}: ${message}`
 	}),
 )
 

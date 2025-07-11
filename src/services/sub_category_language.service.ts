@@ -20,11 +20,11 @@ export class SubCategoryLanguageService {
 	}
 
 	static async subCategoryExists(sub_category_id: number): Promise<boolean> {
-		return !!(await db.Subcategory.findByPk(sub_category_id))
+		return Boolean(await db.Subcategory.findByPk(sub_category_id))
 	}
 
 	static async languageExists(language_id: number): Promise<boolean> {
-		return !!(await db.Language.findByPk(language_id))
+		return Boolean(await db.Language.findByPk(language_id))
 	}
 
 	static async getAllByLanguage(

@@ -20,7 +20,6 @@ export class LanguageController {
 				data: languages,
 				message: 'success',
 			})
-			return
 		} catch (error) {
 			next(error)
 		}
@@ -44,7 +43,6 @@ export class LanguageController {
 				data: language,
 				message: 'Language created successfully',
 			})
-			return
 		} catch (error) {
 			next(error)
 		}
@@ -73,7 +71,6 @@ export class LanguageController {
 				data: updated,
 				message: 'Language updated successfully',
 			})
-			return
 		} catch (error) {
 			next(error)
 		}
@@ -99,7 +96,6 @@ export class LanguageController {
 				data: [],
 				message: 'Success',
 			})
-			return
 		} catch (error) {
 			next(error)
 		}

@@ -48,7 +48,7 @@ export const authenticate = (
 			return
 		}
 
-		const token = authHeader.split(' ')[1]
+		const [, token] = authHeader.split(' ')
 		const decoded = verify(token, env.JWT_ACCESS_SECRET) as JwtPayload
 
 		if (decoded.type !== 'access') {

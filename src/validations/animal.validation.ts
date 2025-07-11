@@ -15,3 +15,16 @@ export const addTypeOfAnAnimalSchema = Joi.object({
 	animal_id: Joi.number().integer().required(),
 	type_id: Joi.number().integer().required(),
 })
+
+export const deleteUserAnimalSchema = Joi.object({
+	animal_id: Joi.number().integer().required(),
+	animal_number: Joi.string().required(),
+	answers: Joi.array()
+		.items(
+			Joi.object({
+				question_id: Joi.number().integer().required(),
+				answer: Joi.alternatives().try(Joi.string(), Joi.number()).required(),
+			}),
+		)
+		.required(),
+})

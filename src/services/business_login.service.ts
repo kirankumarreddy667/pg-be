@@ -49,7 +49,7 @@ export class BusinessLoginService {
 			farm_name: user.get('farm_name'),
 			payment_status: user.get('payment_status'),
 			plan_expires_on: null,
-			otp_status: !!user.get('otp_status'),
+			otp_status: Boolean(user.get('otp_status')),
 		}
 	}
 

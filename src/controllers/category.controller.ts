@@ -3,7 +3,7 @@ import { CategoryService } from '@/services/category.service'
 import RESPONSE from '@/utils/response'
 
 export class CategoryController {
-	public static  create: RequestHandler = async (req, res, next) => {
+	public static readonly create: RequestHandler = async (req, res, next) => {
 		try {
 			const { name } = req.body as { name: string }
 			const existingCategory = await CategoryService.getCategoryByName(name)

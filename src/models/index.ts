@@ -59,6 +59,10 @@ import AnimalLanguageModel, { AnimalLanguage } from './animal_language.model'
 import AnimalQuestionAnswerModel, {
 	AnimalQuestionAnswer,
 } from './animal_question_answers.model'
+import DeletedAnimalDetailsModel, {
+	DeletedAnimalDetails,
+} from './deleted_animal_details.model'
+import CommonQuestionsModel, { CommonQuestions } from './common_questions.model'
 
 interface Models {
 	User: typeof User
@@ -97,6 +101,8 @@ interface Models {
 	AnimalType: typeof AnimalType
 	AnimalLanguage: typeof AnimalLanguage
 	AnimalQuestionAnswer: typeof AnimalQuestionAnswer
+	DeletedAnimalDetails: typeof DeletedAnimalDetails
+	CommonQuestions: typeof CommonQuestions
 }
 
 export const initModels = (sequelize: Sequelize): Models => {
@@ -136,6 +142,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const AnimalType = AnimalTypeModel(sequelize)
 	const AnimalLanguage = AnimalLanguageModel(sequelize)
 	const AnimalQuestionAnswer = AnimalQuestionAnswerModel(sequelize)
+	const DeletedAnimalDetails = DeletedAnimalDetailsModel(sequelize)
+	const CommonQuestions = CommonQuestionsModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -210,6 +218,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 		AnimalType,
 		AnimalLanguage,
 		AnimalQuestionAnswer,
+		DeletedAnimalDetails,
+		CommonQuestions,
 	}
 }
 
@@ -233,3 +243,5 @@ export { UserBusinessOutlet } from './user_business_outlet.model'
 export { Animal } from './animal.model'
 export { AnimalType } from './animal_type.model'
 export { AnimalQuestionAnswer } from './animal_question_answers.model'
+export { DeletedAnimalDetails } from './deleted_animal_details.model'
+export { CommonQuestions } from './common_questions.model'

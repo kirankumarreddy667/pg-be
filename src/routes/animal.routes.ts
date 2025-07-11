@@ -8,6 +8,7 @@ import {
 	createTypeSchema,
 	createAnimalSchema,
 	addTypeOfAnAnimalSchema,
+	deleteUserAnimalSchema,
 } from '@/validations/animal.validation'
 
 const router: Router = Router()
@@ -603,6 +604,127 @@ router.get(
 	'/get_animal_number/:animal_id',
 	authenticate,
 	wrapAsync(AnimalController.getAnimalNumberByAnimalId),
+)
+
+/**
+ * @swagger
+ * /delete_user_animal:
+ *   post:
+ *     summary: Delete user animal
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User animal deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/delete_user_animal',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	validateRequest(deleteUserAnimalSchema),
+	wrapAsync(AnimalController.deleteUserAnimal),
+)
+
+/**
+ * @swagger
+ * /user_animal_count:
+ *   get:
+ *     summary: Get user animal count
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/user_animal_count',
+	authenticate,
+	wrapAsync(AnimalController.farmAnimalCount),
+)
+
+/**
+ * @swagger
+ * /animal_info/{animal_id}:
+ *   get:
+ *     summary: Get animal info by ID
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_info/:animal_id',
+	authenticate,
+	wrapAsync(AnimalController.animalInfo),
+)
+
+/**
+ * @swagger
+ * /update_animal_number_answer:
+ *   put:
+ *     summary: Update animal number answer
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Animal number answer updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.put(
+	'/update_animal_number_answer',
+	authenticate,
+	wrapAsync(AnimalController.updateAnimalNumberAnswer),
 )
 
 export default router

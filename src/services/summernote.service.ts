@@ -23,7 +23,7 @@ export class SummernoteService {
 
 			// Parse HTML and handle base64 images
 			const dom = new JSDOM(detail)
-			const document = dom.window.document
+			const { document } = dom.window
 			const images = document.querySelectorAll('img')
 			if (images) {
 				images.forEach((img, k) => {
@@ -31,8 +31,8 @@ export class SummernoteService {
 					if (data?.startsWith('data:')) {
 						const matches = data.match(/^data:(.+);base64,(.+)$/)
 						if (matches?.[1] && matches?.[2]) {
-							const ext = matches[1].split('/')[1] || 'png'
-							const base64Data = matches[2]
+							const [, mimeType, base64Data] = matches
+							const ext = mimeType.split('/')[1] || 'png'
 							const buffer = Buffer.from(base64Data, 'base64')
 							const imageName = `${Date.now()}_${k}.${ext}`
 							const imagePath = path.join(
