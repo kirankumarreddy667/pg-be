@@ -393,11 +393,8 @@ export class AnimalService {
 				order: [['created_at', 'DESC']],
 				raw: true,
 			})
-			if (
-				['cow', 'buffalo'].includes(heifer1?.logic_value?.toLowerCase?.() ?? '')
-			) {
-				cow++
-			} else if (!heifer1?.logic_value) {
+			const logicValue = heifer1?.logic_value?.toLowerCase?.() ?? ''
+			if (!heifer1?.logic_value || ['cow', 'buffalo'].includes(logicValue)) {
 				cow++
 			}
 		}
