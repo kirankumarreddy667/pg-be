@@ -9,7 +9,9 @@ import {
 	createAnimalSchema,
 	addTypeOfAnAnimalSchema,
 	deleteUserAnimalSchema,
+	addAnimalQuestionSchema,
 } from '@/validations/animal.validation'
+import { AnimalQuestionsBasedOnCategoryController } from '@/controllers/animal_questions_based_on_category.controller'
 
 const router: Router = Router()
 
@@ -725,6 +727,450 @@ router.put(
 	'/update_animal_number_answer',
 	authenticate,
 	wrapAsync(AnimalController.updateAnimalNumberAnswer),
+)
+
+/**
+ * @swagger
+ * /add_animal_question:
+ *   post:
+ *     summary: Add animal-question mappings
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *               question_id:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *             required:
+ *               - animal_id
+ *               - question_id
+ *     responses:
+ *       201:
+ *         description: Animal-question mappings added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/add_animal_question',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	validateRequest(addAnimalQuestionSchema),
+	wrapAsync(AnimalController.addAnimalQuestion),
+)
+
+/**
+ * @swagger
+ * /delete_animal_question/{id}:
+ *   delete:
+ *     summary: Delete animal-question mapping by id
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: AnimalQuestion ID
+ *     responses:
+ *       200:
+ *         description: Animal-question mapping deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.delete(
+	'/delete_animal_question/:id',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(AnimalController.deleteAnimalQuestion),
+)
+
+/**
+ * @swagger
+ * /get_animal_question/{id}/{language_id}:
+ *   get:
+ *     summary: Get questions mapped to an animal, optionally filtered by language
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Language ID (optional)
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/get_animal_question/:id/:language_id?',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(AnimalController.getAnimalQuestionById),
+)
+
+/**
+ * @swagger
+ * /animal_question_basic_details/{animal_id}/{language_id}:
+ *   get:
+ *     summary: Get animal questions for basic details category (category_id=1) in a language
+ *     tags: [Animal]
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_question_basic_details/:animal_id/:language_id',
+	authenticate,
+	wrapAsync(
+		AnimalQuestionsBasedOnCategoryController.animalQuestionBasedOnBasicDetailsCategory,
+	),
+)
+
+/**
+ * @swagger
+ * /animal_question_breeding_details/{animal_id}/{language_id}:
+ *   get:
+ *     summary: Get animal questions for breeding details category (category_id=2) in a language
+ *     tags: [Animal]
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_question_breeding_details/:animal_id/:language_id',
+	authenticate,
+	wrapAsync(
+		AnimalQuestionsBasedOnCategoryController.animalQuestionBasedOnBreedingDetailsCategory,
+	),
+)
+
+/**
+ * @swagger
+ * /animal_question_milk_details/{animal_id}/{language_id}:
+ *   get:
+ *     summary: Get animal questions for milk details category (category_id=3) in a language
+ *     tags: [Animal]
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_question_milk_details/:animal_id/:language_id',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(
+		AnimalQuestionsBasedOnCategoryController.animalQuestionBasedOnMilkDetailsCategory,
+	),
+)
+
+/**
+ * @swagger
+ * /animal_question_birth_details/{animal_id}/{language_id}:
+ *   get:
+ *     summary: Get animal questions for birth details category (category_id=4) in a language
+ *     tags: [Animal]
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_question_birth_details/:animal_id/:language_id',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(
+		AnimalQuestionsBasedOnCategoryController.animalQuestionBasedOnBirthDetailsCategory,
+	),
+)
+
+/**
+ * @swagger
+ * /animal_question_health_details/{animal_id}/{language_id}:
+ *   get:
+ *     summary: Get animal questions for health details category (category_id=5) in a language
+ *     tags: [Animal]
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_question_health_details/:animal_id/:language_id',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(
+		AnimalQuestionsBasedOnCategoryController.animalQuestionBasedOnHealthDetailsCategory,
+	),
+)
+
+/**
+ * @swagger
+ * /get_user_animal_delete_questions/{language_id}:
+ *   get:
+ *     summary: Get user animal delete questions (category_id=10, tags 43,44)
+ *     tags: [Animal]
+ *     parameters:
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/get_user_animal_delete_questions/:language_id',
+	authenticate,
+	wrapAsync(AnimalQuestionsBasedOnCategoryController.userAnimalDeleteQuestions),
+)
+
+/**
+ * @swagger
+ * /get_user_animal_delete_questions_options/{language_id}/{option}:
+ *   get:
+ *     summary: Get user animal delete questions based on option (category_id=10, tag 45/46)
+ *     tags: [Animal]
+ *     parameters:
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *       - in: path
+ *         name: option
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Option (sold_off or animal_dead)
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/get_user_animal_delete_questions_options/:language_id/:option',
+	authenticate,
+	wrapAsync(
+		AnimalQuestionsBasedOnCategoryController.userAnimalDeleteQuestionsBasedOnOptions,
+	),
+)
+
+/**
+ * @swagger
+ * /farm_animal_count:
+ *   get:
+ *     summary: Get total farm animals of a user
+ *     tags: [Animal]
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/farm_animal_count',
+	authenticate,
+	wrapAsync(AnimalQuestionsBasedOnCategoryController.farmAnimalCount),
 )
 
 export default router

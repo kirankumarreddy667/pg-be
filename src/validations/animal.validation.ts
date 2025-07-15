@@ -28,3 +28,8 @@ export const deleteUserAnimalSchema = Joi.object({
 		)
 		.required(),
 })
+
+export const addAnimalQuestionSchema = Joi.object({
+	animal_id: Joi.number().integer().required(),
+	question_id: Joi.array().items(Joi.number().integer().required()).required(),
+})

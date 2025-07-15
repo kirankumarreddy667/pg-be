@@ -77,6 +77,10 @@ import AnimalVaccinationModel, {
 import UserVaccinationTypeModel, {
 	UserVaccinationType,
 } from './user_vaccination_type.model'
+import QuestionLanguageModel, {
+	QuestionLanguage,
+} from './question_language.model'
+import AnimalQuestionsModel, { AnimalQuestions } from './animal_questions.model'
 
 interface Models {
 	User: typeof User
@@ -124,6 +128,8 @@ interface Models {
 	VaccinationDetail: typeof VaccinationDetail
 	AnimalVaccination: typeof AnimalVaccination
 	UserVaccinationType: typeof UserVaccinationType
+	QuestionLanguage: typeof QuestionLanguage
+	AnimalQuestions: typeof AnimalQuestions
 }
 export const initModels = (sequelize: Sequelize): Models => {
 	const User = UserModel(sequelize)
@@ -174,6 +180,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const VaccinationDetail = VaccinationDetailModel(sequelize)
 	const AnimalVaccination = AnimalVaccinationModel(sequelize)
 	const UserVaccinationType = UserVaccinationTypeModel(sequelize)
+	const QuestionLanguage = QuestionLanguageModel(sequelize)
+	const AnimalQuestions = AnimalQuestionsModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -209,6 +217,35 @@ export const initModels = (sequelize: Sequelize): Models => {
 	AnimalType.belongsTo(Type, { foreignKey: 'type_id' })
 	Animal.hasMany(AnimalType, { foreignKey: 'animal_id' })
 	Type.hasMany(AnimalType, { foreignKey: 'type_id' })
+
+	CommonQuestions.belongsTo(Category, {
+		foreignKey: 'category_id',
+		as: 'Category',
+	})
+	CommonQuestions.belongsTo(Subcategory, {
+		foreignKey: 'sub_category_id',
+		as: 'Subcategory',
+	})
+	CommonQuestions.belongsTo(ValidationRule, {
+		foreignKey: 'validation_rule_id',
+		as: 'ValidationRule',
+	})
+	CommonQuestions.belongsTo(FormType, {
+		foreignKey: 'form_type_id',
+		as: 'FormType',
+	})
+	CommonQuestions.belongsTo(QuestionTag, {
+		foreignKey: 'question_tag',
+		as: 'QuestionTag',
+	})
+	CommonQuestions.belongsTo(QuestionUnit, {
+		foreignKey: 'question_unit',
+		as: 'QuestionUnit',
+	})
+	QuestionLanguage.belongsTo(CommonQuestions, {
+		foreignKey: 'question_id',
+		as: 'CommonQuestion',
+	})
 
 	return {
 		User,
@@ -256,6 +293,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 		VaccinationDetail,
 		AnimalVaccination,
 		UserVaccinationType,
+		QuestionLanguage,
+		AnimalQuestions,
 	}
 }
 
@@ -285,3 +324,5 @@ export { VaccinationType } from './vaccination_type.model'
 export { VaccinationDetail } from './vaccination_detail.model'
 export { AnimalVaccination } from './animal_vaccination.model'
 export { UserVaccinationType } from './user_vaccination_type.model'
+export { QuestionLanguage } from './question_language.model'
+export { AnimalQuestions } from './animal_questions.model'

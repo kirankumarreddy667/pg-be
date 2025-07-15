@@ -1,6 +1,17 @@
 import db from '@/config/database'
 import { Animal, AnimalType } from '@/models'
 import { Op } from 'sequelize'
+import type { AnimalQuestions } from '@/models/animal_questions.model'
+import type { CommonQuestions } from '@/models/common_questions.model'
+import type { Category } from '@/models/category.model'
+import type { Subcategory } from '@/models/sub_category.model'
+import type { ValidationRule } from '@/models/validation_rule.model'
+import type { FormType } from '@/models/form_type.model'
+import type { QuestionTag } from '@/models/question_tag.model'
+import type { QuestionUnit } from '@/models/question_unit.model'
+import type { QuestionLanguage } from '@/models/question_language.model'
+import type { CategoryLanguage } from '@/models/category_language.model'
+import type { SubCategoryLanguage } from '@/models/sub_category_language.model'
 
 type AnimalInfoResult =
 	| { [animalName: string]: number }
@@ -319,6 +330,223 @@ export class AnimalService {
 		resData.push({ heifer: heiferCount })
 
 		return { message: 'Success', data: resData }
+	}
+
+	static async addAnimalQuestion(data: {
+		animal_id: number
+		question_id: number[]
+	}): Promise<{ message: string; data: [] }> {
+		const t = await db.sequelize.transaction()
+		try {
+			const { animal_id, question_id } = data
+			// Find existing mappings
+			const existing = await db.AnimalQuestions.findAll({
+				where: { animal_id, question_id },
+				transaction: t,
+			})
+			const existingSet = new Set(existing.map((q) => q.question_id))
+			const toInsert = question_id
+				.filter((qid) => !existingSet.has(qid))
+				.map((qid) => ({
+					animal_id,
+					question_id: qid,
+					created_at: new Date(),
+					updated_at: new Date(),
+				}))
+			if (toInsert.length > 0) {
+				await db.AnimalQuestions.bulkCreate(toInsert, { transaction: t })
+			}
+			await t.commit()
+			return { message: 'Success', data: [] }
+		} catch (err) {
+			await t.rollback()
+			throw err
+		}
+	}
+
+	static async deleteAnimalQuestion(
+		id: number,
+	): Promise<{ message: string; data: [] }> {
+		const deleted = await db.AnimalQuestions.destroy({ where: { id } })
+		if (deleted) {
+			return { message: 'Success', data: [] }
+		} else {
+			return { message: 'Something went wrong. Please try again', data: [] }
+		}
+	}
+
+	static async getQuestionsBasedOnAnimalId(
+		animal_id: number,
+		language_id?: number,
+	): Promise<{
+		message: string
+		data: Record<string, Record<string, unknown[]>>
+	}> {
+		type CQWithLang = CommonQuestions & {
+			QuestionLanguages?: QuestionLanguage[]
+			FormType?: FormType
+			ValidationRule?: ValidationRule
+			CategoryLanguage?: CategoryLanguage
+			SubCategoryLanguage?: SubCategoryLanguage
+			QuestionUnit?: QuestionUnit
+			QuestionTag?: QuestionTag
+			Category?: Category
+			Subcategory?: Subcategory
+		}
+		type AQWithCQ = AnimalQuestions & { CommonQuestion?: CQWithLang }
+
+		if (language_id) {
+			const questions = (await db.AnimalQuestions.findAll({
+				where: { animal_id },
+				include: [
+					{
+						model: db.CommonQuestions,
+						as: 'CommonQuestion',
+						include: [
+							{
+								model: db.QuestionLanguage,
+								as: 'QuestionLanguages',
+								where: { language_id },
+								required: true,
+							},
+							{
+								model: db.FormType,
+								as: 'FormType',
+								attributes: ['id', 'name'],
+								required: false,
+							},
+							{
+								model: db.ValidationRule,
+								as: 'ValidationRule',
+								attributes: ['id', 'name', 'constant_value'],
+							},
+							{
+								model: db.CategoryLanguage,
+								as: 'CategoryLanguage',
+								where: { language_id },
+								required: false,
+								attributes: ['category_language_name'],
+							},
+							{
+								model: db.SubCategoryLanguage,
+								as: 'SubCategoryLanguage',
+								where: { language_id },
+								required: false,
+								attributes: ['sub_category_language_name'],
+							},
+							{
+								model: db.QuestionUnit,
+								as: 'QuestionUnit',
+								attributes: ['id', 'name'],
+								required: false,
+							},
+							{
+								model: db.QuestionTag,
+								as: 'QuestionTag',
+								attributes: ['id', 'name'],
+								required: false,
+							},
+						],
+					},
+				],
+			})) as AQWithCQ[]
+			const resData: Record<string, Record<string, unknown[]>> = {}
+			for (const aq of questions) {
+				const cq = aq.CommonQuestion
+				if (!cq) continue
+				const ql = cq.QuestionLanguages && cq.QuestionLanguages[0]
+				const categoryName =
+					cq.CategoryLanguage?.category_language_name || 'Uncategorized'
+				const subCategoryName =
+					cq.SubCategoryLanguage?.sub_category_language_name || 'Uncategorized'
+				if (!resData[categoryName]) resData[categoryName] = {}
+				if (!resData[categoryName][subCategoryName])
+					resData[categoryName][subCategoryName] = []
+				resData[categoryName][subCategoryName].push({
+					animal_id,
+					validation_rule: cq.ValidationRule?.name ?? null,
+					master_question: cq.question,
+					language_question: ql?.question ?? null,
+					question_id: cq.id,
+					form_type: cq.FormType?.name ?? null,
+					date: cq.date,
+					form_type_value: cq.form_type_value,
+					question_language_id: ql?.id ?? null,
+					constant_value: cq.ValidationRule?.constant_value ?? null,
+					question_unit: cq.QuestionUnit?.name ?? null,
+					question_tag: cq.QuestionTag?.name ?? null,
+					language_form_type_value: ql?.form_type_value ?? null,
+					hint: ql?.hint ?? null,
+				})
+			}
+			return { message: 'Success', data: resData }
+		} else {
+			const questions = (await db.AnimalQuestions.findAll({
+				where: { animal_id },
+				include: [
+					{
+						model: db.CommonQuestions,
+						as: 'CommonQuestion',
+						include: [
+							{ model: db.Category, as: 'Category', attributes: ['name'] },
+							{
+								model: db.Subcategory,
+								as: 'Subcategory',
+								attributes: ['name'],
+								required: false,
+							},
+							{
+								model: db.FormType,
+								as: 'FormType',
+								attributes: ['id', 'name'],
+								required: false,
+							},
+							{
+								model: db.ValidationRule,
+								as: 'ValidationRule',
+								attributes: ['id', 'name', 'constant_value'],
+							},
+							{
+								model: db.QuestionUnit,
+								as: 'QuestionUnit',
+								attributes: ['id', 'name'],
+								required: false,
+							},
+							{
+								model: db.QuestionTag,
+								as: 'QuestionTag',
+								attributes: ['id', 'name'],
+								required: false,
+							},
+						],
+					},
+				],
+			})) as AQWithCQ[]
+			const resData: Record<string, Record<string, unknown[]>> = {}
+			for (const aq of questions) {
+				const cq = aq.CommonQuestion
+				if (!cq) continue
+				const categoryName = cq.Category?.name || 'Uncategorized'
+				const subCategoryName = cq.Subcategory?.name || 'Uncategorized'
+				if (!resData[categoryName]) resData[categoryName] = {}
+				if (!resData[categoryName][subCategoryName])
+					resData[categoryName][subCategoryName] = []
+				resData[categoryName][subCategoryName].push({
+					animal_id,
+					validation_rule: cq.ValidationRule?.name ?? null,
+					master_question: cq.question,
+					question_id: cq.id,
+					form_type: cq.FormType?.name ?? null,
+					date: cq.date,
+					form_type_value: cq.form_type_value,
+					constant_value: cq.ValidationRule?.constant_value ?? null,
+					question_unit: cq.QuestionUnit?.name ?? null,
+					question_tag: cq.QuestionTag?.name ?? null,
+					hint: cq.hint ?? null,
+				})
+			}
+			return { message: 'Success', data: resData }
+		}
 	}
 
 	private static async getGenderBreakdown(

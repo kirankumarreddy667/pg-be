@@ -181,13 +181,13 @@ export class AnimalController {
 	): Promise<void> => {
 		try {
 			const user = req.user as User
-			const animal_id = Number(req.params.animal_id)
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
 					message: 'User not found',
 					data: [],
 				})
 			}
+			const animal_id = Number(req.params.animal_id)
 			const result = await AnimalService.getAnimalNumberByAnimalId(
 				animal_id,
 				user.id,
@@ -293,6 +293,61 @@ export class AnimalController {
 			}
 			await AnimalService.updateAnimalNumberAnswer(user.id)
 			RESPONSE.SuccessResponse(res, 200, { message: 'success', data: [] })
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly addAnimalQuestion: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const result = await AnimalService.addAnimalQuestion(
+				req.body as {
+					animal_id: number
+					question_id: number[]
+				},
+			)
+			RESPONSE.SuccessResponse(res, 201, { message: result.message, data: [] })
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly deleteAnimalQuestion: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const id = Number(req.params.id)
+			const result = await AnimalService.deleteAnimalQuestion(id)
+			RESPONSE.SuccessResponse(res, 200, { message: result.message, data: [] })
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly getAnimalQuestionById: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const animal_id = Number(req.params.id)
+			const language_id = req.params.language_id
+				? Number(req.params.language_id)
+				: undefined
+			const result = await AnimalService.getQuestionsBasedOnAnimalId(
+				animal_id,
+				language_id,
+			)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: result.message,
+				data: result.data,
+			})
 		} catch (error) {
 			next(error)
 		}

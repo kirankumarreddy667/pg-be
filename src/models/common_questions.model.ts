@@ -1,4 +1,12 @@
 import { Model, DataTypes, Sequelize } from 'sequelize'
+import type { Category } from './category.model'
+import type { Subcategory } from './sub_category.model'
+import type { ValidationRule } from './validation_rule.model'
+import type { FormType } from './form_type.model'
+import type { QuestionTag } from './question_tag.model'
+import type { QuestionUnit } from './question_unit.model'
+import { CategoryLanguage } from './category_language.model'
+import { SubCategoryLanguage } from './sub_category_language.model'
 
 export interface CommonQuestionsAttributes {
 	id?: number
@@ -37,6 +45,14 @@ export class CommonQuestions
 	public question_unit!: number | null
 	public hint!: string | null
 	public sequence_number!: number | null
+	public Category?: Category
+	public Subcategory?: Subcategory
+	public ValidationRule?: ValidationRule
+	public FormType?: FormType
+	public QuestionTag?: QuestionTag
+	public QuestionUnit?: QuestionUnit
+	public CategoryLanguage?: CategoryLanguage
+	public SubCategoryLanguage?: SubCategoryLanguage
 }
 
 export default (sequelize: Sequelize): typeof CommonQuestions => {

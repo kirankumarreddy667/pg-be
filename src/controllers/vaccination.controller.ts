@@ -6,7 +6,7 @@ import db from '@/config/database'
 import { Op } from 'sequelize'
 
 export class VaccinationController {
-	public static create: RequestHandler = async (req, res, next) => {
+	public static readonly create: RequestHandler = async (req, res, next) => {
 		try {
 			const userId = Number((req.user as User)?.id)
 			const vaccination = req.body as {
@@ -69,7 +69,11 @@ export class VaccinationController {
 		}
 	}
 
-	public static listAllType: RequestHandler = async (req, res, next) => {
+	public static readonly listAllType: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
 		try {
 			const result = await VaccinationService.listAllType()
 			RESPONSE.SuccessResponse(res, 200, result)
