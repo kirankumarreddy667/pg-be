@@ -14,13 +14,16 @@ import questionUnitRouter from './question_unit.routes'
 import questionTagRouter from './question_tag.routes'
 import advertisementRouter from './advertisement.routes'
 import businessOutletRouter from './business_outlet.routes'
+import couponRouter from './coupons.route'
 import summernoteRouter from './summernote.routes'
 import sliderArticleRouter from './slider_article.routes'
 import appAboutContentRouter from './app_about_content.routes'
 import contactRouter from './contact_us.routes'
 import productRouter from './product.routes'
 import farmManagementRoutes from './farm_management.routes'
+import planRouter from './plan.routes'
 import animalRoutes from './animal.routes'
+import vaccinationRoutes from './vaccination.routes'
 
 const v1Router: ExpressRouter = Router()
 
@@ -40,12 +43,15 @@ v1Router.use(questionUnitRouter)
 v1Router.use(questionTagRouter)
 v1Router.use(advertisementRouter)
 v1Router.use(businessOutletRouter)
+v1Router.use(couponRouter)
 v1Router.use(summernoteRouter)
 v1Router.use(sliderArticleRouter)
 v1Router.use(appAboutContentRouter)
 v1Router.use(contactRouter)
 v1Router.use(productRouter)
 v1Router.use(farmManagementRoutes)
+v1Router.use(planRouter)
 v1Router.use(animalRoutes)
+v1Router.use(vaccinationRoutes)
 
 export default v1Router

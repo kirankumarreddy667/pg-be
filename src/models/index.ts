@@ -23,6 +23,7 @@ import AdvertisementImageModel, {
 	AdvertisementImage,
 } from './advertisement_image.model'
 import BusinessOutletModel, { BusinessOutlet } from './business_outlet.model'
+import CouponModel, { Coupon } from './coupon.model'
 import summernoteModel, { Summernote } from './summernote.model'
 import SliderArticleModel, { SliderArticle } from './slider_article.model'
 import AppAboutContentModel, {
@@ -49,6 +50,9 @@ import InvestmentTypesFactory, {
 import InvestmentTypesLanguageFactory, {
 	InvestmentTypesLanguage,
 } from './investment_types_language.model'
+import planModel from './plan.model'
+import plan_typeModel from './plan_type.model'
+
 import UserBusinessOutletModel, {
 	UserBusinessOutlet,
 } from './user_business_outlet.model'
@@ -63,6 +67,16 @@ import DeletedAnimalDetailsModel, {
 	DeletedAnimalDetails,
 } from './deleted_animal_details.model'
 import CommonQuestionsModel, { CommonQuestions } from './common_questions.model'
+import VaccinationTypeModel, { VaccinationType } from './vaccination_type.model'
+import VaccinationDetailModel, {
+	VaccinationDetail,
+} from './vaccination_detail.model'
+import AnimalVaccinationModel, {
+	AnimalVaccination,
+} from './animal_vaccination.model'
+import UserVaccinationTypeModel, {
+	UserVaccinationType,
+} from './user_vaccination_type.model'
 
 interface Models {
 	User: typeof User
@@ -83,6 +97,7 @@ interface Models {
 	Advertisement: typeof Advertisement
 	AdvertisementImage: typeof AdvertisementImage
 	BusinessOutlet: typeof BusinessOutlet
+	Coupon: typeof Coupon
 	Summernote: typeof Summernote
 	SliderArticle: typeof SliderArticle
 	AppAboutContent: typeof AppAboutContent
@@ -95,6 +110,8 @@ interface Models {
 	FixedInvestmentDetails: typeof FixedInvestmentDetails
 	InvestmentTypes: typeof InvestmentTypes
 	InvestmentTypesLanguage: typeof InvestmentTypesLanguage
+	Plan: ReturnType<typeof planModel>
+	PlanType: ReturnType<typeof plan_typeModel>
 	UserBusinessOutlet: typeof UserBusinessOutlet
 	Animal: typeof Animal
 	Type: typeof Type
@@ -103,8 +120,11 @@ interface Models {
 	AnimalQuestionAnswer: typeof AnimalQuestionAnswer
 	DeletedAnimalDetails: typeof DeletedAnimalDetails
 	CommonQuestions: typeof CommonQuestions
+	VaccinationType: typeof VaccinationType
+	VaccinationDetail: typeof VaccinationDetail
+	AnimalVaccination: typeof AnimalVaccination
+	UserVaccinationType: typeof UserVaccinationType
 }
-
 export const initModels = (sequelize: Sequelize): Models => {
 	const User = UserModel(sequelize)
 	const Otp = OtpModel(sequelize)
@@ -124,6 +144,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const Advertisement = AdvertisementModel(sequelize)
 	const AdvertisementImage = AdvertisementImageModel(sequelize)
 	const BusinessOutlet = BusinessOutletModel(sequelize)
+	const Coupon = CouponModel(sequelize)
 	const Summernote = summernoteModel(sequelize)
 	const SliderArticle = SliderArticleModel(sequelize)
 	const AppAboutContent = AppAboutContentModel(sequelize)
@@ -136,6 +157,11 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const FixedInvestmentDetails = FixedInvestmentDetailsFactory(sequelize)
 	const InvestmentTypes = InvestmentTypesFactory(sequelize)
 	const InvestmentTypesLanguage = InvestmentTypesLanguageFactory(sequelize)
+	const Plan = planModel(sequelize)
+	const PlanType = plan_typeModel(sequelize)
+
+	Plan.belongsTo(PlanType, { foreignKey: 'plan_type_id', as: 'PlanType' })
+    PlanType.hasMany(Plan, { foreignKey: 'plan_type_id', as: 'Plans' })
 	const UserBusinessOutlet = UserBusinessOutletModel(sequelize)
 	const Animal = AnimalModel(sequelize)
 	const Type = TypeModel(sequelize)
@@ -144,6 +170,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const AnimalQuestionAnswer = AnimalQuestionAnswerModel(sequelize)
 	const DeletedAnimalDetails = DeletedAnimalDetailsModel(sequelize)
 	const CommonQuestions = CommonQuestionsModel(sequelize)
+	const VaccinationType = VaccinationTypeModel(sequelize)
+	const VaccinationDetail = VaccinationDetailModel(sequelize)
+	const AnimalVaccination = AnimalVaccinationModel(sequelize)
+	const UserVaccinationType = UserVaccinationTypeModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -160,7 +190,6 @@ export const initModels = (sequelize: Sequelize): Models => {
 	User.hasMany(Otp, { foreignKey: 'user_id' })
 	RoleUser.belongsTo(Role, { foreignKey: 'role_id', as: 'Role' })
 
-	// Add User-Language association
 	User.belongsTo(Language, { foreignKey: 'language_id', as: 'Language' })
 	Language.hasMany(User, { foreignKey: 'language_id', as: 'Users' })
 
@@ -200,6 +229,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 		Advertisement,
 		AdvertisementImage,
 		BusinessOutlet,
+		Coupon,
 		Summernote,
 		SliderArticle,
 		AppAboutContent,
@@ -212,6 +242,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 		FixedInvestmentDetails,
 		InvestmentTypes,
 		InvestmentTypesLanguage,
+		Plan,
+		PlanType,
 		UserBusinessOutlet,
 		Animal,
 		Type,
@@ -220,6 +252,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 		AnimalQuestionAnswer,
 		DeletedAnimalDetails,
 		CommonQuestions,
+		VaccinationType,
+		VaccinationDetail,
+		AnimalVaccination,
+		UserVaccinationType,
 	}
 }
 
@@ -245,3 +281,7 @@ export { AnimalType } from './animal_type.model'
 export { AnimalQuestionAnswer } from './animal_question_answers.model'
 export { DeletedAnimalDetails } from './deleted_animal_details.model'
 export { CommonQuestions } from './common_questions.model'
+export { VaccinationType } from './vaccination_type.model'
+export { VaccinationDetail } from './vaccination_detail.model'
+export { AnimalVaccination } from './animal_vaccination.model'
+export { UserVaccinationType } from './user_vaccination_type.model'
