@@ -62,3 +62,21 @@ export const saveUserDeviceSchema = Joi.object({
 		'any.only': 'The deviceType must be one of: android, ios, web.',
 	}),
 })
+
+export const userAnswerCountSchema = Joi.object({
+	type: Joi.string().valid('all_time').optional(),
+	start_date: Joi.date().iso().when('type', {
+		is: Joi.exist(),
+		then: Joi.forbidden(),
+		otherwise: Joi.required(),
+	}),
+	end_date: Joi.date().iso().when('type', {
+		is: Joi.exist(),
+		then: Joi.forbidden(),
+		otherwise: Joi.required(),
+	}),
+})
+	.or('type', 'start_date')
+	.messages({
+		'any.required': 'Either type or start_date/end_date is required',
+	})

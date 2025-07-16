@@ -110,7 +110,7 @@ export class AnimalQuestionsBasedOnCategoryService {
 						FormType?: { name: string } | null
 						ValidationRule?: {
 							name: string
-							constant_value: string | number | null
+							constant_value: ConstantValue
 						} | null
 						CategoryLanguage?: { category_language_name: string } | null
 						SubCategoryLanguage?: { sub_category_language_name: string } | null
@@ -397,7 +397,7 @@ export class AnimalQuestionsBasedOnCategoryService {
 						FormType?: { name: string } | null
 						ValidationRule?: {
 							name: string
-							constant_value: string | number | null
+							constant_value: ConstantValue
 						} | null
 						CategoryLanguage?: { category_language_name: string } | null
 						SubCategoryLanguage?: { sub_category_language_name: string } | null
@@ -533,7 +533,7 @@ export class AnimalQuestionsBasedOnCategoryService {
 				FormType?: { name: string } | null
 				ValidationRule?: {
 					name: string
-					constant_value: string | number | null
+					constant_value: ConstantValue
 				} | null
 				CategoryLanguage?: { category_language_name: string } | null
 				SubCategoryLanguage?: { sub_category_language_name: string } | null

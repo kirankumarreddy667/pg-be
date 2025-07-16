@@ -4,6 +4,8 @@ import type { User } from '@/models/user.model'
 import type { Role } from '@/models/role.model'
 import type { RoleUser } from '@/models/role_user.model'
 import type { UserWithLanguage } from '@/types'
+import { Op, fn, col } from 'sequelize'
+import { AnimalQuestionAnswer } from '@/models/animal_question_answers.model'
 
 export interface UserSortResult {
 	user_id: number
@@ -21,6 +23,16 @@ export interface UserSortResult {
 	expDate?: string
 	Daily_record_update_count: number
 	registration_date?: Date | string
+	total_days: number
+	answer_days_count: number
+	percentage: number
+}
+
+export interface UserAnswerCountResult {
+	user_id: number
+	name: string
+	phone_number: string
+	registration_date: Date | string
 	total_days: number
 	answer_days_count: number
 	percentage: number
@@ -319,6 +331,110 @@ export class UserService {
 				percentage,
 			}
 		})
+	}
+
+	static async getUserAnswerCount({
+		type,
+		start_date,
+		end_date,
+	}: {
+		type?: string
+		start_date?: string
+		end_date?: string
+	}): Promise<UserAnswerCountResult[]> {
+		const roleId = 2
+		const now = new Date()
+		const whereUser: Record<string, unknown> = {}
+		if (type !== 'all_time' && start_date && end_date) {
+			whereUser['created_at'] = { [Op.lte]: end_date }
+		}
+		const users: Pick<User, 'id' | 'name' | 'phone_number' | 'created_at'>[] =
+			await db.User.findAll({
+				include: [
+					{
+						model: db.RoleUser,
+						where: { role_id: roleId },
+						attributes: [],
+					},
+				],
+				where: whereUser,
+				attributes: ['id', 'name', 'phone_number', 'created_at'],
+				order: [['id', 'ASC']],
+				raw: true,
+			})
+
+		function calcTotalDaysAllTime(
+			created_at: Date | string | undefined,
+			now: Date,
+		): number {
+			if (!created_at) return 1
+			return Math.max(
+				1,
+				Math.ceil(
+					(now.getTime() - new Date(created_at).getTime()) /
+						(1000 * 60 * 60 * 24),
+				),
+			)
+		}
+
+		function calcTotalDaysRange(start: string, end: string): number {
+			const startDate = new Date(start)
+			const endDate = new Date(end)
+			return Math.max(
+				1,
+				Math.ceil(
+					(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+				) + 1,
+			)
+		}
+
+		async function getAnswerDaysCount(
+			userId: number,
+			start?: string,
+			end?: string,
+		): Promise<number> {
+			const where: Record<string, unknown> = { user_id: userId }
+			if (start && end) {
+				where['created_at'] = { [Op.between]: [start, end] }
+			}
+			const answerDays = await AnimalQuestionAnswer.findAll({
+				where,
+				attributes: [[fn('DATE', col('created_at')), 'answer_date']],
+				group: [fn('DATE', col('created_at'))],
+				raw: true,
+			})
+			return answerDays.length
+		}
+
+		return Promise.all(
+			users.map(async (user) => {
+				const registration_date = user.created_at ?? ''
+				let total_days = 0
+				let answer_days_count = 0
+				if (type === 'all_time') {
+					total_days = calcTotalDaysAllTime(user.created_at, now)
+					answer_days_count = await getAnswerDaysCount(user.id)
+				} else if (start_date && end_date) {
+					total_days = calcTotalDaysRange(start_date, end_date)
+					answer_days_count = await getAnswerDaysCount(
+						user.id,
+						start_date,
+						end_date,
+					)
+				}
+				return {
+					user_id: user.id ?? 0,
+					name: user.name ?? '',
+					phone_number: user.phone_number ?? '',
+					registration_date,
+					total_days,
+					answer_days_count,
+					percentage: total_days
+						? Number(((answer_days_count / total_days) * 100).toFixed(2))
+						: 0,
+				}
+			}),
+		)
 	}
 
 	static async getUserById(id: number): Promise<UserWithLanguage | null> {

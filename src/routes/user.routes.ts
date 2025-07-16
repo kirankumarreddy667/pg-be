@@ -8,6 +8,7 @@ import {
 	updateProfileSchema,
 	updatePaymentStatusSchema,
 	saveUserDeviceSchema,
+	userAnswerCountSchema,
 } from '@/validations/user.validation'
 const router: ExpressRouter = Router()
 
@@ -328,6 +329,48 @@ router.post(
 	authenticate,
 	validateRequest(saveUserDeviceSchema),
 	wrapAsync(UserController.saveUserDevice),
+)
+
+/**
+ * @swagger
+ * /user_answer_count:
+ *   post:
+ *     summary: Get user answer count
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserAnswerCount'
+ *     responses:
+ *       200:
+ *         description: User answer count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/user_answer_count',
+	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
+	validateRequest(userAnswerCountSchema),
+	wrapAsync(UserController.getUserAnswerCount),
 )
 
 export default router

@@ -33,3 +33,17 @@ export const addAnimalQuestionSchema = Joi.object({
 	animal_id: Joi.number().integer().required(),
 	question_id: Joi.array().items(Joi.number().integer().required()).required(),
 })
+
+export const animalDetailsBasedOnAnimalTypeSchema = Joi.object({
+	animal_id: Joi.number().integer().required(),
+	type: Joi.string().trim().required(),
+})
+
+export const uploadAnimalImageSchema = Joi.object({
+	animal_id: Joi.number().integer().required(),
+	animal_number: Joi.string().required(),
+	image: Joi.any()
+		.meta({ swaggerType: 'file' })
+		.required()
+		.description('Animal profile image (max 3MB)'),
+})

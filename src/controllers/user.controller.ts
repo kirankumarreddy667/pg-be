@@ -369,6 +369,25 @@ export class UserController {
 			next(error)
 		}
 	}
+
+	public static readonly getUserAnswerCount: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const data = await UserService.getUserAnswerCount(
+				req.body as {
+					type?: string
+					start_date?: string
+					end_date?: string
+				},
+			)
+			return RESPONSE.SuccessResponse(res, 200, { data, message: 'Success' })
+		} catch (error) {
+			next(error)
+		}
+	}
 }
 
 export const redirectUser = (req: Request, res: Response): void => {

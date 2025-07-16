@@ -10,8 +10,11 @@ import {
 	addTypeOfAnAnimalSchema,
 	deleteUserAnimalSchema,
 	addAnimalQuestionSchema,
+	animalDetailsBasedOnAnimalTypeSchema,
+	uploadAnimalImageSchema,
 } from '@/validations/animal.validation'
 import { AnimalQuestionsBasedOnCategoryController } from '@/controllers/animal_questions_based_on_category.controller'
+import { uploadAnimalImage } from '@/middlewares/multer.middleware'
 
 const router: Router = Router()
 
@@ -1171,6 +1174,227 @@ router.get(
 	'/farm_animal_count',
 	authenticate,
 	wrapAsync(AnimalQuestionsBasedOnCategoryController.farmAnimalCount),
+)
+
+/**
+ * @swagger
+ * /animal_details_based_on_animal_type:
+ *   post:
+ *     summary: Get animal details based on animal type
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 description: ID of the animal
+ *               type:
+ *                 type: string
+ *                 description: Animal type (e.g., cow, buffalo, heifer, bull)
+ *             required:
+ *               - animal_id
+ *               - type
+ *     responses:
+ *       200:
+ *         description: Animal details response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     animal_name:
+ *                       type: string
+ *                     pregnant_animal:
+ *                       type: integer
+ *                     non_pregnant_animal:
+ *                       type: integer
+ *                     lactating:
+ *                       type: integer
+ *                     nonLactating:
+ *                       type: integer
+ *                     animal_data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_number:
+ *                             type: string
+ *                           date_of_birth:
+ *                             type: string
+ *                           weight:
+ *                             type: string
+ *                           lactating_status:
+ *                             type: string
+ *                           pregnant_status:
+ *                             type: string
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/animal_details_based_on_animal_type',
+	authenticate,
+	validateRequest(animalDetailsBasedOnAnimalTypeSchema),
+	wrapAsync(AnimalController.animalDetailsBasedOnAnimalType),
+)
+
+/**
+ * @swagger
+ * /animal_breeding_history/{animal_id}/{animal_number}:
+ *   get:
+ *     summary: Get animal breeding (calving) history
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: animal_number
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Mother animal number
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     aiHistory:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           dateOfAI:
+ *                             type: string
+ *                           bullNumber:
+ *                             type: string
+ *                           motherYield:
+ *                             type: string
+ *                           semenCompanyName:
+ *                             type: string
+ *                     deliveryHistory:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           dateOfDelivery:
+ *                             type: string
+ *                           typeOfDelivery:
+ *                             type: string
+ *                           calfNumber:
+ *                             type: string
+ *                             nullable: true
+ *                     heatHistory:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           heatDate:
+ *                             type: string
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: No breeding history found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_breeding_history/:animal_id/:animal_number',
+	authenticate,
+	wrapAsync(AnimalController.animalBreedingHistory),
+)
+
+/**
+ * @swagger
+ * /upload_animal_image:
+ *   post:
+ *     summary: Upload animal profile image
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *               animal_number:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *             required:
+ *               - animal_id
+ *               - animal_number
+ *               - image
+ *     responses:
+ *       200:
+ *         description: Animal image added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/upload_animal_image',
+	authenticate,
+	uploadAnimalImage.single('image'),
+	validateRequest(uploadAnimalImageSchema),
+	wrapAsync(AnimalController.uploadAnimalImage),
 )
 
 export default router

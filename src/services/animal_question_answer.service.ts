@@ -1,9 +1,9 @@
 import db from '@/config/database'
-import { Request, Response } from 'express'
 import { Op } from 'sequelize'
-import RESPONSE from '@/utils/response'
 import { AppError } from '@/utils/errors'
 
+type ConstantValue = string | number | null
+type answer = string | number | null
 export interface GroupedAnimalQuestionAnswer {
 	animal_id: number
 	validation_rule: string | null
@@ -12,10 +12,10 @@ export interface GroupedAnimalQuestionAnswer {
 	question_id: number
 	form_type: string | null
 	date: boolean
-	answer: string | number | null
+	answer: answer
 	form_type_value: string | null
 	language_form_type_value: string | null
-	constant_value: string | number | null
+	constant_value: ConstantValue
 	question_tag: string | null
 	question_unit: string | null
 	answer_date: Date | null
@@ -34,7 +34,7 @@ export interface AnimalNumberResult {
 interface AnimalQuestionWithMeta {
 	animal_id: number
 	Answers?: {
-		answer?: string | number | null
+		answer?: answer
 		created_at?: Date
 	}[]
 	CommonQuestion?: {
@@ -45,7 +45,7 @@ interface AnimalQuestionWithMeta {
 		FormType?: { name: string } | null
 		ValidationRule?: {
 			name: string
-			constant_value: string | number | null
+			constant_value: ConstantValue
 		} | null
 		CategoryLanguage?: { category_language_name: string } | null
 		SubCategoryLanguage?: { sub_category_language_name: string } | null
@@ -65,7 +65,7 @@ interface AnimalQuestionWithMeta {
 interface AnimalQuestionAnswerWithCommon {
 	animal_id: number
 	animal_number: string
-	answer: string | number | null
+	answer: answer
 	created_at: Date
 	CommonQuestion?: {
 		id: number
@@ -75,7 +75,7 @@ interface AnimalQuestionAnswerWithCommon {
 		FormType?: { name: string } | null
 		ValidationRule?: {
 			name: string
-			constant_value: string | number | null
+			constant_value: ConstantValue
 		} | null
 		CategoryLanguage?: { category_language_name: string } | null
 		QuestionLanguages?: Array<{
@@ -112,6 +112,27 @@ interface AnimalWithName {
 }
 
 export class AnimalQuestionAnswerService {
+	private static getLogicValue(ans: string): string | null {
+		if (['cow', 'गाय', 'ఆవు'].includes(ans)) return 'cow'
+		if (['calf', 'कालवड', 'बछड़ा', 'దూడ', 'रेडी'].includes(ans)) return 'calf'
+		if (['buffalo', 'म्हैस', 'भैंस', 'గేదె'].includes(ans)) return 'buffalo'
+		return null
+	}
+
+	private static assignGestationProps(
+		gestation: GestationRecord,
+		value: AnimalAnswerInput,
+		answerDate: Date,
+	): Date {
+		if (value.question_id === 8) gestation.pregnancy_status = value.answer
+		if (value.question_id === 9) gestation.lactating_status = value.answer
+		if (value.question_id === 10) {
+			gestation.date = new Date(value.answer)
+			return new Date(value.answer)
+		}
+		return answerDate
+	}
+
 	static async create(
 		data: {
 			animal_id: number
@@ -151,13 +172,8 @@ export class AnimalQuestionAnswerService {
 		let answerDate = data.date ? new Date(data.date) : new Date()
 		for (const value of data.answers) {
 			if (!value.question_id || value.answer === undefined) continue
-			let logicValue: string | null = null
 			const ans = String(value.answer).toLowerCase()
-			if (['cow', 'गाय', 'ఆవు'].includes(ans)) logicValue = 'cow'
-			else if (['calf', 'कालवड', 'बछड़ा', 'దూడ', 'रेडी'].includes(ans))
-				logicValue = 'calf'
-			else if (['buffalo', 'म्हैस', 'भैंस', 'గేదె'].includes(ans))
-				logicValue = 'buffalo'
+			const logicValue = this.getLogicValue(ans)
 			answerRecords.push({
 				question_id: value.question_id,
 				answer: String(value.answer),
@@ -167,12 +183,7 @@ export class AnimalQuestionAnswerService {
 				animal_number: data.animal_number,
 				logic_value: logicValue,
 			})
-			if (value.question_id === 8) gestation.pregnancy_status = value.answer
-			if (value.question_id === 9) gestation.lactating_status = value.answer
-			if (value.question_id === 10) {
-				gestation.date = new Date(value.answer)
-				answerDate = new Date(value.answer)
-			}
+			answerDate = this.assignGestationProps(gestation, value, answerDate)
 		}
 		if (!gestation.date) gestation.date = answerDate
 		await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
@@ -681,25 +692,17 @@ export class AnimalQuestionAnswerService {
 		)
 	}
 
-	static async userAnimalNumbersFromQuestionAnswer(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'Unauthorized',
-				data: [],
-			})
-		}
-		const body = req.body as Record<string, unknown>
+	static async userAnimalNumbersFromQuestionAnswer({
+		user_id,
+		animalNumber,
+	}: {
+		user_id: number
+		animalNumber?: string
+	}): Promise<AnimalNumberResult[]> {
 		const qry =
-			typeof body.animalNumber === 'string'
-				? body.animalNumber.toLowerCase()
-				: ''
-		// Get distinct animal_numbers for this user, optionally filtered
+			typeof animalNumber === 'string' ? animalNumber.toLowerCase() : ''
 		const where: { [key: string]: unknown } = {
-			user_id: user.id,
+			user_id: user_id,
 			status: { [Op.ne]: 1 },
 		}
 		if (qry) {
@@ -720,7 +723,7 @@ export class AnimalQuestionAnswerService {
 		for (const num of animalNumbers as { animal_number: string }[]) {
 			const answer = await db.AnimalQuestionAnswer.findOne({
 				where: {
-					user_id: user.id,
+					user_id: user_id,
 					animal_number: num.animal_number,
 					status: { [Op.ne]: 1 },
 				},
@@ -743,37 +746,24 @@ export class AnimalQuestionAnswerService {
 				})
 			}
 		}
-		return RESPONSE.SuccessResponse(res, 200, {
-			message: 'Success',
-			data: resData,
-		})
+		return resData
 	}
 
-	static async updateAnimalBasicQuestionAnswers(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_number, animal_id } = req.params
-		const { answers } = req.body as {
-			answers: AnimalAnswerInput[]
-		}
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'User not found',
-				data: [],
-			})
-		}
-
+	static async updateAnimalBasicQuestionAnswers({
+		user_id,
+		animal_number,
+		animal_id,
+		answers,
+	}: {
+		user_id: number
+		animal_number: string
+		animal_id: number
+		answers: AnimalAnswerInput[]
+	}): Promise<void> {
 		const now = new Date()
 		const today = now.toISOString().slice(0, 10)
-		// Find all today's answers for this user/animal/number/category_id=1
 		const toDelete = await db.AnimalQuestionAnswer.findAll({
-			where: {
-				animal_number,
-				user_id: user.id,
-				animal_id: Number(animal_id),
-			},
+			where: { animal_number, user_id, animal_id },
 			include: [
 				{
 					model: db.CommonQuestions,
@@ -808,40 +798,31 @@ export class AnimalQuestionAnswerService {
 			answerRecords.push({
 				question_id: value.question_id,
 				answer: String(value.answer),
-				user_id: user.id,
-				animal_id: Number(animal_id),
+				user_id,
+				animal_id,
 				created_at: now,
 				animal_number,
 				logic_value: logicValue,
 			})
 		}
 		await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
-		return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 	}
 
-	static async updateAnimalBreedingQuestionAnswers(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_number, animal_id } = req.params
-		const { answers, date } = req.body as {
-			answers: AnimalAnswerInput[]
-			date: string
-		}
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'User not found',
-				data: [],
-			})
-		}
-		// Delete today's answers for this user/animal/number/category_id=2
+	static async updateAnimalBreedingQuestionAnswers({
+		user_id,
+		animal_number,
+		animal_id,
+		answers,
+		date,
+	}: {
+		user_id: number
+		animal_number: string
+		animal_id: number
+		answers: AnimalAnswerInput[]
+		date: string
+	}): Promise<void> {
 		const toDelete = await db.AnimalQuestionAnswer.findAll({
-			where: {
-				animal_number,
-				user_id: user.id,
-				animal_id: Number(animal_id),
-			},
+			where: { animal_number, user_id, animal_id },
 			include: [
 				{
 					model: db.CommonQuestions,
@@ -858,43 +839,32 @@ export class AnimalQuestionAnswerService {
 		if (toDeleteIds.length > 0) {
 			await db.AnimalQuestionAnswer.destroy({ where: { id: toDeleteIds } })
 		}
-		// Insert new answers
 		const answerRecords = answers.map((value) => ({
 			question_id: value.question_id,
 			answer: String(value.answer),
-			user_id: user.id,
-			animal_id: Number(animal_id),
+			user_id,
+			animal_id,
 			created_at: new Date(date),
 			animal_number,
 		}))
 		await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
-		// TODO: Notification logic (stub)
-		return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 	}
 
-	static async updateAnimalMilkQuestionAnswers(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_number, animal_id } = req.params
-		const { answers, date } = req.body as {
-			answers: AnimalAnswerInput[]
-			date: string
-		}
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'User not found',
-				data: [],
-			})
-		}
-		// Delete today's answers for this user/animal/number/category_id=3
+	static async updateAnimalMilkQuestionAnswers({
+		user_id,
+		animal_number,
+		animal_id,
+		answers,
+		date,
+	}: {
+		user_id: number
+		animal_number: string
+		animal_id: number
+		answers: AnimalAnswerInput[]
+		date: string
+	}): Promise<void> {
 		const toDelete = await db.AnimalQuestionAnswer.findAll({
-			where: {
-				animal_number,
-				user_id: user.id,
-				animal_id: Number(animal_id),
-			},
+			where: { animal_number, user_id, animal_id },
 			include: [
 				{
 					model: db.CommonQuestions,
@@ -911,43 +881,32 @@ export class AnimalQuestionAnswerService {
 		if (toDeleteIds.length > 0) {
 			await db.AnimalQuestionAnswer.destroy({ where: { id: toDeleteIds } })
 		}
-		// Insert new answers
 		const answerRecords = answers.map((value) => ({
 			question_id: value.question_id,
 			answer: String(value.answer),
-			user_id: user.id,
-			animal_id: Number(animal_id),
+			user_id,
+			animal_id,
 			created_at: new Date(date),
 			animal_number,
 		}))
 		await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
-		return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 	}
 
-	static async updateAnimalBirthQuestionAnswers(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_number, animal_id } = req.params
-		const { answers } = req.body as {
-			answers: AnimalAnswerInput[]
-		}
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'User not found',
-				data: [],
-			})
-		}
+	static async updateAnimalBirthQuestionAnswers({
+		user_id,
+		animal_number,
+		animal_id,
+		answers,
+	}: {
+		user_id: number
+		animal_number: string
+		animal_id: number
+		answers: AnimalAnswerInput[]
+	}): Promise<void> {
 		const now = new Date()
 		const today = now.toISOString().slice(0, 10)
-		// Delete today's answers for this user/animal/number/category_id=4
 		const toDelete = await db.AnimalQuestionAnswer.findAll({
-			where: {
-				animal_number,
-				user_id: user.id,
-				animal_id: Number(animal_id),
-			},
+			where: { animal_number, user_id, animal_id },
 			include: [
 				{
 					model: db.CommonQuestions,
@@ -962,42 +921,32 @@ export class AnimalQuestionAnswerService {
 		if (toDeleteIds.length > 0) {
 			await db.AnimalQuestionAnswer.destroy({ where: { id: toDeleteIds } })
 		}
-		// Insert new answers
 		const answerRecords = answers.map((value) => ({
 			question_id: value.question_id,
 			answer: String(value.answer),
-			user_id: user.id,
-			animal_id: Number(animal_id),
+			user_id,
+			animal_id,
 			created_at: now,
 			animal_number,
 		}))
 		await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
-		return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 	}
 
-	static async updateAnimalHealthQuestionAnswers(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_number, animal_id } = req.params
-		const { answers, date } = req.body as {
-			answers: AnimalAnswerInput[]
-			date: string
-		}
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'User not found',
-				data: [],
-			})
-		}
-		// Delete today's answers for this user/animal/number/category_id=5
+	static async updateAnimalHealthQuestionAnswers({
+		user_id,
+		animal_number,
+		animal_id,
+		answers,
+		date,
+	}: {
+		user_id: number
+		animal_number: string
+		animal_id: number
+		answers: AnimalAnswerInput[]
+		date: string
+	}): Promise<void> {
 		const toDelete = await db.AnimalQuestionAnswer.findAll({
-			where: {
-				animal_number,
-				user_id: user.id,
-				animal_id: Number(animal_id),
-			},
+			where: { animal_number, user_id, animal_id },
 			include: [
 				{
 					model: db.CommonQuestions,
@@ -1014,65 +963,53 @@ export class AnimalQuestionAnswerService {
 		if (toDeleteIds.length > 0) {
 			await db.AnimalQuestionAnswer.destroy({ where: { id: toDeleteIds } })
 		}
-		// Insert new answers
 		const answerRecords = answers.map((value) => ({
 			question_id: value.question_id,
 			answer: String(value.answer),
-			user_id: user.id,
-			animal_id: Number(animal_id),
+			user_id,
+			animal_id,
 			created_at: new Date(date),
 			animal_number,
 		}))
 		await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
-		return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 	}
 
-	static async saveHeatEventDetailsOfAnimal(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_id, animal_number, answers, date } = req.body as {
-			animal_id: number
-			animal_number: string
-			answers: AnimalAnswerInput[]
-			date: string
-		}
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'User not found',
-				data: [],
-			})
-		}
+	static async saveHeatEventDetailsOfAnimal({
+		user_id,
+		animal_id,
+		animal_number,
+		answers,
+		date,
+	}: {
+		user_id: number
+		animal_id: number
+		animal_number: string
+		answers: AnimalAnswerInput[]
+		date: string
+	}): Promise<void> {
 		const answerRecords = answers.map((value) => ({
 			question_id: value.question_id,
 			answer: String(value.answer),
-			user_id: user.id,
-			animal_id: animal_id,
+			user_id,
+			animal_id,
 			created_at: date ? new Date(date) : new Date(),
 			animal_number,
 			logic_value: null,
 		}))
 		await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
-		return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 	}
 
-	static async updateHeatEventDetailsOfAnimal(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_number, animal_id } = req.params
-		const { answers } = req.body as {
-			answers: AnimalAnswerInput[]
-		}
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'User not found',
-				data: [],
-			})
-		}
-
+	static async updateHeatEventDetailsOfAnimal({
+		user_id,
+		animal_number,
+		animal_id,
+		answers,
+	}: {
+		user_id: number
+		animal_number: string
+		animal_id: number
+		answers: AnimalAnswerInput[]
+	}): Promise<void> {
 		let date_of_heat = ''
 		const now = new Date()
 		const answerRecords: Array<{
@@ -1084,13 +1021,12 @@ export class AnimalQuestionAnswerService {
 			animal_number: string
 			logic_value: string | null
 		}> = []
-
 		for (const value of answers) {
 			answerRecords.push({
 				question_id: value.question_id,
 				answer: String(value.answer),
-				user_id: user.id,
-				animal_id: Number(animal_id),
+				user_id,
+				animal_id,
 				created_at: now,
 				animal_number,
 				logic_value: null,
@@ -1099,15 +1035,8 @@ export class AnimalQuestionAnswerService {
 				date_of_heat = String(value.answer)
 			}
 		}
-
-		// Find today's answers for this user/animal/number/category_id=99 and created_at = now
 		const getTodaysData = await db.AnimalQuestionAnswer.findAll({
-			where: {
-				animal_number,
-				user_id: user.id,
-				animal_id: Number(animal_id),
-				created_at: now,
-			},
+			where: { animal_number, user_id, animal_id, created_at: now },
 			include: [
 				{
 					model: db.CommonQuestions,
@@ -1116,13 +1045,8 @@ export class AnimalQuestionAnswerService {
 				},
 			],
 		})
-
-		// Find last answer with question_tag 64 for this animal/number
 		const dateExist = await db.AnimalQuestionAnswer.findOne({
-			where: {
-				animal_id: Number(animal_id),
-				animal_number,
-			},
+			where: { animal_id, animal_number },
 			include: [
 				{
 					model: db.CommonQuestions,
@@ -1132,45 +1056,36 @@ export class AnimalQuestionAnswerService {
 			],
 			order: [['created_at', 'DESC']],
 		})
-
 		if (getTodaysData.length > 0) {
 			const toDeleteIds = getTodaysData.map((a) => a.id)
 			await db.AnimalQuestionAnswer.destroy({ where: { id: toDeleteIds } })
 			await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
 		} else if (dateExist && dateExist.answer === date_of_heat) {
 			await db.AnimalQuestionAnswer.destroy({
-				where: {
-					animal_id: Number(animal_id),
-					animal_number,
-					created_at: dateExist.created_at,
-				},
+				where: { animal_id, animal_number, created_at: dateExist.created_at },
 			})
 			await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
 		} else {
 			await db.AnimalQuestionAnswer.bulkCreate(answerRecords)
 		}
-
-		return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 	}
 
-	static async userAnimalQuestionAnswerHeatEventDetail(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_id, language_id, animal_number } = req.params
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'Unauthorized',
-				data: [],
-			})
-		}
-
+	static async userAnimalQuestionAnswerHeatEventDetail({
+		user_id,
+		animal_id,
+		language_id,
+		animal_number,
+	}: {
+		user_id: number
+		animal_id: number
+		language_id: number
+		animal_number: string
+	}): Promise<Record<string, GroupedAnimalQuestionAnswer[]>> {
 		// Step 1: Find the latest answer (by value) for this animal/user/number/category_id=99
 		const latest = await db.AnimalQuestionAnswer.findOne({
 			where: {
 				animal_id: Number(animal_id),
-				user_id: user.id,
+				user_id: user_id,
 				animal_number,
 				status: { [Op.ne]: 1 },
 			},
@@ -1186,7 +1101,7 @@ export class AnimalQuestionAnswerService {
 		})
 
 		let answerFilter: Record<string, unknown> = {}
-		if (latest && latest.answer) {
+		if (latest?.answer) {
 			answerFilter = { answer: latest.answer }
 		}
 
@@ -1248,7 +1163,7 @@ export class AnimalQuestionAnswerService {
 					model: db.AnimalQuestionAnswer,
 					as: 'Answers',
 					where: {
-						user_id: user.id,
+						user_id: user_id,
 						animal_id: Number(animal_id),
 						animal_number,
 						status: { [Op.ne]: 1 },
@@ -1260,10 +1175,7 @@ export class AnimalQuestionAnswerService {
 		})
 
 		// Step 3: Group and format result
-		const resData: Record<
-			string,
-			Record<string, GroupedAnimalQuestionAnswer[]>
-		> = {}
+		const resData: Record<string, GroupedAnimalQuestionAnswer[]> = {}
 		for (const aq of questions as AnimalQuestionWithMeta[]) {
 			const cq = aq.CommonQuestion
 			if (!cq) continue
@@ -1272,12 +1184,8 @@ export class AnimalQuestionAnswerService {
 			const answer_date = aq.Answers?.[0]?.created_at ?? null
 			const categoryName =
 				cq.CategoryLanguage?.category_language_name || 'Uncategorized'
-			const subCategoryName =
-				cq.SubCategoryLanguage?.sub_category_language_name || 'Uncategorized'
-			if (!resData[categoryName]) resData[categoryName] = {}
-			if (!resData[categoryName][subCategoryName])
-				resData[categoryName][subCategoryName] = []
-			resData[categoryName][subCategoryName].push({
+			if (!resData[categoryName]) resData[categoryName] = []
+			resData[categoryName].push({
 				animal_id: aq.animal_id,
 				validation_rule: cq.ValidationRule?.name ?? null,
 				master_question: cq.question,
@@ -1297,30 +1205,25 @@ export class AnimalQuestionAnswerService {
 				question_created_at: cq.created_at,
 			})
 		}
-		return RESPONSE.SuccessResponse(res, 200, {
-			message: 'Success',
-			data: resData,
-		})
+		return resData
 	}
 
-	static async userPreviousAnimalQuestionAnswersHeatEventDetails(
-		req: Request,
-		res: Response,
-	): Promise<void> {
-		const user = req.user as { id: number } | undefined
-		const { animal_id, language_id, animal_number } = req.params
-		if (!user) {
-			return RESPONSE.FailureResponse(res, 401, {
-				message: 'Unauthorized',
-				data: [],
-			})
-		}
-
+	static async userPreviousAnimalQuestionAnswersHeatEventDetails({
+		user_id,
+		animal_id,
+		language_id,
+		animal_number,
+	}: {
+		user_id: number
+		animal_id: number
+		language_id: number
+		animal_number: string
+	}): Promise<Record<string, GroupedAnimalQuestionAnswer[]>> {
 		// Step 1: Find the latest answer (by value) for this animal/user/number/category_id=99
 		const latest = await db.AnimalQuestionAnswer.findOne({
 			where: {
 				animal_id: Number(animal_id),
-				user_id: user.id,
+				user_id: user_id,
 				animal_number,
 				status: { [Op.ne]: 1 },
 			},
@@ -1336,7 +1239,7 @@ export class AnimalQuestionAnswerService {
 		})
 
 		let answerFilter: Record<string, unknown> = {}
-		if (latest && latest.answer) {
+		if (latest?.answer) {
 			answerFilter = { answer: { [Op.ne]: latest.answer } }
 		}
 
@@ -1344,7 +1247,7 @@ export class AnimalQuestionAnswerService {
 		const answers = await db.AnimalQuestionAnswer.findAll({
 			where: {
 				animal_id: Number(animal_id),
-				user_id: user.id,
+				user_id: user_id,
 				animal_number,
 				status: { [Op.ne]: 1 },
 				...answerFilter,
@@ -1417,9 +1320,6 @@ export class AnimalQuestionAnswerService {
 				question_created_at: cq.created_at,
 			})
 		}
-		return RESPONSE.SuccessResponse(res, 200, {
-			message: 'Success',
-			data: resData,
-		})
+		return resData
 	}
 }

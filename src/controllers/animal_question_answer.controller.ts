@@ -7,6 +7,10 @@ interface AnimalAnswerInput {
 	answer: string | number
 }
 
+interface AnimalNumberRequestBody {
+	animalNumber?: string
+}
+
 export class AnimalQuestionAnswerController {
 	public static readonly store: RequestHandler = async (
 		req: Request,
@@ -195,12 +199,25 @@ export class AnimalQuestionAnswerController {
 		}
 
 	public static readonly userAnimalNumbersFromQuestionAnswer: RequestHandler =
-		async (req: Request, res: Response, next: NextFunction) => {
+		async (
+			req: Request<unknown, unknown, AnimalNumberRequestBody>,
+			res: Response,
+			next: NextFunction,
+		) => {
 			try {
-				await AnimalQuestionAnswerService.userAnimalNumbersFromQuestionAnswer(
-					req,
-					res,
-				)
+				const user = req.user as { id: number } | undefined
+				if (!user) {
+					return RESPONSE.FailureResponse(res, 401, {
+						message: 'Unauthorized',
+						data: [],
+					})
+				}
+				const { animalNumber } = req.body
+				const result =
+					await AnimalQuestionAnswerService.userAnimalNumbersFromQuestionAnswer(
+						{ user_id: user.id, animalNumber },
+					)
+				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -209,10 +226,24 @@ export class AnimalQuestionAnswerController {
 	public static readonly updateAnimalBasicQuestionAnswers: RequestHandler =
 		async (req: Request, res: Response, next: NextFunction) => {
 			try {
-				await AnimalQuestionAnswerService.updateAnimalBasicQuestionAnswers(
-					req,
-					res,
-				)
+				const user = req.user as { id: number } | undefined
+				if (!user) {
+					return RESPONSE.FailureResponse(res, 401, {
+						message: 'Unauthorized',
+						data: [],
+					})
+				}
+				const { animal_number, animal_id } = req.params
+				const { answers } = req.body as {
+					answers: AnimalAnswerInput[]
+				}
+				await AnimalQuestionAnswerService.updateAnimalBasicQuestionAnswers({
+					user_id: user.id,
+					animal_number,
+					animal_id: Number(animal_id),
+					answers,
+				})
+				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 			} catch (error) {
 				next(error)
 			}
@@ -224,10 +255,26 @@ export class AnimalQuestionAnswerController {
 		next: NextFunction,
 	) => {
 		try {
-			return AnimalQuestionAnswerService.updateAnimalBreedingQuestionAnswers(
-				req,
-				res,
-			)
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'Unauthorized',
+					data: [],
+				})
+			}
+			const { animal_number, animal_id } = req.params
+			const { answers, date } = req.body as {
+				answers: AnimalAnswerInput[]
+				date: string
+			}
+			await AnimalQuestionAnswerService.updateAnimalBreedingQuestionAnswers({
+				user_id: user.id,
+				animal_number,
+				animal_id: Number(animal_id),
+				answers,
+				date,
+			})
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
 			next(error)
 		}
@@ -239,10 +286,26 @@ export class AnimalQuestionAnswerController {
 		next: NextFunction,
 	) => {
 		try {
-			return AnimalQuestionAnswerService.updateAnimalMilkQuestionAnswers(
-				req,
-				res,
-			)
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'Unauthorized',
+					data: [],
+				})
+			}
+			const { animal_number, animal_id } = req.params
+			const { answers, date } = req.body as {
+				answers: AnimalAnswerInput[]
+				date: string
+			}
+			await AnimalQuestionAnswerService.updateAnimalMilkQuestionAnswers({
+				user_id: user.id,
+				animal_number,
+				animal_id: Number(animal_id),
+				answers,
+				date,
+			})
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
 			next(error)
 		}
@@ -254,10 +317,24 @@ export class AnimalQuestionAnswerController {
 		next: NextFunction,
 	) => {
 		try {
-			return AnimalQuestionAnswerService.updateAnimalBirthQuestionAnswers(
-				req,
-				res,
-			)
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'Unauthorized',
+					data: [],
+				})
+			}
+			const { animal_number, animal_id } = req.params
+			const { answers } = req.body as {
+				answers: AnimalAnswerInput[]
+			}
+			await AnimalQuestionAnswerService.updateAnimalBirthQuestionAnswers({
+				user_id: user.id,
+				animal_number,
+				animal_id: Number(animal_id),
+				answers,
+			})
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
 			next(error)
 		}
@@ -269,10 +346,26 @@ export class AnimalQuestionAnswerController {
 		next: NextFunction,
 	) => {
 		try {
-			return AnimalQuestionAnswerService.updateAnimalHealthQuestionAnswers(
-				req,
-				res,
-			)
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'Unauthorized',
+					data: [],
+				})
+			}
+			const { animal_number, animal_id } = req.params
+			const { answers, date } = req.body as {
+				answers: AnimalAnswerInput[]
+				date: string
+			}
+			await AnimalQuestionAnswerService.updateAnimalHealthQuestionAnswers({
+				user_id: user.id,
+				animal_number,
+				animal_id: Number(animal_id),
+				answers,
+				date,
+			})
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
 			next(error)
 		}
@@ -281,10 +374,24 @@ export class AnimalQuestionAnswerController {
 	public static readonly updateHeatEventDetailsOfAnimal: RequestHandler =
 		async (req: Request, res: Response, next: NextFunction) => {
 			try {
-				return AnimalQuestionAnswerService.updateHeatEventDetailsOfAnimal(
-					req,
-					res,
-				)
+				const user = req.user as { id: number } | undefined
+				if (!user) {
+					return RESPONSE.FailureResponse(res, 401, {
+						message: 'Unauthorized',
+						data: [],
+					})
+				}
+				const { animal_number, animal_id } = req.params
+				const { answers } = req.body as {
+					answers: AnimalAnswerInput[]
+				}
+				await AnimalQuestionAnswerService.updateHeatEventDetailsOfAnimal({
+					user_id: user.id,
+					animal_number,
+					animal_id: Number(animal_id),
+					answers,
+				})
+				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 			} catch (error) {
 				next(error)
 			}
@@ -296,7 +403,27 @@ export class AnimalQuestionAnswerController {
 		next: NextFunction,
 	) => {
 		try {
-			return AnimalQuestionAnswerService.saveHeatEventDetailsOfAnimal(req, res)
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'Unauthorized',
+					data: [],
+				})
+			}
+			const { animal_id, animal_number, answers, date } = req.body as {
+				animal_id: number
+				animal_number: string
+				answers: AnimalAnswerInput[]
+				date: string
+			}
+			await AnimalQuestionAnswerService.saveHeatEventDetailsOfAnimal({
+				user_id: user.id,
+				animal_id,
+				animal_number,
+				answers,
+				date,
+			})
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
 			next(error)
 		}
@@ -305,10 +432,24 @@ export class AnimalQuestionAnswerController {
 	public static readonly userAnimalQuestionAnswerHeatEventDetail: RequestHandler =
 		async (req: Request, res: Response, next: NextFunction) => {
 			try {
-				return AnimalQuestionAnswerService.userAnimalQuestionAnswerHeatEventDetail(
-					req,
-					res,
-				)
+				const user = req.user as { id: number } | undefined
+				if (!user) {
+					return RESPONSE.FailureResponse(res, 401, {
+						message: 'Unauthorized',
+						data: [],
+					})
+				}
+				const { animal_id, language_id, animal_number } = req.params
+				const result =
+					await AnimalQuestionAnswerService.userAnimalQuestionAnswerHeatEventDetail(
+						{
+							user_id: user.id,
+							animal_id: Number(animal_id),
+							language_id: Number(language_id),
+							animal_number,
+						},
+					)
+				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -317,10 +458,24 @@ export class AnimalQuestionAnswerController {
 	public static readonly userPreviousAnimalQuestionAnswersHeatEventDetails: RequestHandler =
 		async (req: Request, res: Response, next: NextFunction) => {
 			try {
-				return AnimalQuestionAnswerService.userPreviousAnimalQuestionAnswersHeatEventDetails(
-					req,
-					res,
-				)
+				const user = req.user as { id: number } | undefined
+				if (!user) {
+					return RESPONSE.FailureResponse(res, 401, {
+						message: 'Unauthorized',
+						data: [],
+					})
+				}
+				const { animal_id, language_id, animal_number } = req.params
+				const result =
+					await AnimalQuestionAnswerService.userPreviousAnimalQuestionAnswersHeatEventDetails(
+						{
+							user_id: user.id,
+							animal_id: Number(animal_id),
+							language_id: Number(language_id),
+							animal_number,
+						},
+					)
+				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
 			} catch (error) {
 				next(error)
 			}

@@ -352,4 +352,97 @@ export class AnimalController {
 			next(error)
 		}
 	}
+
+	public static readonly animalDetailsBasedOnAnimalType: RequestHandler =
+		async (req, res, next) => {
+			try {
+				const user = req.user as User
+				if (!user) {
+					return RESPONSE.FailureResponse(res, 401, {
+						message: 'User not found',
+						data: [],
+					})
+				}
+				const { animal_id, type } = req.body as {
+					animal_id: number
+					type: string
+				}
+				const data = await AnimalService.animalDetailsBasedOnAnimalType({
+					animal_id,
+					type,
+					user_id: user.id,
+				})
+				return RESPONSE.SuccessResponse(res, 200, { data, message: 'success' })
+			} catch (error) {
+				next(error)
+			}
+		}
+
+	public static readonly animalBreedingHistory: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const user = req.user as User
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const animal_id = Number(req.params.animal_id)
+			const animal_number = req.params.animal_number
+			const data = await AnimalService.getAnimalBreedingHistory(
+				user.id,
+				animal_id,
+				animal_number,
+			)
+			return RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly uploadAnimalImage: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const user = req.user as User
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const { animal_id, animal_number } = req.body as {
+				animal_id: number
+				animal_number: string
+			}
+			const file = req.file
+			if (!file) {
+				return RESPONSE.FailureResponse(res, 400, {
+					message: 'Image file is required',
+					data: [],
+				})
+			}
+			const result = await AnimalService.uploadAnimalImage({
+				user_id: user.id,
+				animal_id: Number(animal_id),
+				animal_number: String(animal_number),
+				file,
+			})
+			return RESPONSE.SuccessResponse(res, 200, {
+				message: result.message,
+				data: [],
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
 }

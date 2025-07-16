@@ -100,6 +100,10 @@ import NotificationModel, { Notification } from './notification.model'
 import NotificationLanguageModel, {
 	NotificationLanguage,
 } from './notification_language.model'
+import AnimalMotherCalfModel, {
+	AnimalMotherCalf,
+} from './animal_mother_calf.model'
+import AnimalImageModel, { AnimalImage } from './animal_image.model'
 
 interface Models {
 	User: typeof User
@@ -156,6 +160,8 @@ interface Models {
 	AnimalLactationYieldHistory: typeof AnimalLactationYieldHistory
 	Notification: typeof Notification
 	NotificationLanguage: typeof NotificationLanguage
+	AnimalMotherCalf: typeof AnimalMotherCalf
+	AnimalImage: typeof AnimalImage
 }
 export const initModels = (sequelize: Sequelize): Models => {
 	const User = UserModel(sequelize)
@@ -217,6 +223,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 		AnimalLactationYieldHistoryModel(sequelize)
 	const Notification = NotificationModel(sequelize)
 	const NotificationLanguage = NotificationLanguageModel(sequelize)
+	const AnimalMotherCalf = AnimalMotherCalfModel(sequelize)
+	const AnimalImage = AnimalImageModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -337,6 +345,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 		AnimalLactationYieldHistory,
 		Notification,
 		NotificationLanguage,
+		AnimalMotherCalf,
+		AnimalImage,
 	}
 }
 
@@ -375,3 +385,5 @@ export { AnimalQuestions } from './animal_questions.model'
 export { AnimalLactationYieldHistory } from './animal_lactation_yield_history.model'
 export { Notification } from './notification.model'
 export { NotificationLanguage } from './notification_language.model'
+export { AnimalMotherCalf } from './animal_mother_calf.model'
+export { AnimalImage } from './animal_image.model'

@@ -1,4 +1,5 @@
 import db from '@/config/database'
+import { Express } from 'express'
 import { Animal, AnimalType } from '@/models'
 import { IncludeOptions, Op } from 'sequelize'
 import type { AnimalQuestions } from '@/models/animal_questions.model'
@@ -12,6 +13,10 @@ import type { QuestionUnit } from '@/models/question_unit.model'
 import type { QuestionLanguage } from '@/models/question_language.model'
 import type { CategoryLanguage } from '@/models/category_language.model'
 import type { SubCategoryLanguage } from '@/models/sub_category_language.model'
+import { AnimalImage } from '@/models/animal_image.model'
+import sharp from 'sharp'
+import fs from 'fs'
+import path from 'path'
 
 // Generic groupBy utility
 function groupBy<T, K extends string | number>(
@@ -151,6 +156,79 @@ type AnimalTypeRaw = {
 	'Type.id': number
 	'Type.type': string
 }
+
+interface AnimalDetailsRequest {
+	animal_id: number
+	type: string
+	user_id: number
+}
+
+interface AnimalData {
+	animal_number: string
+	date_of_birth: string | null
+	weight: string | null
+	lactating_status: string | null
+	pregnant_status: string | null
+}
+
+interface AnimalDetailsResponse {
+	animal_name?: string
+	pregnant_animal?: number
+	non_pregnant_animal?: number
+	lactating?: number
+	nonLactating?: number
+	animal_data: AnimalData[]
+}
+
+interface AnimalAnswerRecord {
+	answer?: string
+	logic_value?: string
+	animal_number: string
+	animal_id?: number
+	created_at?: Date | string
+	[key: string]: unknown
+}
+
+export interface AnimalBreedingHistory {
+	id: number
+	user_id: number
+	animal_id: number
+	delivery_date: string
+	mother_animal_number: string
+	calf_animal_number: string
+	created_at: string
+	updated_at: string
+}
+
+interface AIHistoryItem {
+	dateOfAI?: string
+	bullNumber?: string
+	motherYield?: string
+	semenCompanyName?: string
+}
+
+interface DeliveryHistoryItem {
+	dateOfDelivery?: string
+	typeOfDelivery?: string
+	calfNumber?: string | null
+}
+
+interface HeatHistoryItem {
+	heatDate: string
+}
+
+interface BreedingHistoryResponse {
+	aiHistory: AIHistoryItem[]
+	deliveryHistory: DeliveryHistoryItem[]
+	heatHistory: HeatHistoryItem[]
+}
+
+type BreedingAnswerRaw = {
+	answer: string
+	created_at: Date
+	'CommonQuestion.question_tag': number
+}
+
 export class AnimalService {
 	static async create(data: {
 		name: string
@@ -649,5 +727,519 @@ export class AnimalService {
 		)
 		const heiferCount = heiferData['calf'] ? heiferData['calf'].length : 0
 		return heiferCount + heifer2
+	}
+
+	static async animalDetailsBasedOnAnimalType({
+		animal_id,
+		type,
+		user_id,
+	}: AnimalDetailsRequest): Promise<AnimalDetailsResponse> {
+		const animalType = type.toLowerCase()
+		if (animalType === 'cow' || animalType === 'buffalo') {
+			return this._getCowOrBuffaloDetails(animal_id, animalType, user_id)
+		}
+		if (animalType === 'heifer') {
+			return this._getHeiferDetails(animal_id, user_id)
+		}
+		if (animalType === 'bull') {
+			return this._getBullDetails(animal_id, user_id)
+		}
+		return this._getOtherAnimalDetails(animal_id, user_id)
+	}
+
+	private static async _getCowOrBuffaloDetails(
+		animal_id: number,
+		animalType: string,
+		user_id: number,
+	): Promise<AnimalDetailsResponse> {
+		const animalName = await db.Animal.findOne({
+			where: { id: animal_id },
+			attributes: ['name'],
+			raw: true,
+		})
+		const animalNumbers = await this._getDistinctAnimalNumbers(
+			animal_id,
+			user_id,
+		)
+		let pregnantAnimal = 0
+		let nonPregnantAnimal = 0
+		let lactating = 0
+		let nonLactating = 0
+		const animal_data: AnimalData[] = []
+		for (const animal_number of animalNumbers) {
+			const sex = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				8,
+			)
+			if (
+				!sex ||
+				typeof sex.answer !== 'string' ||
+				sex.answer.toLowerCase() !== 'male'
+			)
+				continue
+			if (await this._isCalf(user_id, animal_id, animal_number)) continue
+			const milkingStatus = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				16,
+			)
+			if (
+				milkingStatus &&
+				typeof milkingStatus.answer === 'string' &&
+				milkingStatus.answer.toLowerCase() === 'yes'
+			) {
+				lactating++
+			} else {
+				nonLactating++
+			}
+			const DOB = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				9,
+			)
+			const weight = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				12,
+			)
+			const pregnancy = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				15,
+			)
+			if (
+				pregnancy &&
+				typeof pregnancy.answer === 'string' &&
+				pregnancy.answer.toLowerCase() === 'yes'
+			) {
+				pregnantAnimal++
+			} else {
+				nonPregnantAnimal++
+			}
+			animal_data.push({
+				animal_number,
+				date_of_birth: DOB?.answer ?? null,
+				weight: weight?.answer ?? null,
+				lactating_status: milkingStatus?.answer ?? null,
+				pregnant_status: pregnancy?.answer ?? null,
+			})
+		}
+		return {
+			animal_name: animalName?.name ?? animalType,
+			pregnant_animal: pregnantAnimal,
+			non_pregnant_animal: nonPregnantAnimal,
+			lactating,
+			nonLactating,
+			animal_data,
+		}
+	}
+
+	private static async _getHeiferDetails(
+		animal_id: number,
+		user_id: number,
+	): Promise<AnimalDetailsResponse> {
+		const animalName = await db.Animal.findOne({
+			where: { id: animal_id },
+			attributes: ['name'],
+			raw: true,
+		})
+		const animalNumbers = await this._getDistinctAnimalNumbersByTag(
+			animal_id,
+			user_id,
+			60,
+		)
+		let pregnantAnimal = 0
+		let nonPregnantAnimal = 0
+		const animal_data: AnimalData[] = []
+		for (const animal_number of animalNumbers) {
+			const heiferCalf = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				60,
+			)
+			if (!heiferCalf || heiferCalf.logic_value?.toLowerCase() !== 'calf')
+				continue
+			const sex = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				8,
+			)
+			if (sex && sex.answer && sex.answer.toLowerCase() === 'male') continue
+			const DOB = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				9,
+			)
+			const weight = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				12,
+			)
+			const pregnancy = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				15,
+			)
+			if (
+				pregnancy &&
+				pregnancy.answer &&
+				pregnancy.answer.toLowerCase() === 'yes'
+			) {
+				pregnantAnimal++
+			} else {
+				nonPregnantAnimal++
+			}
+			animal_data.push({
+				animal_number,
+				date_of_birth: DOB?.answer ?? null,
+				weight: weight?.answer ?? null,
+				lactating_status: null,
+				pregnant_status: pregnancy?.answer ?? null,
+			})
+		}
+		return {
+			animal_name: animalName?.name ?? 'heifer',
+			pregnant_animal: pregnantAnimal,
+			non_pregnant_animal: nonPregnantAnimal,
+			animal_data,
+		}
+	}
+
+	private static async _getBullDetails(
+		animal_id: number,
+		user_id: number,
+	): Promise<AnimalDetailsResponse> {
+		const animalNumbers = await this._getDistinctAnimalNumbers(
+			animal_id,
+			user_id,
+		)
+		const animal_data: AnimalData[] = []
+		for (const animal_number of animalNumbers) {
+			const sex = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				8,
+			)
+			if (
+				!sex ||
+				typeof sex.answer !== 'string' ||
+				sex.answer.toLowerCase() !== 'male'
+			)
+				continue
+			const DOB = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				9,
+			)
+			const weight = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				12,
+			)
+			animal_data.push({
+				animal_number,
+				date_of_birth: DOB?.answer ?? null,
+				weight: weight?.answer ?? null,
+				lactating_status: null,
+				pregnant_status: null,
+			})
+		}
+		return { animal_data }
+	}
+
+	private static async _getOtherAnimalDetails(
+		animal_id: number,
+		user_id: number,
+	): Promise<AnimalDetailsResponse> {
+		const animalNumbers = await this._getDistinctAnimalNumbers(
+			animal_id,
+			user_id,
+		)
+		const animal_data: AnimalData[] = []
+		for (const animal_number of animalNumbers) {
+			const DOB = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				9,
+			)
+			const weight = await this._getLatestAnswerByTag(
+				user_id,
+				animal_id,
+				animal_number,
+				12,
+			)
+			animal_data.push({
+				animal_number,
+				date_of_birth: DOB?.answer ?? null,
+				weight: weight?.answer ?? null,
+				lactating_status: null,
+				pregnant_status: null,
+			})
+		}
+		return { animal_data }
+	}
+
+	// --- Helper functions ---
+	private static async _getLatestAnswerByTag(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+		tag: number,
+	): Promise<AnimalAnswerRecord | null> {
+		// Find latest answer for a given tag
+		const record = await db.AnimalQuestionAnswer.findOne({
+			where: { user_id, animal_id, animal_number },
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'CommonQuestion',
+					where: { question_tag: tag },
+					attributes: [],
+				},
+			],
+			order: [['created_at', 'DESC']],
+			raw: true,
+		})
+		return record as AnimalAnswerRecord | null
+	}
+
+	private static async _isCalf(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<boolean> {
+		const record = await AnimalService._getLatestAnswerByTag(
+			user_id,
+			animal_id,
+			animal_number,
+			60,
+		)
+		return !!(
+			record &&
+			typeof record.logic_value === 'string' &&
+			record.logic_value.toLowerCase() === 'calf'
+		)
+	}
+
+	private static async _getDistinctAnimalNumbers(
+		animal_id: number,
+		user_id: number,
+	): Promise<string[]> {
+		const records: { animal_number: string }[] =
+			await db.AnimalQuestionAnswer.findAll({
+				where: { animal_id, user_id, status: { [Op.ne]: 1 } },
+				attributes: [
+					[
+						db.Sequelize.fn('DISTINCT', db.Sequelize.col('animal_number')),
+						'animal_number',
+					],
+				],
+				raw: true,
+			})
+		return records.map((r) => r.animal_number)
+	}
+
+	private static async _getDistinctAnimalNumbersByTag(
+		animal_id: number,
+		user_id: number,
+		tag: number,
+	): Promise<string[]> {
+		// For heifer, tag 60
+		const records: { animal_number: string }[] =
+			await db.AnimalQuestionAnswer.findAll({
+				where: { animal_id, user_id, status: { [Op.ne]: 1 } },
+				include: [
+					{
+						model: db.CommonQuestions,
+						as: 'CommonQuestion',
+						where: { question_tag: tag },
+						attributes: [],
+					},
+				],
+				attributes: [
+					[
+						db.Sequelize.fn('DISTINCT', db.Sequelize.col('animal_number')),
+						'animal_number',
+					],
+				],
+				raw: true,
+			})
+		return records.map((r) => r.animal_number)
+	}
+
+	private static async _getAIHistory(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<AIHistoryItem[]> {
+		const aiAnswers = (await db.AnimalQuestionAnswer.findAll({
+			where: { user_id, animal_id, animal_number, status: { [Op.ne]: 1 } },
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'CommonQuestion',
+					where: { question_tag: { [Op.in]: [23, 35, 14, 42] } },
+					attributes: ['question_tag'],
+					required: true,
+				},
+			],
+			attributes: ['answer', 'created_at'],
+			order: [['created_at', 'DESC']],
+			raw: true,
+		})) as unknown as BreedingAnswerRaw[]
+
+		const aiHistoryMap: Record<string, AIHistoryItem> = {}
+		for (const item of aiAnswers) {
+			const key = item.created_at.toISOString()
+			if (!aiHistoryMap[key]) aiHistoryMap[key] = {}
+			const tag = item['CommonQuestion.question_tag']
+			if (tag === 23) aiHistoryMap[key].dateOfAI = item.answer
+			else if (tag === 35) aiHistoryMap[key].bullNumber = item.answer
+			else if (tag === 14) aiHistoryMap[key].motherYield = item.answer
+			else if (tag === 42) aiHistoryMap[key].semenCompanyName = item.answer
+		}
+		return Object.values(aiHistoryMap)
+	}
+
+	private static async _getDeliveryHistory(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<DeliveryHistoryItem[]> {
+		const deliveryAnswers = (await db.AnimalQuestionAnswer.findAll({
+			where: { user_id, animal_id, animal_number, status: { [Op.ne]: 1 } },
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'CommonQuestion',
+					where: { question_tag: { [Op.in]: [65, 66] } },
+					attributes: ['question_tag'],
+					required: true,
+				},
+			],
+			attributes: ['answer', 'created_at'],
+			order: [['created_at', 'DESC']],
+			raw: true,
+		})) as unknown as BreedingAnswerRaw[]
+
+		const deliveryHistoryMap: Record<string, DeliveryHistoryItem> = {}
+		for (const item of deliveryAnswers) {
+			const key = item.created_at.toISOString()
+			if (!deliveryHistoryMap[key]) deliveryHistoryMap[key] = {}
+			const tag = item['CommonQuestion.question_tag']
+
+			if (tag === 66) {
+				deliveryHistoryMap[key].dateOfDelivery = item.answer
+				const calf = await db.AnimalMotherCalf.findOne({
+					where: {
+						user_id,
+						animal_id,
+						mother_animal_number: animal_number,
+						delivery_date: item.answer,
+					},
+					attributes: ['calf_animal_number'],
+					raw: true,
+				})
+				deliveryHistoryMap[key].calfNumber = calf?.calf_animal_number ?? null
+			} else if (tag === 65) {
+				deliveryHistoryMap[key].typeOfDelivery = item.answer
+			}
+		}
+		return Object.values(deliveryHistoryMap)
+	}
+
+	private static async _getHeatHistory(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<HeatHistoryItem[]> {
+		const heatAnswers = (await db.AnimalQuestionAnswer.findAll({
+			where: { user_id, animal_id, animal_number, status: { [Op.ne]: 1 } },
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'CommonQuestion',
+					where: { question_tag: 64 },
+					attributes: [],
+					required: true,
+				},
+			],
+			attributes: ['answer'],
+			order: [['created_at', 'DESC']],
+			raw: true,
+		})) as { answer: string }[]
+
+		return heatAnswers.map((item) => ({ heatDate: item.answer }))
+	}
+
+	static async getAnimalBreedingHistory(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<BreedingHistoryResponse> {
+		const [aiHistory, deliveryHistory, heatHistory] = await Promise.all([
+			this._getAIHistory(user_id, animal_id, animal_number),
+			this._getDeliveryHistory(user_id, animal_id, animal_number),
+			this._getHeatHistory(user_id, animal_id, animal_number),
+		])
+
+		return {
+			aiHistory,
+			deliveryHistory,
+			heatHistory,
+		}
+	}
+
+	static async uploadAnimalImage(params: {
+		user_id: number
+		animal_id: number
+		animal_number: string
+		file: Express.Multer.File
+	}): Promise<{ message: string }> {
+		const { user_id, animal_id, animal_number, file } = params
+		const imageDir = path.join(process.cwd(), 'public', 'profile_img')
+		const thumbDir = path.join(imageDir, 'thumb')
+		if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true })
+		const filename = file.filename
+		// Create thumbnail
+		await sharp(file.path)
+			.resize(100, 100)
+			.toFile(path.join(thumbDir, filename))
+		// Check for existing image
+		const existing = await AnimalImage.findOne({
+			where: { user_id, animal_id, animal_number },
+		})
+		if (existing) {
+			// Delete old files
+			const oldImage = path.join(imageDir, existing.image)
+			const oldThumb = path.join(thumbDir, existing.image)
+			if (fs.existsSync(oldImage)) fs.unlinkSync(oldImage)
+			if (fs.existsSync(oldThumb)) fs.unlinkSync(oldThumb)
+			existing.image = filename
+			await existing.save()
+		} else {
+			await AnimalImage.create({
+				user_id,
+				animal_id,
+				animal_number,
+				image: filename,
+			})
+		}
+		return { message: 'Animal image added successfully' }
 	}
 }

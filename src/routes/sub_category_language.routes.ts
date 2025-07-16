@@ -61,7 +61,7 @@ subCategoryLanguageRouter.post(
 
 /**
  * @swagger
- * /all_sub_category_by_language/{language_id}:
+ * /all_sub_category_details_by_language/{language_id}:
  *   get:
  *     summary: Get all subcategories by language
  *     tags: [SubCategoryLanguage]
