@@ -3,6 +3,8 @@ import type { AnimalQuestions } from '@/models/animal_questions.model'
 import { CommonQuestions } from '@/models/common_questions.model'
 import { QuestionLanguage } from '@/models/question_language.model'
 
+type ConstantValue = string | number | null
+
 export interface BasicDetailsGroupedQuestion {
 	animal_id: number
 	validation_rule: string | null
@@ -13,7 +15,7 @@ export interface BasicDetailsGroupedQuestion {
 	date: boolean
 	form_type_value: string | null
 	question_language_id: number | null
-	constant_value: string | number | null
+	constant_value: ConstantValue
 	question_unit: string | null
 	question_tag: string | null
 	language_form_type_value: string | null

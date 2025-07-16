@@ -365,9 +365,7 @@ export class DailyRecordQuestionService {
 		return { success: true, code: 200, message: 'Success' }
 	}
 
-	static async getDailyQuestionsInOtherLanguage(
-		language_id: number,
-	): Promise<{
+	static async getDailyQuestionsInOtherLanguage(language_id: number): Promise<{
 		message: string
 		data: Record<string, Record<string, GroupedOtherLanguageQuestion[]>>
 	}> {
@@ -468,16 +466,15 @@ export class DailyRecordQuestionService {
 			questionTags.map((t) => [t.id, t.name]),
 		)
 
-		const grouped = groupByCategoryAndSubcategory(
-			translations,
-			questions,
+		const maps: Maps = {
 			categoryLangMap,
 			subCategoryLangMap,
 			validationRuleMap,
 			formTypeMap,
 			questionTagMap,
 			questionUnitMap,
-		)
+		}
+		const grouped = groupByCategoryAndSubcategory(translations, questions, maps)
 		return { message: 'Success', data: grouped }
 	}
 
@@ -560,15 +557,95 @@ function groupQuestionsByCategory(
 	return resData
 }
 
+type Maps = {
+	categoryLangMap: Record<number, string>
+	subCategoryLangMap: Record<number, string>
+	validationRuleMap: Record<number, { name: string; constant_value: number }>
+	formTypeMap: Record<number, string>
+	questionTagMap: Record<number, string>
+	questionUnitMap: Record<number, string>
+}
+
+function resolveCategoryName(
+	q: DailyRecordQuestionAttributes,
+	maps: Maps,
+): string {
+	const { categoryLangMap } = maps
+	if (
+		q.category_id !== null &&
+		typeof q.category_id === 'number' &&
+		categoryLangMap[q.category_id]
+	) {
+		return categoryLangMap[q.category_id]
+	}
+	if (typeof q.category_id !== 'number') {
+		return categoryLangMap[0] ?? 'Unknown'
+	}
+	return 'Unknown'
+}
+
+function resolveSubCategoryName(
+	q: DailyRecordQuestionAttributes,
+	maps: Maps,
+): string {
+	const { subCategoryLangMap } = maps
+	if (
+		q.sub_category_id !== null &&
+		typeof q.sub_category_id === 'number' &&
+		subCategoryLangMap[q.sub_category_id]
+	) {
+		return subCategoryLangMap[q.sub_category_id]
+	}
+	if (typeof q.sub_category_id !== 'number') {
+		return subCategoryLangMap[0] ?? 'Unknown'
+	}
+	return 'Unknown'
+}
+
+function buildGroupedOtherLanguageQuestion(
+	t: DailyRecordQuestionLanguageAttributes,
+	q: DailyRecordQuestionAttributes,
+	maps: Maps,
+): GroupedOtherLanguageQuestion {
+	const { validationRuleMap, formTypeMap, questionTagMap, questionUnitMap } =
+		maps
+	return {
+		daily_record_question_id: t.daily_record_question_id,
+		master_question: q.question,
+		question_in_other_language: t.question,
+		validation_rule:
+			validationRuleMap[
+				typeof q.validation_rule_id === 'number' ? q.validation_rule_id : 0
+			]?.name ?? null,
+		form_type:
+			formTypeMap[typeof q.form_type_id === 'number' ? q.form_type_id : 0] ??
+			null,
+		date: q.date ?? false,
+		form_type_value: q.form_type_value ?? null,
+		language_form_type_value: t.form_type_value ?? null,
+		question_tag:
+			questionTagMap[typeof q.question_tag === 'number' ? q.question_tag : 0] ??
+			null,
+		question_unit:
+			questionUnitMap[
+				typeof q.question_unit === 'number' ? q.question_unit : 0
+			] ?? null,
+		constant_value:
+			validationRuleMap[
+				typeof q.validation_rule_id === 'number' ? q.validation_rule_id : 0
+			]?.constant_value ?? null,
+		daily_record_questions_language_id: typeof t.id === 'number' ? t.id : 0,
+		delete_status: q.delete_status ?? false,
+		language_hint: t.hint ?? null,
+		master_hint: q.hint ?? null,
+		created_at: t.created_at,
+	}
+}
+
 function groupByCategoryAndSubcategory(
 	translations: DailyRecordQuestionLanguageAttributes[],
 	questions: DailyRecordQuestionAttributes[],
-	categoryLangMap: Record<number, string>,
-	subCategoryLangMap: Record<number, string>,
-	validationRuleMap: Record<number, { name: string; constant_value: number }>,
-	formTypeMap: Record<number, string>,
-	questionTagMap: Record<number, string>,
-	questionUnitMap: Record<number, string>,
+	maps: Maps,
 ): Record<string, Record<string, GroupedOtherLanguageQuestion[]>> {
 	const grouped: Record<
 		string,
@@ -577,60 +654,13 @@ function groupByCategoryAndSubcategory(
 	for (const t of translations) {
 		const q = questions.find((q) => q.id === t.daily_record_question_id)
 		if (!q) continue
-		let catName = 'Unknown'
-		if (
-			q.category_id !== null &&
-			typeof q.category_id === 'number' &&
-			categoryLangMap[q.category_id]
-		) {
-			catName = categoryLangMap[q.category_id]
-		} else if (typeof q.category_id !== 'number') {
-			catName = categoryLangMap[0] ?? 'Unknown'
-		}
-		let subCatName = 'Unknown'
-		if (
-			q.sub_category_id !== null &&
-			typeof q.sub_category_id === 'number' &&
-			subCategoryLangMap[q.sub_category_id]
-		) {
-			subCatName = subCategoryLangMap[q.sub_category_id]
-		} else if (typeof q.sub_category_id !== 'number') {
-			subCatName = subCategoryLangMap[0] ?? 'Unknown'
-		}
+		const catName = resolveCategoryName(q, maps)
+		const subCatName = resolveSubCategoryName(q, maps)
 		if (!grouped[catName]) grouped[catName] = {}
 		if (!grouped[catName][subCatName]) grouped[catName][subCatName] = []
-		grouped[catName][subCatName].push({
-			daily_record_question_id: t.daily_record_question_id,
-			master_question: q.question,
-			question_in_other_language: t.question,
-			validation_rule:
-				validationRuleMap[
-					typeof q.validation_rule_id === 'number' ? q.validation_rule_id : 0
-				]?.name ?? null,
-			form_type:
-				formTypeMap[typeof q.form_type_id === 'number' ? q.form_type_id : 0] ??
-				null,
-			date: q.date ?? false,
-			form_type_value: q.form_type_value ?? null,
-			language_form_type_value: t.form_type_value ?? null,
-			question_tag:
-				questionTagMap[
-					typeof q.question_tag === 'number' ? q.question_tag : 0
-				] ?? null,
-			question_unit:
-				questionUnitMap[
-					typeof q.question_unit === 'number' ? q.question_unit : 0
-				] ?? null,
-			constant_value:
-				validationRuleMap[
-					typeof q.validation_rule_id === 'number' ? q.validation_rule_id : 0
-				]?.constant_value ?? null,
-			daily_record_questions_language_id: typeof t.id === 'number' ? t.id : 0,
-			delete_status: q.delete_status ?? false,
-			language_hint: t.hint ?? null,
-			master_hint: q.hint ?? null,
-			created_at: t.created_at,
-		})
+		grouped[catName][subCatName].push(
+			buildGroupedOtherLanguageQuestion(t, q, maps),
+		)
 	}
 	return grouped
 }

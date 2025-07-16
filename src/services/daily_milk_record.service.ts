@@ -1,5 +1,7 @@
 import db from '@/config/database'
 import { User } from '@/models/user.model'
+import type { ModelStatic } from 'sequelize'
+import { AnimalQuestionAnswer } from '@/models/animal_question_answers.model'
 
 export interface MilkDataInput {
 	animal_id: number
@@ -21,6 +23,38 @@ export interface SaveDailyMilkRecordResult {
 }
 
 export class DailyMilkRecordService {
+	private static async validateAndCollectRecords(
+		animalData: MilkDataInput[] | undefined,
+		animalTypeId: number,
+		user: User,
+		AnimalQuestionAnswer: ModelStatic<AnimalQuestionAnswer>,
+		errorMsg: string,
+		errors: string[],
+		records: MilkDataInput[],
+	): Promise<void> {
+		if (animalData && animalData.length > 0) {
+			for (const animal of animalData) {
+				const exists = await AnimalQuestionAnswer.findOne({
+					where: {
+						animal_number: animal.animal_number,
+						animal_id: animalTypeId,
+						user_id: user.id,
+					},
+				})
+				if (!exists) {
+					errors.push(errorMsg)
+					continue
+				}
+				records.push({
+					animal_id: animal.animal_id,
+					animal_number: animal.animal_number,
+					morning_milk_in_litres: animal.morning_milk_in_litres,
+					evening_milk_in_litres: animal.evening_milk_in_litres,
+				})
+			}
+		}
+	}
+
 	static async saveDailyMilkRecord(
 		user: User,
 		data: SaveDailyMilkRecordInput,
@@ -29,56 +63,25 @@ export class DailyMilkRecordService {
 		const errors: string[] = []
 		const records: MilkDataInput[] = []
 
-		if (data.cows_daily_milk_data && data.cows_daily_milk_data.length > 0) {
-			for (const cow of data.cows_daily_milk_data) {
-				const exists = await AnimalQuestionAnswer.findOne({
-					where: {
-						animal_number: cow.animal_number,
-						animal_id: 1,
-						user_id: user.id,
-					},
-				})
-				if (!exists) {
-					errors.push(
-						'The selected cows_daily_milk_data animal_number is invalid.',
-					)
-					continue
-				}
-				records.push({
-					animal_id: cow.animal_id,
-					animal_number: cow.animal_number,
-					morning_milk_in_litres: cow.morning_milk_in_litres,
-					evening_milk_in_litres: cow.evening_milk_in_litres,
-				})
-			}
-		}
+		await this.validateAndCollectRecords(
+			data.cows_daily_milk_data,
+			1,
+			user,
+			AnimalQuestionAnswer,
+			'The selected cows_daily_milk_data animal_number is invalid.',
+			errors,
+			records,
+		)
 
-		if (
-			data.buffalos_daily_milk_data &&
-			data.buffalos_daily_milk_data.length > 0
-		) {
-			for (const buffalo of data.buffalos_daily_milk_data) {
-				const exists = await AnimalQuestionAnswer.findOne({
-					where: {
-						animal_number: buffalo.animal_number,
-						animal_id: 2,
-						user_id: user.id,
-					},
-				})
-				if (!exists) {
-					errors.push(
-						'The selected buffalos_daily_milk_data animal_number is invalid.',
-					)
-					continue
-				}
-				records.push({
-					animal_id: buffalo.animal_id,
-					animal_number: buffalo.animal_number,
-					morning_milk_in_litres: buffalo.morning_milk_in_litres,
-					evening_milk_in_litres: buffalo.evening_milk_in_litres,
-				})
-			}
-		}
+		await this.validateAndCollectRecords(
+			data.buffalos_daily_milk_data,
+			2,
+			user,
+			AnimalQuestionAnswer,
+			'The selected buffalos_daily_milk_data animal_number is invalid.',
+			errors,
+			records,
+		)
 
 		if (errors.length > 0) {
 			return { success: false, message: errors.join(' '), data: [] }

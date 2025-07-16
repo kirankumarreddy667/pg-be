@@ -93,6 +93,13 @@ import QuestionLanguageModel, {
 	QuestionLanguage,
 } from './question_language.model'
 import AnimalQuestionsModel, { AnimalQuestions } from './animal_questions.model'
+import AnimalLactationYieldHistoryModel, {
+	AnimalLactationYieldHistory,
+} from './animal_lactation_yield_history.model'
+import NotificationModel, { Notification } from './notification.model'
+import NotificationLanguageModel, {
+	NotificationLanguage,
+} from './notification_language.model'
 
 interface Models {
 	User: typeof User
@@ -146,6 +153,9 @@ interface Models {
 	DailyMilkRecord: typeof DailyMilkRecord
 	QuestionLanguage: typeof QuestionLanguage
 	AnimalQuestions: typeof AnimalQuestions
+	AnimalLactationYieldHistory: typeof AnimalLactationYieldHistory
+	Notification: typeof Notification
+	NotificationLanguage: typeof NotificationLanguage
 }
 export const initModels = (sequelize: Sequelize): Models => {
 	const User = UserModel(sequelize)
@@ -203,6 +213,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const DailyMilkRecord = DailyMilkRecordModel(sequelize)
 	const QuestionLanguage = QuestionLanguageModel(sequelize)
 	const AnimalQuestions = AnimalQuestionsModel(sequelize)
+	const AnimalLactationYieldHistory =
+		AnimalLactationYieldHistoryModel(sequelize)
+	const Notification = NotificationModel(sequelize)
+	const NotificationLanguage = NotificationLanguageModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -320,6 +334,9 @@ export const initModels = (sequelize: Sequelize): Models => {
 		DailyMilkRecord,
 		QuestionLanguage,
 		AnimalQuestions,
+		AnimalLactationYieldHistory,
+		Notification,
+		NotificationLanguage,
 	}
 }
 
@@ -355,3 +372,6 @@ export { DailyRecordQuestionLanguage } from './daily_record_question_language.mo
 export { DailyMilkRecord } from './daily_milk_record.model'
 export { QuestionLanguage } from './question_language.model'
 export { AnimalQuestions } from './animal_questions.model'
+export { AnimalLactationYieldHistory } from './animal_lactation_yield_history.model'
+export { Notification } from './notification.model'
+export { NotificationLanguage } from './notification_language.model'

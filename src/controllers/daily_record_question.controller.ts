@@ -2,7 +2,7 @@ import { RequestHandler } from 'express'
 import { DailyRecordQuestionService } from '@/services/daily_record_question.service'
 import RESPONSE from '@/utils/response'
 
-interface question {
+interface Question {
 	question: string
 	form_type_id: number
 	validation_rule_id: number
@@ -22,7 +22,7 @@ export class DailyRecordQuestionController {
 					category_id: number
 					sub_category_id: number
 					language_id: number
-					questions: question[]
+					questions: Question[]
 				},
 			)
 			return RESPONSE.SuccessResponse(res, 201, {
