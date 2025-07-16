@@ -12,6 +12,34 @@ import {
 
 const router: Router = Router()
 
+/**
+ * @swagger
+ * /question:
+ *   post:
+ *     summary: Create a new common question
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCommonQuestionRequest'
+ *     responses:
+ *       201:
+ *         description: Created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
 router.post(
 	'/question',
 	authenticate,
@@ -20,6 +48,47 @@ router.post(
 	wrapAsync(CommonQuestionController.create),
 )
 
+/**
+ * @swagger
+ * /question/{id}:
+ *   put:
+ *     summary: Update a common question
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Question ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateCommonQuestionRequest'
+ *     responses:
+ *       200:
+ *         description: Updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
 router.put(
 	'/question/:id',
 	authenticate,
@@ -28,6 +97,35 @@ router.put(
 	wrapAsync(CommonQuestionController.update),
 )
 
+/**
+ * @swagger
+ * /question/{id}:
+ *   delete:
+ *     summary: Delete a common question
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Question ID
+ *     responses:
+ *       200:
+ *         description: Deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
 router.delete(
 	'/question/:id',
 	authenticate,
@@ -35,6 +133,35 @@ router.delete(
 	wrapAsync(CommonQuestionController.destroy),
 )
 
+/**
+ * @swagger
+ * /question/{id}:
+ *   get:
+ *     summary: Get a common question by ID
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Question ID
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
 router.get(
 	'/question/:id',
 	authenticate,

@@ -38,9 +38,9 @@ import { wrapAsync } from '@/utils/asyncHandler'
 
 /**
  * @swagger
- * /farm_management:
+ * /farm_details:
  *   post:
- *     summary: Create a new farm management record
+ *     summary: Create user farm details
  *     tags: [FarmManagement]
  *     security:
  *       - bearerAuth: []
@@ -49,10 +49,10 @@ import { wrapAsync } from '@/utils/asyncHandler'
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/FarmManagement'
+ *             $ref: '#/components/schemas/UserFarmDetails'
  *     responses:
  *       201:
- *         description: Farm management record created
+ *         description: Farm details created
  *         content:
  *           application/json:
  *             schema:
@@ -65,6 +65,233 @@ import { wrapAsync } from '@/utils/asyncHandler'
  *               $ref: '#/components/schemas/FailureResponse'
  *       422:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+
+/**
+ * @swagger
+ * /farm_details/{id}:
+ *   get:
+ *     summary: Get user farm details by ID
+ *     tags: [FarmManagement]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Farm details ID
+ *     responses:
+ *       200:
+ *         description: Farm details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+
+/**
+ * @swagger
+ * /farm_details/{id}:
+ *   put:
+ *     summary: Update user farm details by ID
+ *     tags: [FarmManagement]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Farm details ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserFarmDetails'
+ *     responses:
+ *       200:
+ *         description: Farm details updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+
+/**
+ * @swagger
+ * /farm_types/{language_id}:
+ *   get:
+ *     summary: Get all farm types for a language
+ *     tags: [FarmManagement]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: List of farm types
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+
+/**
+ * @swagger
+ * /investment_type/{language_id}:
+ *   get:
+ *     summary: Get all investment types for a language
+ *     tags: [FarmManagement]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: language_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Language ID
+ *     responses:
+ *       200:
+ *         description: List of investment types
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+
+/**
+ * @swagger
+ * /farm_investment_details:
+ *   post:
+ *     summary: Create farm investment details
+ *     tags: [FarmManagement]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FixedInvestmentDetails'
+ *     responses:
+ *       201:
+ *         description: Investment details created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+
+/**
+ * @swagger
+ * /investment_details_report/{id}:
+ *   get:
+ *     summary: Get investment details report by ID
+ *     tags: [FarmManagement]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Investment details ID
+ *     responses:
+ *       200:
+ *         description: Investment details report
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
  *         content:
  *           application/json:
  *             schema:

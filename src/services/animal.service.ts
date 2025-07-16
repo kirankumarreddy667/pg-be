@@ -786,11 +786,7 @@ export class AnimalService {
 				animal_number,
 				16,
 			)
-			if (
-				milkingStatus &&
-				typeof milkingStatus.answer === 'string' &&
-				milkingStatus.answer.toLowerCase() === 'yes'
-			) {
+			if (milkingStatus?.answer?.toLowerCase() === 'yes') {
 				lactating++
 			} else {
 				nonLactating++
@@ -872,7 +868,7 @@ export class AnimalService {
 				animal_number,
 				8,
 			)
-			if (sex && sex.answer && sex.answer.toLowerCase() === 'male') continue
+			if (sex?.answer?.toLowerCase() === 'male') continue
 			const DOB = await this._getLatestAnswerByTag(
 				user_id,
 				animal_id,
@@ -891,11 +887,7 @@ export class AnimalService {
 				animal_number,
 				15,
 			)
-			if (
-				pregnancy &&
-				pregnancy.answer &&
-				pregnancy.answer.toLowerCase() === 'yes'
-			) {
+			if (pregnancy?.answer?.toLowerCase() === 'yes') {
 				pregnantAnimal++
 			} else {
 				nonPregnantAnimal++

@@ -1,3 +1,12 @@
+import { Router, type Router as ExpressRouter } from 'express'
+import { FormTypeController } from '@/controllers/form_type.controller'
+import { wrapAsync } from '@/utils/asyncHandler'
+import { authenticate, authorize } from '@/middlewares/auth.middleware'
+import { validateRequest } from '@/middlewares/validateRequest'
+import { formTypeSchema } from '@/validations/form_type.validation'
+
+const formTypeRouter: ExpressRouter = Router()
+
 /**
  * @swagger
  * tags:
@@ -39,14 +48,6 @@
  *             schema:
  *               $ref: '#/components/schemas/FailureResponse'
  */
-import { Router, type Router as ExpressRouter } from 'express'
-import { FormTypeController } from '@/controllers/form_type.controller'
-import { wrapAsync } from '@/utils/asyncHandler'
-import { authenticate, authorize } from '@/middlewares/auth.middleware'
-import { validateRequest } from '@/middlewares/validateRequest'
-import { formTypeSchema } from '@/validations/form_type.validation'
-
-const formTypeRouter: ExpressRouter = Router()
 
 formTypeRouter.post(
 	'/form-type',
@@ -139,12 +140,82 @@ formTypeRouter.put(
 	wrapAsync(FormTypeController.updateFormType),
 )
 
+/**
+ * @swagger
+ * /form_type/{id}:
+ *   get:
+ *     summary: Get a form type by ID
+ *     tags: [FormType]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Form type ID
+ *     responses:
+ *       200:
+ *         description: Form type details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Form type not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
 formTypeRouter.get(
 	'/form-type/:id',
 	authenticate,
 	wrapAsync(FormTypeController.getFormTypeById),
 )
 
+/**
+ * @swagger
+ * /form_type/{id}:
+ *   delete:
+ *     summary: Delete a form type by ID
+ *     tags: [FormType]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Form type ID
+ *     responses:
+ *       200:
+ *         description: Form type deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Form type not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
 formTypeRouter.delete(
 	'/form-type/:id',
 	authenticate,
