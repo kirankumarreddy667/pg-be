@@ -77,6 +77,18 @@ import AnimalVaccinationModel, {
 import UserVaccinationTypeModel, {
 	UserVaccinationType,
 } from './user_vaccination_type.model'
+import DailyRecordQuestionModel, {
+	DailyRecordQuestion,
+} from './daily_record_questions.model'
+import QuestionTagMappingModel, {
+	QuestionTagMapping,
+} from './question_tag_mapping.model'
+import DailyRecordQuestionLanguageModel, {
+	DailyRecordQuestionLanguage,
+} from './daily_record_question_language.model'
+import DailyMilkRecordModel, {
+	DailyMilkRecord,
+} from './daily_milk_record.model'
 import QuestionLanguageModel, {
 	QuestionLanguage,
 } from './question_language.model'
@@ -128,6 +140,10 @@ interface Models {
 	VaccinationDetail: typeof VaccinationDetail
 	AnimalVaccination: typeof AnimalVaccination
 	UserVaccinationType: typeof UserVaccinationType
+	DailyRecordQuestion: typeof DailyRecordQuestion
+	QuestionTagMapping: typeof QuestionTagMapping
+	DailyRecordQuestionLanguage: typeof DailyRecordQuestionLanguage
+	DailyMilkRecord: typeof DailyMilkRecord
 	QuestionLanguage: typeof QuestionLanguage
 	AnimalQuestions: typeof AnimalQuestions
 }
@@ -167,7 +183,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const PlanType = plan_typeModel(sequelize)
 
 	Plan.belongsTo(PlanType, { foreignKey: 'plan_type_id', as: 'PlanType' })
-    PlanType.hasMany(Plan, { foreignKey: 'plan_type_id', as: 'Plans' })
+	PlanType.hasMany(Plan, { foreignKey: 'plan_type_id', as: 'Plans' })
 	const UserBusinessOutlet = UserBusinessOutletModel(sequelize)
 	const Animal = AnimalModel(sequelize)
 	const Type = TypeModel(sequelize)
@@ -180,6 +196,11 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const VaccinationDetail = VaccinationDetailModel(sequelize)
 	const AnimalVaccination = AnimalVaccinationModel(sequelize)
 	const UserVaccinationType = UserVaccinationTypeModel(sequelize)
+	const DailyRecordQuestion = DailyRecordQuestionModel(sequelize)
+	const QuestionTagMapping = QuestionTagMappingModel(sequelize)
+	const DailyRecordQuestionLanguage =
+		DailyRecordQuestionLanguageModel(sequelize)
+	const DailyMilkRecord = DailyMilkRecordModel(sequelize)
 	const QuestionLanguage = QuestionLanguageModel(sequelize)
 	const AnimalQuestions = AnimalQuestionsModel(sequelize)
 
@@ -213,8 +234,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 	BusinessOutlet.belongsTo(User, { foreignKey: 'user_id' })
 	User.hasMany(BusinessOutlet, { foreignKey: 'user_id' })
 
-	AnimalType.belongsTo(Animal, { foreignKey: 'animal_id' })
-	AnimalType.belongsTo(Type, { foreignKey: 'type_id' })
+	AnimalType.belongsTo(Animal, { foreignKey: 'animal_id', as: 'Animal' })
+	AnimalType.belongsTo(Type, { foreignKey: 'type_id', as: 'Type' })
 	Animal.hasMany(AnimalType, { foreignKey: 'animal_id' })
 	Type.hasMany(AnimalType, { foreignKey: 'type_id' })
 
@@ -293,6 +314,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 		VaccinationDetail,
 		AnimalVaccination,
 		UserVaccinationType,
+		DailyRecordQuestion,
+		QuestionTagMapping,
+		DailyRecordQuestionLanguage,
+		DailyMilkRecord,
 		QuestionLanguage,
 		AnimalQuestions,
 	}
@@ -324,5 +349,9 @@ export { VaccinationType } from './vaccination_type.model'
 export { VaccinationDetail } from './vaccination_detail.model'
 export { AnimalVaccination } from './animal_vaccination.model'
 export { UserVaccinationType } from './user_vaccination_type.model'
+export { DailyRecordQuestion } from './daily_record_questions.model'
+export { QuestionTagMapping } from './question_tag_mapping.model'
+export { DailyRecordQuestionLanguage } from './daily_record_question_language.model'
+export { DailyMilkRecord } from './daily_milk_record.model'
 export { QuestionLanguage } from './question_language.model'
 export { AnimalQuestions } from './animal_questions.model'

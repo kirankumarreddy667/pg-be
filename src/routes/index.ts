@@ -24,6 +24,8 @@ import farmManagementRoutes from './farm_management.routes'
 import planRouter from './plan.routes'
 import animalRoutes from './animal.routes'
 import vaccinationRoutes from './vaccination.routes'
+import dailyRecordQuestionRouter from './daily_record_question.routes'
+import dailyMilkRecordRouter from './daily_milk_record.routes'
 import commonQuestionRoutes from './common_question.routes'
 
 const v1Router: ExpressRouter = Router()
@@ -54,6 +56,8 @@ v1Router.use(farmManagementRoutes)
 v1Router.use(planRouter)
 v1Router.use(animalRoutes)
 v1Router.use(vaccinationRoutes)
+v1Router.use(dailyRecordQuestionRouter)
+v1Router.use(dailyMilkRecordRouter)
 v1Router.use(commonQuestionRoutes)
 
 export default v1Router
