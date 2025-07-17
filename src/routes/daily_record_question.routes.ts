@@ -1,5 +1,6 @@
 import { Router, type Router as ExpressRouter } from 'express'
 import { DailyRecordQuestionController } from '@/controllers/daily_record_question.controller'
+import { DailyRecordQuestionAnswerController } from '@/controllers/daily_record_question_answer.controller'
 import { validateRequest } from '@/middlewares/validateRequest'
 import {
 	createDailyRecordQuestionsSchema,
@@ -8,6 +9,10 @@ import {
 } from '@/validations/daily_record_question.validation'
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
 import { wrapAsync } from '@/utils/asyncHandler'
+import {
+	dailyRecordQuestionAnswerSchema,
+	updateDailyRecordQuestionAnswerSchema,
+} from '@/validations/daily_record_question_answer.validation'
 
 /**
  * @swagger
@@ -267,6 +272,54 @@ router.get(
 
 /**
  * @swagger
+ * /daily_record_question_answer:
+ *   post:
+ *     summary: Add a daily record question answer
+ *     tags: [DailyRecordQuestions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               daily_record_question_id:
+ *                 type: integer
+ *                 example: 1
+ *               answer:
+ *                 type: string
+ *                 example: '10 liters'
+ *               date:
+ *                 type: boolean
+ *                 example: false
+ *               question_tag:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 example: [1,2]
+ *               question_unit:
+ *                 type: integer
+ *                 example: 1
+ *               hint:
+ *                 type: string
+ *                 example: 'Enter the value in liters.'
+ *     responses:
+ *       201:
+ *         description: Answer added successfully
+ *       422:
+ *         description: Validation error
+ */
+router.post(
+	'/daily_record_question_answer',
+	authenticate,
+	validateRequest(dailyRecordQuestionAnswerSchema),
+	wrapAsync(DailyRecordQuestionAnswerController.create),
+)
+
+/**
+ * @swagger
  * /daily_record/{id}:
  *   put:
  *     summary: Update a daily record question
@@ -349,6 +402,47 @@ router.put(
 
 /**
  * @swagger
+ * /update_daily_record_question_answer/:id:
+ *   put:
+ *     summary: Update a daily record question answer
+ *     tags: [DailyRecordQuestions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               answer: { type: string }
+ *               date: { type: boolean }
+ *               question_tag: { type: array, items: { type: integer } }
+ *               question_unit: { type: integer }
+ *               hint: { type: string }
+ *     responses:
+ *       200:
+ *         description: Updated successfully
+ *       404:
+ *         description: Not found
+ *       422:
+ *         description: Validation error
+ */
+router.put(
+	'/update_daily_record_question_answer/:id',
+	authenticate,
+	validateRequest(updateDailyRecordQuestionAnswerSchema),
+	wrapAsync(DailyRecordQuestionAnswerController.update),
+)
+
+/**
+ * @swagger
  * /daily_record/{id}:
  *   delete:
  *     summary: Delete a daily record question (soft delete)
@@ -372,6 +466,96 @@ router.delete(
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
 	wrapAsync(DailyRecordQuestionController.delete),
+)
+
+router.get(
+	'/get_daily_record_question_with_answer/:language_id/:date',
+	authenticate,
+	wrapAsync(
+		DailyRecordQuestionAnswerController.getDailyRecordQuestionsWithAnswers,
+	)
+)
+
+/**
+ * @swagger
+ * /get_biosecurity_spray_details:
+ *   get:
+ *     summary: Get biosecurity spray details for the authenticated user
+ *     tags: [DailyRecordQuestions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: '2024-07-18T00:00:00.000Z'
+ *                       due_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: '2024-08-17T00:00:00.000Z'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+	'/get_biosecurity_spray_details',
+	authenticate,
+	wrapAsync(DailyRecordQuestionAnswerController.getBioSecuritySprayDetails),
+)
+
+/**
+ * @swagger
+ * /get_deworming_details:
+ *   get:
+ *     summary: Get deworming details for the authenticated user
+ *     tags: [DailyRecordQuestions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: '2024-07-18T00:00:00.000Z'
+ *                       due_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: '2024-10-16T00:00:00.000Z'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+	'/get_deworming_details',
+	authenticate,
+	wrapAsync(DailyRecordQuestionAnswerController.getDewormingDetails),
 )
 
 export default router

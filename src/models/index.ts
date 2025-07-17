@@ -104,6 +104,9 @@ import AnimalMotherCalfModel, {
 	AnimalMotherCalf,
 } from './animal_mother_calf.model'
 import AnimalImageModel, { AnimalImage } from './animal_image.model'
+import DailyRecordQuestionAnswerModel, {
+	DailyRecordQuestionAnswer,
+} from './daily_record_question_answer.model'
 
 interface Models {
 	User: typeof User
@@ -162,6 +165,7 @@ interface Models {
 	NotificationLanguage: typeof NotificationLanguage
 	AnimalMotherCalf: typeof AnimalMotherCalf
 	AnimalImage: typeof AnimalImage
+	DailyRecordQuestionAnswer: typeof DailyRecordQuestionAnswer
 }
 export const initModels = (sequelize: Sequelize): Models => {
 	const User = UserModel(sequelize)
@@ -225,6 +229,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const NotificationLanguage = NotificationLanguageModel(sequelize)
 	const AnimalMotherCalf = AnimalMotherCalfModel(sequelize)
 	const AnimalImage = AnimalImageModel(sequelize)
+	const DailyRecordQuestionAnswer = DailyRecordQuestionAnswerModel(sequelize)
 
 	// Associations
 	User.belongsToMany(Role, {
@@ -290,16 +295,6 @@ export const initModels = (sequelize: Sequelize): Models => {
 		as: 'CommonQuestion',
 	})
 
-	// Add association between DailyRecordQuestion and AnimalQuestionAnswer
-	DailyRecordQuestion.hasMany(AnimalQuestionAnswer, {
-		foreignKey: 'question_id',
-		as: 'Answers',
-	})
-	AnimalQuestionAnswer.belongsTo(DailyRecordQuestion, {
-		foreignKey: 'question_id',
-		as: 'DailyRecordQuestion',
-	})
-
 	return {
 		User,
 		Otp,
@@ -357,6 +352,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 		NotificationLanguage,
 		AnimalMotherCalf,
 		AnimalImage,
+		DailyRecordQuestionAnswer,
 	}
 }
 
@@ -397,3 +393,4 @@ export { Notification } from './notification.model'
 export { NotificationLanguage } from './notification_language.model'
 export { AnimalMotherCalf } from './animal_mother_calf.model'
 export { AnimalImage } from './animal_image.model'
+export { DailyRecordQuestionAnswer } from './daily_record_question_answer.model'
