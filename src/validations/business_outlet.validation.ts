@@ -22,3 +22,14 @@ export const businessOutletFarmerMappingSchema = Joi.object({
 	user_id: Joi.number().integer().positive().required(),
 	business_outlet_id: Joi.number().integer().positive().required(),
 })
+
+export const businessOutletFarmersAnimalSchema = Joi.object({
+	start_date: Joi.string()
+		.pattern(/^\d{4}-\d{2}-\d{2}$/)
+		.optional(),
+	end_date: Joi.string()
+		.pattern(/^\d{4}-\d{2}-\d{2}$/)
+		.optional(),
+	search: Joi.string().required(),
+	type: Joi.string().optional(),
+})
