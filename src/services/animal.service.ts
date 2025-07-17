@@ -246,6 +246,187 @@ interface AnswerRaw {
 	answer?: string
 }
 
+type date = string | Date | null
+interface LactationHistoryRow {
+	lactating_status?: string | null
+	date?: date
+}
+
+// Helper to fetch all required answers in parallel
+async function fetchLactationStatsAnswers(
+	user: User,
+	animal_id: number,
+	animal_number: string,
+): Promise<
+	[
+		AnimalAnswerRecord | null,
+		AnimalAnswerRecord | null,
+		AnimalAnswerRecord | null,
+		AnimalAnswerRecord | null,
+		AnimalAnswerRecord | null,
+		AnimalAnswerRecord | null,
+		AnimalAnswerRecord | null,
+		AnimalAnswerRecord | null,
+	]
+> {
+	return Promise.all([
+		AnimalService._getLatestAnswerByTag(user.id, animal_id, animal_number, 17), // morning fat
+		AnimalService._getLatestAnswerByTag(user.id, animal_id, animal_number, 19), // evening fat
+		AnimalService._getLatestAnswerByTag(user.id, animal_id, animal_number, 18), // morning snf
+		AnimalService._getLatestAnswerByTag(user.id, animal_id, animal_number, 20), // evening snf
+		AnimalService._getLatestAnswerByTag(user.id, animal_id, animal_number, 15), // pregnant status
+		AnimalService._getLatestAnswerByTag(user.id, animal_id, animal_number, 16), // milking status
+		AnimalService._getLatestAnswerByTag(user.id, animal_id, animal_number, 66), // last delivery date
+		AnimalService._getLatestAnswerByTag(user.id, animal_id, animal_number, 35), // bull no for AI
+	])
+}
+
+// Helper to calculate current lactation yield
+async function calculateCurrentLactationYield(
+	user: User,
+	animal_id: number,
+	animal_number: string,
+	lactationHistory: LactationHistoryRow[],
+): Promise<{ days_in_milk1: number; current_lactation_milk_yield: number }> {
+	let days_in_milk1 = 0
+	let current_lactation_milk_yield = 0
+	if (lactationHistory.length > 0) {
+		const lastLactation = lactationHistory[lactationHistory.length - 1]
+		if (
+			lastLactation.lactating_status?.toLowerCase() === 'yes' &&
+			lastLactation.date
+		) {
+			const lastLactationDate = lastLactation.date
+			const fromDateStr =
+				typeof lastLactationDate === 'string'
+					? lastLactationDate
+					: lastLactationDate instanceof Date
+						? lastLactationDate.toISOString().slice(0, 10)
+						: undefined
+			if (fromDateStr) {
+				const from = new Date(fromDateStr)
+				const to = new Date()
+				days_in_milk1 = Math.floor(
+					(to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24),
+				)
+				const dates: string[] = []
+				for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+					dates.push(d.toISOString().slice(0, 10))
+				}
+				if (dates.length > 0 && dates[0] !== '1970-01-01') {
+					const milkSum = await db.DailyMilkRecord.sum(
+						'morning_milk_in_litres',
+						{
+							where: {
+								user_id: user.id,
+								animal_number,
+								animal_id,
+								record_date: dates,
+							},
+						},
+					)
+					const milkSumEvening = await db.DailyMilkRecord.sum(
+						'evening_milk_in_litres',
+						{
+							where: {
+								user_id: user.id,
+								animal_number,
+								animal_id,
+								record_date: dates,
+							},
+						},
+					)
+					current_lactation_milk_yield =
+						(Number(milkSum) || 0) + (Number(milkSumEvening) || 0)
+				}
+			}
+		}
+	}
+	return { days_in_milk1, current_lactation_milk_yield }
+}
+
+// Helper to calculate last lactation yield
+async function calculateLastLactationYield(
+	user: User,
+	animal_id: number,
+	animal_number: string,
+	lactationHistory: LactationHistoryRow[],
+): Promise<number> {
+	let last_lactation_milk_yield = 0
+	if (lactationHistory.length > 1) {
+		for (let i = 0; i < lactationHistory.length - 1; i++) {
+			if (
+				i < lactationHistory.length - 1 &&
+				lactationHistory[i].lactating_status?.toLowerCase() === 'yes'
+			) {
+				let k = i + 1
+				while (
+					k < lactationHistory.length - 1 &&
+					lactationHistory[k].lactating_status?.toLowerCase() !== 'no'
+				) {
+					k++
+				}
+				if (
+					lactationHistory[i].lactating_status !==
+						lactationHistory[k].lactating_status &&
+					lactationHistory[i].date &&
+					lactationHistory[k].date
+				) {
+					const iDate = lactationHistory[i].date
+					const kDate = lactationHistory[k].date
+					const startDateStr =
+						typeof iDate === 'string'
+							? iDate
+							: iDate instanceof Date
+								? iDate.toISOString().slice(0, 10)
+								: undefined
+					const endDateStr =
+						typeof kDate === 'string'
+							? kDate
+							: kDate instanceof Date
+								? kDate.toISOString().slice(0, 10)
+								: undefined
+					if (startDateStr && endDateStr) {
+						const from = new Date(startDateStr)
+						const to = new Date(endDateStr)
+						const dates: string[] = []
+						for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+							dates.push(d.toISOString().slice(0, 10))
+						}
+						if (dates.length > 0 && dates[0] !== '1970-01-01') {
+							const milkSum = await db.DailyMilkRecord.sum(
+								'morning_milk_in_litres',
+								{
+									where: {
+										user_id: user.id,
+										animal_number,
+										animal_id,
+										record_date: dates,
+									},
+								},
+							)
+							const milkSumEvening = await db.DailyMilkRecord.sum(
+								'evening_milk_in_litres',
+								{
+									where: {
+										user_id: user.id,
+										animal_number,
+										animal_id,
+										record_date: dates,
+									},
+								},
+							)
+							last_lactation_milk_yield =
+								(Number(milkSum) || 0) + (Number(milkSumEvening) || 0)
+						}
+					}
+				}
+			}
+		}
+	}
+	return last_lactation_milk_yield
+}
+
 export class AnimalService {
 	static async create(data: {
 		name: string
@@ -1314,6 +1495,7 @@ export class AnimalService {
 		return { animalType, dateOfBirth, weight, breeding, pregnancyCycle }
 	}
 
+	// Refactored _getLactationStats
 	private static async _getLactationStats(
 		user: User,
 		animal_id: number,
@@ -1342,56 +1524,7 @@ export class AnimalService {
 			milkingStatus,
 			lastDeliveryDate,
 			BullNoForAI,
-		] = await Promise.all([
-			AnimalService._getLatestAnswerByTag(
-				user.id,
-				animal_id,
-				animal_number,
-				17,
-			), // morning fat
-			AnimalService._getLatestAnswerByTag(
-				user.id,
-				animal_id,
-				animal_number,
-				19,
-			), // evening fat
-			AnimalService._getLatestAnswerByTag(
-				user.id,
-				animal_id,
-				animal_number,
-				18,
-			), // morning snf
-			AnimalService._getLatestAnswerByTag(
-				user.id,
-				animal_id,
-				animal_number,
-				20,
-			), // evening snf
-			AnimalService._getLatestAnswerByTag(
-				user.id,
-				animal_id,
-				animal_number,
-				15,
-			), // pregnant status
-			AnimalService._getLatestAnswerByTag(
-				user.id,
-				animal_id,
-				animal_number,
-				16,
-			), // milking status
-			AnimalService._getLatestAnswerByTag(
-				user.id,
-				animal_id,
-				animal_number,
-				66,
-			), // last delivery date
-			AnimalService._getLatestAnswerByTag(
-				user.id,
-				animal_id,
-				animal_number,
-				35,
-			), // bull no for AI
-		])
+		] = await fetchLactationStatsAnswers(user, animal_id, animal_number)
 		const m_fat = parseFloat(morning_fat?.answer ?? '0')
 		const e_fat = parseFloat(evening_fat?.answer ?? '0')
 		const last_known_fat = m_fat + e_fat
@@ -1404,136 +1537,20 @@ export class AnimalService {
 			order: [['created_at', 'ASC']],
 			raw: true,
 		})
-		let days_in_milk1 = 0
-		let current_lactation_milk_yield = 0
-		let last_lactation_milk_yield = 0
-		if (lactationHistory.length > 0) {
-			const lastLactation = lactationHistory[lactationHistory.length - 1]
-			if (
-				lastLactation.lactating_status?.toLowerCase() === 'yes' &&
-				lastLactation.date
-			) {
-				const lastLactationDate = lastLactation.date
-				const fromDateStr =
-					typeof lastLactationDate === 'string'
-						? lastLactationDate
-						: lastLactationDate
-							? lastLactationDate.toISOString().slice(0, 10)
-							: undefined
-				if (fromDateStr) {
-					const from = new Date(fromDateStr)
-					const to = new Date()
-					days_in_milk1 = Math.floor(
-						(to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24),
-					)
-					const dates: string[] = []
-					for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-						dates.push(d.toISOString().slice(0, 10))
-					}
-					if (dates.length > 0 && dates[0] !== '1970-01-01') {
-						const milkSum = await db.DailyMilkRecord.sum(
-							'morning_milk_in_litres',
-							{
-								where: {
-									user_id: user.id,
-									animal_number,
-									animal_id,
-									record_date: dates,
-								},
-							},
-						)
-						const milkSumEvening = await db.DailyMilkRecord.sum(
-							'evening_milk_in_litres',
-							{
-								where: {
-									user_id: user.id,
-									animal_number,
-									animal_id,
-									record_date: dates,
-								},
-							},
-						)
-						current_lactation_milk_yield =
-							(milkSum ?? 0) + (milkSumEvening ?? 0)
-					}
-				}
-			}
-			if (lactationHistory.length > 1) {
-				for (let i = 0; i < lactationHistory.length - 1; i++) {
-					if (
-						i < lactationHistory.length - 1 &&
-						lactationHistory[i].lactating_status?.toLowerCase() === 'yes'
-					) {
-						let k = i + 1
-						while (
-							k < lactationHistory.length - 1 &&
-							lactationHistory[k].lactating_status?.toLowerCase() !== 'no'
-						) {
-							k++
-						}
-						if (
-							lactationHistory[i].lactating_status !==
-								lactationHistory[k].lactating_status &&
-							!!lactationHistory[i].date &&
-							!!lactationHistory[k].date
-						) {
-							const iDate = lactationHistory[i].date
-							const kDate = lactationHistory[k].date
-							const startDateStr =
-								typeof iDate === 'string'
-									? iDate
-									: iDate
-										? iDate.toISOString().slice(0, 10)
-										: undefined
-							const endDateStr =
-								typeof kDate === 'string'
-									? kDate
-									: kDate
-										? kDate.toISOString().slice(0, 10)
-										: undefined
-							if (startDateStr && endDateStr) {
-								const from = new Date(startDateStr)
-								const to = new Date(endDateStr)
-								const dates: string[] = []
-								for (
-									let d = new Date(from);
-									d <= to;
-									d.setDate(d.getDate() + 1)
-								) {
-									dates.push(d.toISOString().slice(0, 10))
-								}
-								if (dates.length > 0 && dates[0] !== '1970-01-01') {
-									const milkSum = await db.DailyMilkRecord.sum(
-										'morning_milk_in_litres',
-										{
-											where: {
-												user_id: user.id,
-												animal_number,
-												animal_id,
-												record_date: dates,
-											},
-										},
-									)
-									const milkSumEvening = await db.DailyMilkRecord.sum(
-										'evening_milk_in_litres',
-										{
-											where: {
-												user_id: user.id,
-												animal_number,
-												animal_id,
-												record_date: dates,
-											},
-										},
-									)
-									last_lactation_milk_yield =
-										(milkSum ?? 0) + (milkSumEvening ?? 0)
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+
+		const { days_in_milk1, current_lactation_milk_yield } =
+			await calculateCurrentLactationYield(
+				user,
+				animal_id,
+				animal_number,
+				lactationHistory,
+			)
+		const last_lactation_milk_yield = await calculateLastLactationYield(
+			user,
+			animal_id,
+			animal_number,
+			lactationHistory,
+		)
 		return {
 			m_fat,
 			e_fat,

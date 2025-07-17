@@ -459,18 +459,23 @@ export class AnimalController {
 					data: [],
 				})
 			}
-			const animal_id =
-				typeof req.query.animal_id === 'string'
-					? Number(req.query.animal_id)
-					: typeof req.params.animal_id === 'string'
-						? Number(req.params.animal_id)
-						: NaN
-			const animal_number =
-				typeof req.query.animal_number === 'string'
-					? req.query.animal_number
-					: typeof req.params.animal_number === 'string'
-						? req.params.animal_number
-						: ''
+			let animal_id: number
+			if (typeof req.query.animal_id === 'string') {
+				animal_id = Number(req.query.animal_id)
+			} else if (typeof req.params.animal_id === 'string') {
+				animal_id = Number(req.params.animal_id)
+			} else {
+				animal_id = NaN
+			}
+
+			let animal_number: string
+			if (typeof req.query.animal_number === 'string') {
+				animal_number = req.query.animal_number
+			} else if (typeof req.params.animal_number === 'string') {
+				animal_number = req.params.animal_number
+			} else {
+				animal_number = ''
+			}
 			if (isNaN(animal_id) || !animal_number) {
 				return RESPONSE.FailureResponse(res, 400, {
 					message:

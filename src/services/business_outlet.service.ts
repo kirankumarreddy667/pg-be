@@ -334,6 +334,710 @@ interface BreedingInfoResponse {
 	breeding_data: BreedingData[]
 }
 
+// Helper to build farmers array
+async function getFarmers(
+	data: {
+		search: string
+		type?: string
+		start_date?: string
+		end_date?: string
+		user_id: number
+	},
+	outlet: BusinessOutlet | null,
+): Promise<BreedingInfoAnimalRow[]> {
+	if (!outlet) return []
+	let userWhere: Record<string, unknown> = {}
+	if (data.search && data.search !== 'all_users') {
+		userWhere = {
+			[Op.or as unknown as string]: [
+				{
+					phone_number: { [Op.like as unknown as string]: `%${data.search}%` },
+				},
+				{ name: { [Op.like as unknown as string]: `%${data.search}%` } },
+			],
+		}
+	}
+
+	if (data.start_date || data.end_date) {
+		userWhere.created_at = {
+			...(userWhere.created_at || {}),
+			...(data.start_date
+				? { [Op.gte as unknown as string]: new Date(data.start_date) }
+				: {}),
+			...(data.end_date
+				? { [Op.lte as unknown as string]: new Date(data.end_date) }
+				: {}),
+		}
+	}
+
+	const users = (await User.findAll({
+		include: [
+			{
+				model: db.UserBusinessOutlet,
+				as: 'UserBusinessOutlet',
+				attributes: ['user_id'],
+				required: true,
+			},
+		],
+		where: userWhere,
+		attributes: ['id', 'name', 'phone_number', 'address', 'created_at'],
+		raw: true,
+	})) as unknown as Array<Record<string, unknown>>
+
+	return users.map(
+		(u): BreedingInfoAnimalRow => ({
+			animal_number: String(u['animal_number']),
+			user_id: Number(u['UserBusinessOutlet.user_id'] ?? u['id']),
+			animal_id: Number(u['animal_id']),
+			animal_name: String(u['animal_name']),
+			farmer_name: String(u['name']),
+			farm_name: String(u['farm_name']),
+		}),
+	)
+}
+
+interface BreedingStats {
+	pregnantAnimal: number
+	nonPregnant: number
+	lactating: number
+	nonLactating: number
+	breeding_data: BreedingData[]
+}
+
+async function getBreedingStats(
+	farmers: BreedingInfoAnimalRow[],
+): Promise<BreedingStats> {
+	const breeding_data: BreedingData[] = []
+	for (const value of farmers) {
+		const breeding = await AnimalService._getLatestAnswerByTag(
+			value.user_id,
+			value.animal_id,
+			value.animal_number,
+			40, // Tag for breeding info
+		)
+		if (breeding && breeding.answer) {
+			const breedingInfo = JSON.parse(breeding.answer) as BreedingData
+			breeding_data.push(breedingInfo)
+		}
+	}
+
+	let pregnantAnimal = 0
+	let nonPregnant = 0
+	let lactating = 0
+	let nonLactating = 0
+
+	for (const data of breeding_data) {
+		if (data.pregnant === 'yes') {
+			pregnantAnimal++
+		} else {
+			nonPregnant++
+		}
+		if (data.Lactating === 'yes') {
+			lactating++
+		} else {
+			nonLactating++
+		}
+	}
+
+	return {
+		pregnantAnimal,
+		nonPregnant,
+		lactating,
+		nonLactating,
+		breeding_data,
+	}
+}
+
+// Helper to build health farmers array
+async function getHealthFarmers(
+	data: {
+		search: string
+		type?: string
+		start_date?: string
+		end_date?: string
+		user_id: number
+	},
+	outlet: BusinessOutlet | null,
+): Promise<HealthInfoAnimalRow[]> {
+	if (!outlet) return []
+	const { search, type, start_date, end_date, user_id } = data
+	if (
+		type === 'all_time' &&
+		!start_date &&
+		!end_date &&
+		search === 'all_users'
+	) {
+		return db.sequelize.query(
+			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, u.created_at, u.name as user_name, u.farm_name
+			 FROM business_outlet bo
+			 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+			 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+			 JOIN users u ON u.id = ubo.user_id
+			 WHERE bo.assign_to = :userId AND aqa.status != 1`,
+			{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
+		)
+	} else if (start_date && end_date && !type && search === 'all_users') {
+		return db.sequelize.query(
+			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, u.created_at, u.name as user_name, u.farm_name
+			 FROM business_outlet bo
+			 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+			 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+			 JOIN users u ON u.id = ubo.user_id
+			 WHERE bo.assign_to = :userId AND aqa.status != 1
+			   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
+			{
+				replacements: {
+					userId: user_id,
+					startDate: start_date,
+					endDate: end_date,
+				},
+				type: QueryTypes.SELECT,
+			},
+		)
+	} else if (type === 'all_time' && !start_date && !end_date) {
+		const userID: UserIdRow[] = await db.sequelize.query(
+			`SELECT u.id as id
+			 FROM users u
+			 JOIN role_user ru ON ru.user_id = u.id
+			 JOIN user_business_outlet ubo ON ubo.user_id = u.id
+			 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
+			   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+			 LIMIT 1`,
+			{
+				replacements: { search: `%${search}%`, outletId: outlet.id },
+				type: QueryTypes.SELECT,
+			},
+		)
+		if (!userID[0]) return []
+		return db.sequelize.query(
+			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, u.created_at, u.name as user_name, u.farm_name
+			 FROM business_outlet bo
+			 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+			 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+			 JOIN users u ON u.id = ubo.user_id
+			 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1`,
+			{
+				replacements: { userId: user_id, searchUserId: userID[0].id },
+				type: QueryTypes.SELECT,
+			},
+		)
+	} else if (start_date && end_date && !type) {
+		const userID: UserIdRow[] = await db.sequelize.query(
+			`SELECT u.id as id
+			 FROM users u
+			 JOIN role_user ru ON ru.user_id = u.id
+			 JOIN user_business_outlet ubo ON ubo.user_id = u.id
+			 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
+			   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+			 LIMIT 1`,
+			{
+				replacements: { search: `%${search}%`, outletId: outlet.id },
+				type: QueryTypes.SELECT,
+			},
+		)
+		if (!userID[0]) return []
+		return db.sequelize.query(
+			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, u.created_at, u.name as user_name, u.farm_name
+			 FROM business_outlet bo
+			 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+			 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+			 JOIN users u ON u.id = ubo.user_id
+			 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1
+			   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
+			{
+				replacements: {
+					userId: user_id,
+					searchUserId: userID[0].id,
+					startDate: start_date,
+					endDate: end_date,
+				},
+				type: QueryTypes.SELECT,
+			},
+		)
+	}
+	return []
+}
+
+interface HealthAggregation {
+	resData: HealthInfoDetailed[]
+	diseasesArray: string[]
+	medicinesArray: string[]
+	totalMilkLoss: number
+}
+
+async function aggregateHealthInfo(
+	farmers: HealthInfoAnimalRow[],
+): Promise<HealthAggregation> {
+	const resData: HealthInfoDetailed[] = []
+	const diseasesArray: string[] = []
+	const medicinesArray: string[] = []
+	let totalMilkLoss = 0
+
+	await Promise.all(
+		farmers.map(async (value) => {
+			let totalMilkLossAnimal = 0
+			const medicine: string[] = []
+			const disease: string[] = []
+			const treatmentDate: string[] = []
+			// Milk Loss (tag 41)
+			const milkLoss = await AnimalService._getLatestAnswerByTag(
+				value.user_id,
+				value.animal_id,
+				value.animal_number,
+				41,
+			)
+			if (milkLoss && milkLoss.answer && !isNaN(Number(milkLoss.answer))) {
+				totalMilkLossAnimal = Number(milkLoss.answer)
+				totalMilkLoss += totalMilkLossAnimal
+			}
+			// Diseases (tag 39)
+			const diseases = await AnimalService._getLatestAnswerByTag(
+				value.user_id,
+				value.animal_id,
+				value.animal_number,
+				39,
+			)
+			if (diseases?.answer) {
+				disease.push(diseases.answer)
+				if (!diseasesArray.includes(diseases.answer)) {
+					diseasesArray.push(diseases.answer)
+				}
+			}
+			// Medicines (tag 55)
+			const medicines = await AnimalService._getLatestAnswerByTag(
+				value.user_id,
+				value.animal_id,
+				value.animal_number,
+				55,
+			)
+			if (medicines?.answer) {
+				medicine.push(medicines.answer)
+				if (!medicinesArray.includes(medicines.answer)) {
+					medicinesArray.push(medicines.answer)
+				}
+			}
+			// Treatment Dates (tag 38)
+			const treatmentDates = await AnimalService._getLatestAnswerByTag(
+				value.user_id,
+				value.animal_id,
+				value.animal_number,
+				38,
+			)
+			if (treatmentDates?.answer) {
+				treatmentDate.push(treatmentDates.answer)
+			}
+			const healthDetail: HealthInfoDetailed = {
+				animal_number: value.animal_number,
+				totalMilkLoss: totalMilkLossAnimal,
+				animal_id: value.animal_id,
+				diseases: disease,
+				medicines: medicine,
+				user_name: value.user_name,
+				farm_name: value.farm_name,
+				treatment_dates: treatmentDate,
+			}
+			if (
+				disease.length > 0 ||
+				medicine.length > 0 ||
+				totalMilkLossAnimal !== 0
+			) {
+				resData.push(healthDetail)
+			}
+		}),
+	)
+	return { resData, diseasesArray, medicinesArray, totalMilkLoss }
+}
+
+// Helper to get users for milk info
+async function getMilkUsers(
+	data: {
+		search: string
+		type?: string
+		start_date?: string
+		end_date?: string
+		user_id: number
+	},
+	outlet: BusinessOutlet | null,
+): Promise<UserWithCreatedAt[]> {
+	const { search, user_id } = data
+	if (!outlet) return []
+	if (search === 'all_users') {
+		return db.sequelize.query(
+			`SELECT ubo.user_id, u.created_at FROM user_business_outlet ubo
+       JOIN business_outlet bo ON bo.id = ubo.business_outlet_id
+       JOIN users u ON u.id = ubo.user_id
+       WHERE bo.assign_to = :userId`,
+			{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
+		)
+	} else {
+		const userID: UserIdRow[] = await db.sequelize.query(
+			`SELECT u.id as id FROM users u
+       JOIN role_user ru ON ru.user_id = u.id
+       JOIN user_business_outlet ubo ON ubo.user_id = u.id
+       WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
+         AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+       LIMIT 1`,
+			{
+				replacements: { search: `%${search}%`, outletId: outlet.id },
+				type: QueryTypes.SELECT,
+			},
+		)
+		if (!userID[0]) return []
+		return db.sequelize.query(
+			`SELECT ubo.user_id, u.created_at FROM user_business_outlet ubo
+       JOIN business_outlet bo ON bo.id = ubo.business_outlet_id
+       JOIN users u ON u.id = ubo.user_id
+       WHERE bo.assign_to = :userId AND u.id = :searchUserId`,
+			{
+				replacements: { userId: user_id, searchUserId: userID[0].id },
+				type: QueryTypes.SELECT,
+			},
+		)
+	}
+}
+
+// Helper to aggregate milk info
+async function aggregateMilkInfo(
+	users: UserWithCreatedAt[],
+	data: {
+		type?: string
+		start_date?: string
+		end_date?: string
+	},
+): Promise<MilkInfoResult> {
+	const resData: Record<number, MilkInfoResult> = {}
+	for (const value of users) {
+		let sDate = value.created_at
+		let eDate = new Date().toISOString().slice(0, 10)
+		if (data.type === 'all_time' && !data.start_date && !data.end_date) {
+			sDate = value.created_at
+			eDate = new Date().toISOString().slice(0, 10)
+		} else if (data.start_date && data.end_date && !data.type) {
+			sDate = data.start_date
+			eDate = data.end_date
+		}
+		const morningMilk = await getDailyRecordData(
+			26,
+			value.user_id,
+			sDate,
+			eDate,
+		)
+		const eveningMilk = await getDailyRecordData(
+			27,
+			value.user_id,
+			sDate,
+			eDate,
+		)
+		const morningFat = await getDailyRecordData(17, value.user_id, sDate, eDate)
+		const morningSNF = await getDailyRecordData(18, value.user_id, sDate, eDate)
+		const eveningFat = await getDailyRecordData(19, value.user_id, sDate, eDate)
+		const eveningSNF = await getDailyRecordData(20, value.user_id, sDate, eDate)
+		resData[value.user_id] = {
+			morningMilk: sumMilkFromAnswers(morningMilk),
+			eveningMilk: sumMilkFromAnswers(eveningMilk),
+			morningFat: sumFatSnfFromAnswers(morningFat),
+			eveningFat: sumFatSnfFromAnswers(eveningFat),
+			morningSNF: sumFatSnfFromAnswers(morningSNF),
+			eveningSNF: sumFatSnfFromAnswers(eveningSNF),
+			eveningSNFCount: countRecords(eveningSNF),
+			eveningFatCount: countRecords(eveningFat),
+			morningSNFCount: countRecords(morningSNF),
+			morningFatCount: countRecords(morningFat),
+			totalMilk: 0, // will be set below
+			morningFatPercentage: 0, // will be set below
+			eveningFatPercentage: 0, // will be set below
+			morningSNFPercentage: 0, // will be set below
+			eveningSNFPercentage: 0, // will be set below
+		}
+	}
+	// Aggregate
+	let morningMilk = 0,
+		eveningMilk = 0,
+		morningFat = 0,
+		eveningFat = 0,
+		morningSNF = 0,
+		eveningSNF = 0
+	let eveningSNFCount1 = 0,
+		eveningFatCount1 = 0,
+		morningSNFCount1 = 0,
+		morningFatCount1 = 0
+	for (const data of Object.values(resData)) {
+		morningMilk += data.morningMilk
+		eveningMilk += data.eveningMilk
+		morningFat += data.morningFat
+		eveningFat += data.eveningFat
+		morningSNF += data.morningSNF
+		eveningSNF += data.eveningSNF
+		eveningSNFCount1 += data.eveningSNFCount
+		eveningFatCount1 += data.eveningFatCount
+		morningSNFCount1 += data.morningSNFCount
+		morningFatCount1 += data.morningFatCount
+	}
+	if (morningFatCount1 === 0) morningFatCount1 = 1
+	if (eveningFatCount1 === 0) eveningFatCount1 = 1
+	if (morningSNFCount1 === 0) morningSNFCount1 = 1
+	if (eveningSNFCount1 === 0) eveningSNFCount1 = 1
+	return {
+		morningMilk: Number(morningMilk.toFixed(2)),
+		eveningMilk: Number(eveningMilk.toFixed(2)),
+		morningFat: Number(morningFat.toFixed(2)),
+		eveningFat: Number(eveningFat.toFixed(2)),
+		morningSNF: Number(morningSNF.toFixed(2)),
+		eveningSNF: Number(eveningSNF.toFixed(2)),
+		totalMilk: Number((morningMilk + eveningMilk).toFixed(2)),
+		eveningSNFCount: Number(eveningSNFCount1.toFixed(2)),
+		eveningFatCount: Number(eveningFatCount1.toFixed(2)),
+		morningSNFCount: Number(morningSNFCount1.toFixed(2)),
+		morningFatCount: Number(morningFatCount1.toFixed(2)),
+		morningFatPercentage: Number((morningFat / morningFatCount1).toFixed(2)),
+		eveningFatPercentage: Number((eveningFat / eveningFatCount1).toFixed(2)),
+		morningSNFPercentage: Number((morningSNF / morningSNFCount1).toFixed(2)),
+		eveningSNFPercentage: Number((eveningSNF / eveningSNFCount1).toFixed(2)),
+	}
+}
+
+// Helper to get farmers for animal count
+async function getAnimalCountFarmers(
+	data: AnimalCountBody,
+	outlet: BusinessOutlet | null,
+): Promise<FarmerAnimalRow[]> {
+	const { start_date, end_date, search, type, user_id } = data
+	if (!outlet) return []
+	if (
+		type === 'all_time' &&
+		!start_date &&
+		!end_date &&
+		search === 'all_users'
+	) {
+		return db.sequelize.query(
+			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
+       FROM business_outlet bo
+       JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+       JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+       JOIN animals a ON a.id = aqa.animal_id
+       WHERE bo.assign_to = :userId AND aqa.status != 1`,
+			{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
+		)
+	} else if (start_date && end_date && !type && search === 'all_users') {
+		return db.sequelize.query(
+			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
+       FROM business_outlet bo
+       JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+       JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+       JOIN users u ON u.id = ubo.user_id
+       JOIN animals a ON a.id = aqa.animal_id
+       WHERE bo.assign_to = :userId AND aqa.status != 1
+         AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
+			{
+				replacements: {
+					userId: user_id,
+					startDate: start_date,
+					endDate: end_date,
+				},
+				type: QueryTypes.SELECT,
+			},
+		)
+	} else if (type === 'all_time' && !start_date && !end_date) {
+		const userID: UserIdRow[] = await db.sequelize.query(
+			`SELECT u.id as id
+       FROM users u
+       JOIN role_user ru ON ru.user_id = u.id
+       JOIN user_business_outlet ubo ON ubo.user_id = u.id
+       WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
+         AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+       LIMIT 1`,
+			{
+				replacements: { search: `%${search}%`, outletId: outlet.id },
+				type: QueryTypes.SELECT,
+			},
+		)
+		if (!userID[0]) return []
+		return db.sequelize.query(
+			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
+       FROM business_outlet bo
+       JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+       JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+       JOIN animals a ON a.id = aqa.animal_id
+       WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1`,
+			{
+				replacements: { userId: user_id, searchUserId: userID[0].id },
+				type: QueryTypes.SELECT,
+			},
+		)
+	} else if (start_date && end_date && !type) {
+		const userID: UserIdRow[] = await db.sequelize.query(
+			`SELECT u.id as id
+       FROM users u
+       JOIN role_user ru ON ru.user_id = u.id
+       JOIN user_business_outlet ubo ON ubo.user_id = u.id
+       WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
+         AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+       LIMIT 1`,
+			{
+				replacements: { search: `%${search}%`, outletId: outlet.id },
+				type: QueryTypes.SELECT,
+			},
+		)
+		if (!userID[0]) return []
+		return db.sequelize.query(
+			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
+       FROM business_outlet bo
+       JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+       JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+       JOIN users u ON u.id = ubo.user_id
+       JOIN animals a ON a.id = aqa.animal_id
+       WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1
+         AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
+			{
+				replacements: {
+					userId: user_id,
+					searchUserId: userID[0].id,
+					startDate: start_date,
+					endDate: end_date,
+				},
+				type: QueryTypes.SELECT,
+			},
+		)
+	}
+	return []
+}
+
+// Helper to aggregate animal counts
+async function aggregateAnimalCounts(
+	farmers: FarmerAnimalRow[],
+): Promise<AnimalCountResult> {
+	// Helper for animal data by tag
+	async function getAnimalData(
+		tag: number,
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<AnimalAnswerRecord | null> {
+		return AnimalService._getLatestAnswerByTag(
+			user_id,
+			animal_id,
+			animal_number,
+			tag,
+		)
+	}
+	const resData: Record<
+		string,
+		Array<{
+			number: string
+			female: number
+			heifer: number
+			bull: number
+			name: string
+			pregnant_animal: number
+			'non-pregnantAnimal': number
+			pregnant_heifer: number
+			non_pregnant_heifer: number
+			lactating: number
+			nonLactating: number
+		}>
+	> = {}
+	for (const value of farmers) {
+		let cowCount = 0,
+			heiferCount = 0,
+			bullCount = 0,
+			pregnantAnimal = 0,
+			nonPregnant = 0,
+			pregnantHeifer = 0,
+			nonPregnantHeifer = 0,
+			lactating = 0,
+			nonLactating = 0
+		const animalGender = await getAnimalData(
+			8,
+			value.user_id,
+			value.animal_id,
+			value.animal_number,
+		)
+		const heifer = await getAnimalData(
+			60,
+			value.user_id,
+			value.animal_id,
+			value.animal_number,
+		)
+		const pregnant = await getAnimalData(
+			15,
+			value.user_id,
+			value.animal_id,
+			value.animal_number,
+		)
+		const milkingStatus = await getAnimalData(
+			16,
+			value.user_id,
+			value.animal_id,
+			value.animal_number,
+		)
+		if (!animalGender || animalGender.answer?.toLowerCase() === 'female') {
+			if (heifer?.logic_value?.toLowerCase() === 'calf') {
+				heiferCount++
+				if (pregnant?.answer?.toLowerCase() === 'yes') pregnantHeifer++
+				else nonPregnantHeifer++
+			} else {
+				cowCount++
+				if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
+				else nonPregnant++
+				if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
+				else nonLactating++
+			}
+		} else if (animalGender.answer?.toLowerCase() === 'male') {
+			bullCount++
+		}
+		if (!resData[value.animal_name]) resData[value.animal_name] = []
+		resData[value.animal_name].push({
+			number: value.animal_number,
+			female: cowCount,
+			heifer: heiferCount,
+			bull: bullCount,
+			name: value.animal_name,
+			pregnant_animal: pregnantAnimal,
+			'non-pregnantAnimal': nonPregnant,
+			pregnant_heifer: pregnantHeifer,
+			non_pregnant_heifer: nonPregnantHeifer,
+			lactating,
+			nonLactating,
+		})
+	}
+	// Aggregate by animal name
+	const responseData: AnimalCountResult = {}
+	for (const [key, value1] of Object.entries(resData)) {
+		let cowCount1 = 0,
+			heiferCount1 = 0,
+			bullCount1 = 0,
+			pregnantAnimal1 = 0,
+			nonPregnantAnimal1 = 0,
+			pregnantHeifer1 = 0,
+			nonPregnantHeifer1 = 0,
+			lactating1 = 0,
+			nonLactating1 = 0
+		for (const value2 of value1) {
+			cowCount1 += value2.female
+			heiferCount1 += value2.heifer
+			bullCount1 += value2.bull
+			pregnantAnimal1 += value2.pregnant_animal
+			nonPregnantAnimal1 += value2['non-pregnantAnimal']
+			pregnantHeifer1 += value2.pregnant_heifer
+			nonPregnantHeifer1 += value2.non_pregnant_heifer
+			lactating1 += value2.lactating
+			nonLactating1 += value2.nonLactating
+		}
+		responseData[key] = {
+			female: cowCount1,
+			heifer: heiferCount1,
+			bull: bullCount1,
+			pregnant: pregnantAnimal1,
+			non_pregnant: nonPregnantAnimal1,
+			pregnant_heifer: pregnantHeifer1,
+			non_pregnant_heifer: nonPregnantHeifer1,
+			lactating: lactating1,
+			nonLactating: nonLactating1,
+		}
+	}
+	return responseData
+}
+
 export class BusinessOutletService {
 	public static async create({
 		business_name,
@@ -558,7 +1262,7 @@ export class BusinessOutletService {
 	public static async businessOutletFarmersAnimalCount(
 		data: AnimalCountBody,
 	): Promise<{ message: string; data: AnimalCountResult }> {
-		const { start_date, end_date, search, type, user_id } = data
+		const { user_id } = data
 		const outlet = await db.BusinessOutlet.findOne({
 			where: { assign_to: user_id },
 			raw: true,
@@ -566,261 +1270,18 @@ export class BusinessOutletService {
 		if (!outlet) {
 			return { message: 'No outlet assigned to user', data: {} }
 		}
-		let farmers: FarmerAnimalRow[] = []
-		if (
-			type === 'all_time' &&
-			!start_date &&
-			!end_date &&
-			search === 'all_users'
-		) {
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN animals a ON a.id = aqa.animal_id
-				 WHERE bo.assign_to = :userId AND aqa.status != 1`,
-				{
-					replacements: { userId: user_id },
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else if (start_date && end_date && !type && search === 'all_users') {
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 JOIN animals a ON a.id = aqa.animal_id
-				 WHERE bo.assign_to = :userId AND aqa.status != 1
-				   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
-				{
-					replacements: {
-						userId: user_id,
-						startDate: start_date,
-						endDate: end_date,
-					},
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else if (type === 'all_time' && !start_date && !end_date) {
-			const userID: UserIdRow[] = await db.sequelize.query(
-				`SELECT u.id as id
-				 FROM users u
-				 JOIN role_user ru ON ru.user_id = u.id
-				 JOIN user_business_outlet ubo ON ubo.user_id = u.id
-				 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-				   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-				 LIMIT 1`,
-				{
-					replacements: { search: `%${search}%`, outletId: outlet.id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			if (!userID[0]) {
+		const farmers: FarmerAnimalRow[] = await getAnimalCountFarmers(data, outlet)
+		if (!farmers.length) {
+			if (data.search !== 'all_users') {
 				return { message: 'Invalid Phone Number/Name', data: {} }
 			}
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN animals a ON a.id = aqa.animal_id
-				 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1`,
-				{
-					replacements: {
-						userId: user_id,
-						searchUserId: userID[0].id,
-					},
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else if (start_date && end_date && !type) {
-			const userID: UserIdRow[] = await db.sequelize.query(
-				`SELECT u.id as id
-				 FROM users u
-				 JOIN role_user ru ON ru.user_id = u.id
-				 JOIN user_business_outlet ubo ON ubo.user_id = u.id
-				 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-				   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-				 LIMIT 1`,
-				{
-					replacements: { search: `%${search}%`, outletId: outlet.id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			if (!userID[0]) {
-				return { message: 'Invalid Phone Number/Name', data: {} }
-			}
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 JOIN animals a ON a.id = aqa.animal_id
-				 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1
-				   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
-				{
-					replacements: {
-						userId: user_id,
-						searchUserId: userID[0].id,
-						startDate: start_date,
-						endDate: end_date,
-					},
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else {
 			return { message: 'Invalid Search', data: {} }
 		}
-		// Helper for animal data by tag
-		async function getAnimalData(
-			tag: number,
-			user_id: number,
-			animal_id: number,
-			animal_number: string,
-		): Promise<AnimalAnswerRecord | null> {
-			return AnimalService._getLatestAnswerByTag(
-				user_id,
-				animal_id,
-				animal_number,
-				tag,
-			)
-		}
-		// Aggregate
-		const resData: Record<
-			string,
-			Array<{
-				number: string
-				female: number
-				heifer: number
-				bull: number
-				name: string
-				pregnant_animal: number
-				'non-pregnantAnimal': number
-				pregnant_heifer: number
-				non_pregnant_heifer: number
-				lactating: number
-				nonLactating: number
-			}>
-		> = {}
-		for (const value of farmers) {
-			let cowCount = 0,
-				heiferCount = 0,
-				bullCount = 0,
-				pregnantAnimal = 0,
-				nonPregnant = 0,
-				pregnantHeifer = 0,
-				nonPregnantHeifer = 0,
-				lactating = 0,
-				nonLactating = 0
-			const animalGender = await getAnimalData(
-				8,
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-			)
-			const heifer = await getAnimalData(
-				60,
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-			)
-			const pregnant = await getAnimalData(
-				15,
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-			)
-			const milkingStatus = await getAnimalData(
-				16,
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-			)
-			if (animalGender?.answer?.toLowerCase() === 'female') {
-				if (heifer?.logic_value?.toLowerCase() === 'calf') {
-					heiferCount++
-					if (pregnant?.answer?.toLowerCase() === 'yes') pregnantHeifer++
-					else nonPregnantHeifer++
-				} else {
-					cowCount++
-					if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
-					else nonPregnant++
-					if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
-					else nonLactating++
-				}
-			} else if (animalGender?.answer?.toLowerCase() === 'male') {
-				bullCount++
-			} else if (!animalGender) {
-				if (heifer?.logic_value?.toLowerCase() === 'calf') {
-					heiferCount++
-					if (pregnant?.answer?.toLowerCase() === 'yes') pregnantHeifer++
-					else nonPregnantHeifer++
-				} else {
-					cowCount++
-					if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
-					else nonPregnant++
-					if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
-					else nonLactating++
-				}
-			}
-			if (!resData[value.animal_name]) resData[value.animal_name] = []
-			resData[value.animal_name].push({
-				number: value.animal_number,
-				female: cowCount,
-				heifer: heiferCount,
-				bull: bullCount,
-				name: value.animal_name,
-				pregnant_animal: pregnantAnimal,
-				'non-pregnantAnimal': nonPregnant,
-				pregnant_heifer: pregnantHeifer,
-				non_pregnant_heifer: nonPregnantHeifer,
-				lactating,
-				nonLactating,
-			})
-		}
-		// Aggregate by animal name
-		const responseData: AnimalCountResult = {}
-		for (const [key, value1] of Object.entries(resData)) {
-			let cowCount1 = 0,
-				heiferCount1 = 0,
-				bullCount1 = 0,
-				pregnantAnimal1 = 0,
-				nonPregnantAnimal1 = 0,
-				pregnantHeifer1 = 0,
-				nonPregnantHeifer1 = 0,
-				lactating1 = 0,
-				nonLactating1 = 0
-			for (const value2 of value1) {
-				cowCount1 += value2.female
-				heiferCount1 += value2.heifer
-				bullCount1 += value2.bull
-				pregnantAnimal1 += value2.pregnant_animal
-				nonPregnantAnimal1 += value2['non-pregnantAnimal']
-				pregnantHeifer1 += value2.pregnant_heifer
-				nonPregnantHeifer1 += value2.non_pregnant_heifer
-				lactating1 += value2.lactating
-				nonLactating1 += value2.nonLactating
-			}
-			responseData[key] = {
-				female: cowCount1,
-				heifer: heiferCount1,
-				bull: bullCount1,
-				pregnant: pregnantAnimal1,
-				non_pregnant: nonPregnantAnimal1,
-				pregnant_heifer: pregnantHeifer1,
-				non_pregnant_heifer: nonPregnantHeifer1,
-				lactating: lactating1,
-				nonLactating: nonLactating1,
-			}
-		}
+		const responseData = await aggregateAnimalCounts(farmers)
 		return { message: 'Success', data: responseData }
 	}
 
-	// Main service method
+	// Refactored Milk Info
 	public static async businessOutletFarmersAnimalMilkInfo(data: {
 		search: string
 		type?: string
@@ -828,7 +1289,7 @@ export class BusinessOutletService {
 		end_date?: string
 		user_id: number
 	}): Promise<{ message: string; data: MilkInfoResult }> {
-		const { search, type, start_date, end_date, user_id } = data
+		const { user_id } = data
 		const outlet = await db.BusinessOutlet.findOne({
 			where: { assign_to: user_id },
 			raw: true,
@@ -838,157 +1299,24 @@ export class BusinessOutletService {
 				message: 'No outlet assigned to user',
 				data: defaultMilkInfoResult,
 			}
-		let users: UserWithCreatedAt[] = []
-		if (search === 'all_users') {
-			users = await db.sequelize.query(
-				`SELECT ubo.user_id, u.created_at FROM user_business_outlet ubo
-				 JOIN business_outlet bo ON bo.id = ubo.business_outlet_id
-				 JOIN users u ON u.id = ubo.user_id
-				 WHERE bo.assign_to = :userId`,
-				{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
-			)
-		} else {
-			const userID: UserIdRow[] = await db.sequelize.query(
-				`SELECT u.id as id FROM users u
-				 JOIN role_user ru ON ru.user_id = u.id
-				 JOIN user_business_outlet ubo ON ubo.user_id = u.id
-				 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-				   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-				 LIMIT 1`,
-				{
-					replacements: { search: `%${search}%`, outletId: outlet.id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			if (!userID[0])
+		const users: UserWithCreatedAt[] = await getMilkUsers(data, outlet)
+		if (!users.length) {
+			if (data.search !== 'all_users') {
 				return {
 					message: 'Invalid Phone Number/Name',
 					data: defaultMilkInfoResult,
 				}
-			users = await db.sequelize.query(
-				`SELECT ubo.user_id, u.created_at FROM user_business_outlet ubo
-				 JOIN business_outlet bo ON bo.id = ubo.business_outlet_id
-				 JOIN users u ON u.id = ubo.user_id
-				 WHERE bo.assign_to = :userId AND u.id = :searchUserId`,
-				{
-					replacements: { userId: user_id, searchUserId: userID[0].id },
-					type: QueryTypes.SELECT,
-				},
-			)
-		}
-		const resData: Record<number, MilkInfoResult> = {}
-		for (const value of users) {
-			let sDate = value.created_at
-			let eDate = new Date().toISOString().slice(0, 10)
-			if (type === 'all_time' && !start_date && !end_date) {
-				sDate = value.created_at
-				eDate = new Date().toISOString().slice(0, 10)
-			} else if (start_date && end_date && !type) {
-				sDate = start_date
-				eDate = end_date
 			}
-			const morningMilk = await getDailyRecordData(
-				26,
-				value.user_id,
-				sDate,
-				eDate,
-			)
-			const eveningMilk = await getDailyRecordData(
-				27,
-				value.user_id,
-				sDate,
-				eDate,
-			)
-			const morningFat = await getDailyRecordData(
-				17,
-				value.user_id,
-				sDate,
-				eDate,
-			)
-			const morningSNF = await getDailyRecordData(
-				18,
-				value.user_id,
-				sDate,
-				eDate,
-			)
-			const eveningFat = await getDailyRecordData(
-				19,
-				value.user_id,
-				sDate,
-				eDate,
-			)
-			const eveningSNF = await getDailyRecordData(
-				20,
-				value.user_id,
-				sDate,
-				eDate,
-			)
-			resData[value.user_id] = {
-				morningMilk: sumMilkFromAnswers(morningMilk),
-				eveningMilk: sumMilkFromAnswers(eveningMilk),
-				morningFat: sumFatSnfFromAnswers(morningFat),
-				eveningFat: sumFatSnfFromAnswers(eveningFat),
-				morningSNF: sumFatSnfFromAnswers(morningSNF),
-				eveningSNF: sumFatSnfFromAnswers(eveningSNF),
-				eveningSNFCount: countRecords(eveningSNF),
-				eveningFatCount: countRecords(eveningFat),
-				morningSNFCount: countRecords(morningSNF),
-				morningFatCount: countRecords(morningFat),
-				totalMilk: 0, // will be set below
-				morningFatPercentage: 0, // will be set below
-				eveningFatPercentage: 0, // will be set below
-				morningSNFPercentage: 0, // will be set below
-				eveningSNFPercentage: 0, // will be set below
+			return {
+				message: 'Invalid Search',
+				data: defaultMilkInfoResult,
 			}
 		}
-		// Aggregate
-		let morningMilk = 0,
-			eveningMilk = 0,
-			morningFat = 0,
-			eveningFat = 0,
-			morningSNF = 0,
-			eveningSNF = 0
-		let eveningSNFCount1 = 0,
-			eveningFatCount1 = 0,
-			morningSNFCount1 = 0,
-			morningFatCount1 = 0
-		for (const data of Object.values(resData)) {
-			morningMilk += data.morningMilk
-			eveningMilk += data.eveningMilk
-			morningFat += data.morningFat
-			eveningFat += data.eveningFat
-			morningSNF += data.morningSNF
-			eveningSNF += data.eveningSNF
-			eveningSNFCount1 += data.eveningSNFCount
-			eveningFatCount1 += data.eveningFatCount
-			morningSNFCount1 += data.morningSNFCount
-			morningFatCount1 += data.morningFatCount
-		}
-		if (morningFatCount1 === 0) morningFatCount1 = 1
-		if (eveningFatCount1 === 0) eveningFatCount1 = 1
-		if (morningSNFCount1 === 0) morningSNFCount1 = 1
-		if (eveningSNFCount1 === 0) eveningSNFCount1 = 1
-		const responseData: MilkInfoResult = {
-			morningMilk: Number(morningMilk.toFixed(2)),
-			eveningMilk: Number(eveningMilk.toFixed(2)),
-			morningFat: Number(morningFat.toFixed(2)),
-			eveningFat: Number(eveningFat.toFixed(2)),
-			morningSNF: Number(morningSNF.toFixed(2)),
-			eveningSNF: Number(eveningSNF.toFixed(2)),
-			totalMilk: Number((morningMilk + eveningMilk).toFixed(2)),
-			eveningSNFCount: Number(eveningSNFCount1.toFixed(2)),
-			eveningFatCount: Number(eveningFatCount1.toFixed(2)),
-			morningSNFCount: Number(morningSNFCount1.toFixed(2)),
-			morningFatCount: Number(morningFatCount1.toFixed(2)),
-			morningFatPercentage: Number((morningFat / morningFatCount1).toFixed(2)),
-			eveningFatPercentage: Number((eveningFat / eveningFatCount1).toFixed(2)),
-			morningSNFPercentage: Number((morningSNF / morningSNFCount1).toFixed(2)),
-			eveningSNFPercentage: Number((eveningSNF / eveningSNFCount1).toFixed(2)),
-		}
+		const responseData = await aggregateMilkInfo(users, data)
 		return { message: 'Success', data: responseData }
 	}
 
-	// NEW: Health Info
+	// Main service method
 	public static async businessOutletFarmersAnimalHealthInfo(data: {
 		search: string
 		type?: string
@@ -996,185 +1324,27 @@ export class BusinessOutletService {
 		end_date?: string
 		user_id: number
 	}): Promise<{ message: string; data: HealthInfoResponse | object }> {
-		const { search, type, start_date, end_date, user_id } = data
+		const { user_id } = data
 		const outlet = await db.BusinessOutlet.findOne({
 			where: { assign_to: user_id },
 			raw: true,
 		})
 		if (!outlet) return { message: 'No outlet assigned to user', data: {} }
-		let farmers: HealthInfoAnimalRow[] = []
-		if (
-			type === 'all_time' &&
-			!start_date &&
-			!end_date &&
-			search === 'all_users'
-		) {
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, u.created_at, u.name as user_name, u.farm_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 WHERE bo.assign_to = :userId AND aqa.status != 1`,
-				{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
-			)
-		} else if (start_date && end_date && !type && search === 'all_users') {
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, u.created_at, u.name as user_name, u.farm_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 WHERE bo.assign_to = :userId AND aqa.status != 1
-				   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
-				{
-					replacements: {
-						userId: user_id,
-						startDate: start_date,
-						endDate: end_date,
-					},
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else if (type === 'all_time' && !start_date && !end_date) {
-			const userID: UserIdRow[] = await db.sequelize.query(
-				`SELECT u.id as id
-				 FROM users u
-				 JOIN role_user ru ON ru.user_id = u.id
-				 JOIN user_business_outlet ubo ON ubo.user_id = u.id
-				 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-				   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-				 LIMIT 1`,
-				{
-					replacements: { search: `%${search}%`, outletId: outlet.id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			if (!userID[0]) return { message: 'Invalid Phone Number/Name', data: {} }
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, u.created_at, u.name as user_name, u.farm_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1`,
-				{
-					replacements: { userId: user_id, searchUserId: userID[0].id },
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else if (start_date && end_date && !type) {
-			const userID: UserIdRow[] = await db.sequelize.query(
-				`SELECT u.id as id
-				 FROM users u
-				 JOIN role_user ru ON ru.user_id = u.id
-				 JOIN user_business_outlet ubo ON ubo.user_id = u.id
-				 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-				   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-				 LIMIT 1`,
-				{
-					replacements: { search: `%${search}%`, outletId: outlet.id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			if (!userID[0]) return { message: 'Invalid Phone Number/Name', data: {} }
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, u.created_at, u.name as user_name, u.farm_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1
-				   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
-				{
-					replacements: {
-						userId: user_id,
-						searchUserId: userID[0].id,
-						startDate: start_date,
-						endDate: end_date,
-					},
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else {
+
+		const farmers: HealthInfoAnimalRow[] = await getHealthFarmers(data, outlet)
+		if (!farmers.length) {
+			if (data.search !== 'all_users') {
+				return { message: 'Invalid Phone Number/Name', data: {} }
+			}
 			return { message: 'Invalid Search', data: {} }
 		}
 
-		const resData: HealthInfoDetailed[] = []
-		const diseasesArray: string[] = []
-		const medicinesArray: string[] = []
-		let totalMilkLoss1 = 0
+		const { resData, diseasesArray, medicinesArray, totalMilkLoss } =
+			await aggregateHealthInfo(farmers)
 
-		for (const value of farmers) {
-			let totalMilkLoss = 0
-			const medicine: string[] = []
-			const disease: string[] = []
-			const treatmentDate: string[] = []
-			// sDate and eDate are not used
-			// Milk Loss (tag 41)
-			const milkLoss = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				41,
-			)
-			if (milkLoss && milkLoss.answer && !isNaN(Number(milkLoss.answer))) {
-				totalMilkLoss = Number(milkLoss.answer)
-				totalMilkLoss1 += totalMilkLoss
-			}
-			// Diseases (tag 39)
-			const diseases = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				39,
-			)
-			if (diseases && diseases.answer) {
-				disease.push(diseases.answer)
-				if (!diseasesArray.includes(diseases.answer)) {
-					diseasesArray.push(diseases.answer)
-				}
-			}
-			// Medicines (tag 55)
-			const medicines = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				55,
-			)
-			if (medicines && medicines.answer) {
-				medicine.push(medicines.answer)
-				if (!medicinesArray.includes(medicines.answer)) {
-					medicinesArray.push(medicines.answer)
-				}
-			}
-			// Treatment Dates (tag 38)
-			const treatmentDates = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				38,
-			)
-			if (treatmentDates && treatmentDates.answer) {
-				treatmentDate.push(treatmentDates.answer)
-			}
-			const abc: HealthInfoDetailed = {
-				animal_number: value.animal_number,
-				totalMilkLoss,
-				animal_id: value.animal_id,
-				diseases: disease,
-				medicines: medicine,
-				user_name: value.user_name,
-				farm_name: value.farm_name,
-				treatment_dates: treatmentDate,
-			}
-			if (disease.length > 0 || medicine.length > 0 || totalMilkLoss !== 0) {
-				resData.push(abc)
-			}
-		}
 		const healthInformation = {
 			number_of_animal_affected: resData.length,
-			total_milk_loss: totalMilkLoss1,
+			total_milk_loss: totalMilkLoss,
 			diseases: diseasesArray,
 			medicines: medicinesArray,
 		}
@@ -1193,225 +1363,28 @@ export class BusinessOutletService {
 		end_date?: string
 		user_id: number
 	}): Promise<{ message: string; data: BreedingInfoResponse | object }> {
-		const { search, type, start_date, end_date, user_id } = data
+		const { user_id } = data
 		const outlet = await db.BusinessOutlet.findOne({
 			where: { assign_to: user_id },
 			raw: true,
 		})
 		if (!outlet) return { message: 'No outlet assigned to user', data: {} }
-		let farmers: BreedingInfoAnimalRow[] = []
-		if (
-			type === 'all_time' &&
-			!start_date &&
-			!end_date &&
-			search === 'all_users'
-		) {
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name, u.name as farmer_name, u.farm_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 JOIN animals a ON a.id = aqa.animal_id
-				 WHERE bo.assign_to = :userId AND aqa.status != 1`,
-				{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
-			)
-		} else if (start_date && end_date && !type && search === 'all_users') {
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name, u.name as farmer_name, u.farm_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 JOIN animals a ON a.id = aqa.animal_id
-				 WHERE bo.assign_to = :userId AND aqa.status != 1
-				   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
-				{
-					replacements: {
-						userId: user_id,
-						startDate: start_date,
-						endDate: end_date,
-					},
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else if (type === 'all_time' && !start_date && !end_date) {
-			const userID: UserIdRow[] = await db.sequelize.query(
-				`SELECT u.id as id
-				 FROM users u
-				 JOIN role_user ru ON ru.user_id = u.id
-				 JOIN user_business_outlet ubo ON ubo.user_id = u.id
-				 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-				   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-				 LIMIT 1`,
-				{
-					replacements: { search: `%${search}%`, outletId: outlet.id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			if (!userID[0]) return { message: 'Invalid Phone Number/Name', data: {} }
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name, u.name as farmer_name, u.farm_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 JOIN animals a ON a.id = aqa.animal_id
-				 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1`,
-				{
-					replacements: { userId: user_id, searchUserId: userID[0].id },
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else if (start_date && end_date && !type) {
-			const userID: UserIdRow[] = await db.sequelize.query(
-				`SELECT u.id as id
-				 FROM users u
-				 JOIN role_user ru ON ru.user_id = u.id
-				 JOIN user_business_outlet ubo ON ubo.user_id = u.id
-				 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-				   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-				 LIMIT 1`,
-				{
-					replacements: { search: `%${search}%`, outletId: outlet.id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			if (!userID[0]) return { message: 'Invalid Phone Number/Name', data: {} }
-			farmers = await db.sequelize.query(
-				`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name, u.name as farmer_name, u.farm_name
-				 FROM business_outlet bo
-				 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-				 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-				 JOIN users u ON u.id = ubo.user_id
-				 JOIN animals a ON a.id = aqa.animal_id
-				 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1
-				   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
-				{
-					replacements: {
-						userId: user_id,
-						searchUserId: userID[0].id,
-						startDate: start_date,
-						endDate: end_date,
-					},
-					type: QueryTypes.SELECT,
-				},
-			)
-		} else {
+
+		const farmers: BreedingInfoAnimalRow[] = await getFarmers(data, outlet)
+		if (!farmers.length) {
+			if (data.search !== 'all_users') {
+				return { message: 'Invalid Phone Number/Name', data: {} }
+			}
 			return { message: 'Invalid Search', data: {} }
 		}
-		let pregnantAnimal = 0
-		let nonPregnant = 0
-		let lactating = 0
-		let nonLactating = 0
-		const breeding_data: BreedingData[] = []
-		for (const value of farmers) {
-			const animalGender = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				8,
-			)
-			const heifer = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				60,
-			)
-			const pregnant = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				15,
-			)
-			const milkingStatus = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				16,
-			)
-			const dateOfAI = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				23,
-			)
-			const noOfBullForAI = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				35,
-			)
-			const semenCompanyName = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				42,
-			)
-			const bullMotherYield = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				14,
-			)
-			const nameOfDoctor = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				57,
-			)
-			const pregnancyCycle = await AnimalService._getLatestAnswerByTag(
-				value.user_id,
-				value.animal_id,
-				value.animal_number,
-				59,
-			)
-			if (animalGender?.answer?.toLowerCase() === 'female') {
-				if (heifer?.logic_value?.toLowerCase() === 'calf') {
-					// skip heifer count for now
-					if (pregnant?.answer?.toLowerCase() === 'yes') {
-						// skip pregnantHeifer count for now
-					} else {
-						// skip nonPregnantHeifer count for now
-					}
-				} else {
-					// skip cowCount for now
-					if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
-					else nonPregnant++
-					if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
-					else nonLactating++
-				}
-			}
-			if (!animalGender) {
-				if (heifer?.logic_value?.toLowerCase() === 'calf') {
-					// skip heifer count for now
-					if (pregnant?.answer?.toLowerCase() === 'yes') {
-						// skip pregnantHeifer count for now
-					} else {
-						// skip nonPregnantHeifer count for now
-					}
-				} else {
-					// skip cowCount for now
-					if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
-					else nonPregnant++
-					if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
-					else nonLactating++
-				}
-			}
-			breeding_data.push({
-				farmer_name: value.farmer_name,
-				farm_name: value.farm_name,
-				animal_number: value.animal_number,
-				date_of_AI: dateOfAI?.answer ?? '',
-				no_of_bull_used_AI: noOfBullForAI?.answer ?? '',
-				semen_company_name: semenCompanyName?.answer ?? '',
-				bull_mother_yield: bullMotherYield?.answer ?? '',
-				name_of_doctor: nameOfDoctor?.answer ?? '',
-				pregnancy_cycle: pregnancyCycle?.answer ?? '',
-				Lactating: milkingStatus?.answer ?? '',
-				pregnant: pregnant?.answer ?? '',
-			})
-		}
+
+		const {
+			pregnantAnimal,
+			nonPregnant,
+			lactating,
+			nonLactating,
+			breeding_data,
+		} = await getBreedingStats(farmers)
 		const animal_info = {
 			total_animals: farmers.length,
 			pregnant_animals: pregnantAnimal,
