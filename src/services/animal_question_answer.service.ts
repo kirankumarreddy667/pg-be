@@ -1,5 +1,5 @@
 import db from '@/config/database'
-import { Op } from 'sequelize'
+import { Op, QueryTypes } from 'sequelize'
 import { AppError } from '@/utils/errors'
 
 type ConstantValue = string | number | null
@@ -1321,5 +1321,41 @@ export class AnimalQuestionAnswerService {
 			})
 		}
 		return resData
+	}
+
+	static async getAnimalLactationStatus(
+		user_id: number,
+		animal_id: number,
+		animal_num: string,
+	): Promise<{
+		answer: string | null
+		created_at: string | null
+		question_id: number | null
+	}> {
+		const result = await db.sequelize.query(
+			`SELECT aqa.answer, aqa.created_at, aqa.question_id
+         FROM common_questions cq
+         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
+        WHERE cq.question_tag = 16
+          AND aqa.user_id = :user_id
+          AND aqa.animal_id = :animal_id
+          AND aqa.animal_number = :animal_num
+          AND aqa.status <> 1
+        ORDER BY aqa.created_at DESC
+        LIMIT 1`,
+			{
+				replacements: { user_id, animal_id, animal_num },
+				type: QueryTypes.SELECT,
+			},
+		)
+		const row =
+			(result[0] as
+				| { answer?: string; created_at?: string; question_id?: number }
+				| undefined) || {}
+		return {
+			answer: row.answer ?? null,
+			created_at: row.created_at ?? null,
+			question_id: row.question_id ?? null,
+		}
 	}
 }
