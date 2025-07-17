@@ -54,4 +54,22 @@ export class DailyMilkRecordController {
 			next(error)
 		}
 	}
+
+	public static readonly getDailyMilkRecord: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const user = req.user as User
+			const date = req.query.date as string | undefined
+			const result = await DailyMilkRecordService.getDailyMilkRecord(user, date)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: result,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
 }

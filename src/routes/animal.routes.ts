@@ -1397,4 +1397,127 @@ router.post(
 	wrapAsync(AnimalController.uploadAnimalImage),
 )
 
+/**
+ * @swagger
+ * /animal_profile:
+ *   get:
+ *     summary: Get animal profile (general, lactation, vaccination, pedigree, image)
+ *     tags: [Animal]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: query
+ *         name: animal_number
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Animal Number
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     profile_img:
+ *                       type: object
+ *                       properties:
+ *                         image:
+ *                           type: string
+ *                     general:
+ *                       type: object
+ *                       properties:
+ *                         animal_type:
+ *                           type: string
+ *                         birth:
+ *                           type: string
+ *                         weight:
+ *                           type: string
+ *                         age:
+ *                           type: integer
+ *                         breed:
+ *                           type: string
+ *                         lactation_number:
+ *                           type: string
+ *                     breeding_details:
+ *                       type: object
+ *                       properties:
+ *                         pregnant_status:
+ *                           type: string
+ *                         lactating_status:
+ *                           type: string
+ *                         last_delivery_date:
+ *                           type: string
+ *                         days_in_milk:
+ *                           type: integer
+ *                         last_breeding_bull_no:
+ *                           type: string
+ *                     milk_details:
+ *                       type: object
+ *                       properties:
+ *                         average_daily_milk:
+ *                           type: number
+ *                         current_lactation_milk_yield:
+ *                           type: number
+ *                         last_lactation_milk_yield:
+ *                           type: number
+ *                         last_known_snf:
+ *                           type: number
+ *                         last_known_fat:
+ *                           type: number
+ *                     vaccination_details:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           type:
+ *                             type: string
+ *                           date:
+ *                             type: string
+ *                     pedigree:
+ *                       type: object
+ *                       properties:
+ *                         mother:
+ *                           type: object
+ *                           properties:
+ *                             tag_no:
+ *                               type: string
+ *                             milk_yield:
+ *                               type: number
+ *                         father:
+ *                           type: object
+ *                           properties:
+ *                             tag_no:
+ *                               type: string
+ *                             semen_co_name:
+ *                               type: string
+ *                             sire_dam_yield:
+ *                               type: number
+ *                             daughter_yield:
+ *                               type: string
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_profile',
+	authenticate,
+	wrapAsync(AnimalController.animalProfile),
+)
+
 export default router

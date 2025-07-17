@@ -445,4 +445,47 @@ export class AnimalController {
 			next(error)
 		}
 	}
+
+	public static readonly animalProfile: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
+		try {
+			const user = req.user as User
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const animal_id =
+				typeof req.query.animal_id === 'string'
+					? Number(req.query.animal_id)
+					: typeof req.params.animal_id === 'string'
+						? Number(req.params.animal_id)
+						: NaN
+			const animal_number =
+				typeof req.query.animal_number === 'string'
+					? req.query.animal_number
+					: typeof req.params.animal_number === 'string'
+						? req.params.animal_number
+						: ''
+			if (isNaN(animal_id) || !animal_number) {
+				return RESPONSE.FailureResponse(res, 400, {
+					message:
+						'animal_id and animal_number are required as query or path params',
+					data: [],
+				})
+			}
+			const data = await AnimalService.getAnimalProfile(
+				user,
+				animal_id,
+				animal_number,
+			)
+			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+		} catch (error) {
+			next(error)
+		}
+	}
 }

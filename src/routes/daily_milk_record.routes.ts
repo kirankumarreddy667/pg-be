@@ -91,4 +91,64 @@ router.put(
 	wrapAsync(DailyMilkRecordController.update),
 )
 
+/**
+ * @swagger
+ * /daily_milk_record:
+ *   get:
+ *     summary: Get daily milk record for cows and buffalos
+ *     tags: [DailyMilkRecord]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         required: false
+ *         description: Date for which to fetch the record (YYYY-MM-DD). Defaults to today if not provided.
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     cows_daily_milk_data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_number: { type: string }
+ *                           animal_id: { type: integer }
+ *                           morning_milk_in_litres: { type: number }
+ *                           evening_milk_in_litres: { type: number }
+ *                           total_milk_in_litres: { type: number }
+ *                     buffalos_daily_milk_data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_number: { type: string }
+ *                           animal_id: { type: integer }
+ *                           morning_milk_in_litres: { type: number }
+ *                           evening_milk_in_litres: { type: number }
+ *                           total_milk_in_litres: { type: number }
+ *                     record_date: { type: string }
+ *                     total_morning: { type: number }
+ *                     total_evening: { type: number }
+ *                     total_day_milk: { type: number }
+ */
+router.get(
+	'/daily_milk_record',
+	authenticate,
+	wrapAsync(DailyMilkRecordController.getDailyMilkRecord),
+)
+
 export default router

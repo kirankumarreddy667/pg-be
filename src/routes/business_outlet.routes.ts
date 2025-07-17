@@ -5,6 +5,7 @@ import {
 	businessOutletSchema,
 	farmersListSchema,
 	businessOutletFarmerMappingSchema,
+	businessOutletFarmersAnimalSchema,
 } from '@/validations/business_outlet.validation'
 import { wrapAsync } from '@/utils/asyncHandler'
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
@@ -392,6 +393,295 @@ router.delete(
 	authenticate,
 	wrapAsync(authorize(['Business'])),
 	wrapAsync(BusinessOutletController.deleteMappedFarmerToBusinessOutlet),
+)
+
+/**
+ * @swagger
+ * /business/animal_information:
+ *   post:
+ *     summary: Get animal count of all the farmers mapped to a business outlet
+ *     tags: [BusinessOutlet]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               start_date:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date (YYYY-MM-DD)
+ *               end_date:
+ *                 type: string
+ *                 format: date
+ *                 description: End date (YYYY-MM-DD)
+ *               search:
+ *                 type: string
+ *                 description: Search string (required)
+ *               type:
+ *                 type: string
+ *                 description: 'all_time' or undefined
+ *             required:
+ *               - search
+ *     responses:
+ *       200:
+ *         description: Animal count data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/business/animal_information',
+	authenticate,
+	wrapAsync(authorize(['Business'])),
+	validateRequest(businessOutletFarmersAnimalSchema),
+	wrapAsync(BusinessOutletController.businessOutletFarmersAnimalCount),
+)
+
+/**
+ * @swagger
+ * /business/milk_information:
+ *   post:
+ *     summary: Get aggregated milk/fat/SNF info for all mapped farmers
+ *     tags: [BusinessOutlet]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               search:
+ *                 type: string
+ *                 description: 'all_users or search by phone/name'
+ *               type:
+ *                 type: string
+ *                 description: 'all_time or undefined for date range'
+ *               start_date:
+ *                 type: string
+ *                 format: date
+ *                 description: 'YYYY-MM-DD (required if type is not all_time)'
+ *               end_date:
+ *                 type: string
+ *                 format: date
+ *                 description: 'YYYY-MM-DD (required if type is not all_time)'
+ *             required:
+ *               - search
+ *     responses:
+ *       200:
+ *         description: Aggregated milk/fat/SNF info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Invalid input
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/business/milk_information',
+	authenticate,
+	wrapAsync(authorize(['Business'])),
+	validateRequest(businessOutletFarmersAnimalSchema),
+	wrapAsync(BusinessOutletController.businessOutletFarmersAnimalMilkInfo),
+)
+
+/**
+ * @openapi
+ * /business/health_information:
+ *   post:
+ *     summary: Get animal health information of all the farmers mapped to a business outlet
+ *     tags:
+ *       - BusinessOutlet
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               search:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 nullable: true
+ *               start_date:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               end_date:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     health_information:
+ *                       type: object
+ *                       properties:
+ *                         number_of_animal_affected:
+ *                           type: integer
+ *                         total_milk_loss:
+ *                           type: number
+ *                         diseases:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         medicines:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                     detailed_information:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_number:
+ *                             type: string
+ *                           totalMilkLoss:
+ *                             type: number
+ *                           animal_id:
+ *                             type: integer
+ *                           diseases:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                           medicines:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                           user_name:
+ *                             type: string
+ *                           farm_name:
+ *                             type: string
+ *                           treatment_dates:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ */
+router.post(
+	'/business/health_information',
+	authenticate,
+	wrapAsync(authorize(['Business'])),
+	wrapAsync(BusinessOutletController.businessOutletFarmersAnimalHealthInfo),
+)
+
+/**
+ * @openapi
+ * /business/breeding_information:
+ *   post:
+ *     summary: Get animal breeding information of all the farmers mapped to a business outlet
+ *     tags:
+ *       - BusinessOutlet
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               search:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 nullable: true
+ *               start_date:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               end_date:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     animal_information:
+ *                       type: object
+ *                       properties:
+ *                         total_animals:
+ *                           type: integer
+ *                         pregnant_animals:
+ *                           type: integer
+ *                         non_pregnant_animals:
+ *                           type: integer
+ *                         lactating:
+ *                           type: integer
+ *                         nonLactating:
+ *                           type: integer
+ *                     breeding_data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           farmer_name:
+ *                             type: string
+ *                           farm_name:
+ *                             type: string
+ *                           animal_number:
+ *                             type: string
+ *                           date_of_AI:
+ *                             type: string
+ *                           no_of_bull_used_AI:
+ *                             type: string
+ *                           semen_company_name:
+ *                             type: string
+ *                           bull_mother_yield:
+ *                             type: string
+ *                           name_of_doctor:
+ *                             type: string
+ *                           pregnancy_cycle:
+ *                             type: string
+ *                           Lactating:
+ *                             type: string
+ *                           pregnant:
+ *                             type: string
+ */
+router.post(
+	'/business/breeding_information',
+	authenticate,
+	wrapAsync(authorize(['Business'])),
+	wrapAsync(BusinessOutletController.businessOutletFarmersAnimalBreedingInfo),
 )
 
 export default router

@@ -1,5 +1,7 @@
 import db from '@/config/database'
-import { Express } from 'express'
+import sharp from 'sharp'
+import fs from 'fs'
+import path from 'path'
 import { Animal, AnimalType } from '@/models'
 import { IncludeOptions, Op } from 'sequelize'
 import type { AnimalQuestions } from '@/models/animal_questions.model'
@@ -14,9 +16,19 @@ import type { QuestionLanguage } from '@/models/question_language.model'
 import type { CategoryLanguage } from '@/models/category_language.model'
 import type { SubCategoryLanguage } from '@/models/sub_category_language.model'
 import { AnimalImage } from '@/models/animal_image.model'
-import sharp from 'sharp'
-import fs from 'fs'
-import path from 'path'
+
+import type { User } from '@/types/index'
+import type { Express } from 'express'
+
+// Add these interfaces after imports, before the AnimalService class
+type VaccinationListRaw = {
+	date: string
+	'UserVaccinationTypes.VaccinationType.type'?: string
+}
+
+interface AnimalTypeRawResult {
+	'Animal.name'?: string
+}
 
 // Generic groupBy utility
 function groupBy<T, K extends string | number>(
@@ -180,7 +192,7 @@ interface AnimalDetailsResponse {
 	animal_data: AnimalData[]
 }
 
-interface AnimalAnswerRecord {
+export interface AnimalAnswerRecord {
 	answer?: string
 	logic_value?: string
 	animal_number: string
@@ -227,6 +239,11 @@ type BreedingAnswerRaw = {
 	answer: string
 	created_at: Date
 	'CommonQuestion.question_tag': number
+}
+
+// Helper type for answer result
+interface AnswerRaw {
+	answer?: string
 }
 
 export class AnimalService {
@@ -987,7 +1004,7 @@ export class AnimalService {
 	}
 
 	// --- Helper functions ---
-	private static async _getLatestAnswerByTag(
+	public static async _getLatestAnswerByTag(
 		user_id: number,
 		animal_id: number,
 		animal_number: string,
@@ -1233,5 +1250,552 @@ export class AnimalService {
 			})
 		}
 		return { message: 'Animal image added successfully' }
+	}
+
+	// --- Animal Profile API ---
+	private static async _getGeneralInfo(
+		user: User,
+		animal_id: number,
+		animal_number: string,
+	): Promise<{
+		animalType: AnimalTypeRawResult
+		dateOfBirth: AnimalAnswerRecord | null
+		weight: AnimalAnswerRecord | null
+		breeding: AnimalAnswerRecord | null
+		pregnancyCycle: AnimalAnswerRecord | null
+	}> {
+		const [animalType, dateOfBirth, weight, breeding, pregnancyCycle] =
+			await Promise.all([
+				db.AnimalQuestionAnswer.findOne({
+					where: {
+						user_id: user.id,
+						animal_id,
+						animal_number,
+						status: { [Op.ne]: 1 },
+					},
+					include: [{ model: db.Animal, as: 'Animal', attributes: ['name'] }],
+					attributes: [],
+					raw: true,
+				}) as AnimalTypeRawResult,
+				AnimalService._getLatestAnswerByTag(
+					user.id,
+					animal_id,
+					animal_number,
+					9,
+				), // DOB
+				AnimalService._getLatestAnswerByTag(
+					user.id,
+					animal_id,
+					animal_number,
+					12,
+				), // weight
+				animal_id === 1
+					? AnimalService._getLatestAnswerByTag(
+							user.id,
+							animal_id,
+							animal_number,
+							62,
+						)
+					: animal_id === 2
+						? AnimalService._getLatestAnswerByTag(
+								user.id,
+								animal_id,
+								animal_number,
+								63,
+							)
+						: Promise.resolve(null),
+				AnimalService._getLatestAnswerByTag(
+					user.id,
+					animal_id,
+					animal_number,
+					59,
+				), // pregnancy cycle
+			])
+		return { animalType, dateOfBirth, weight, breeding, pregnancyCycle }
+	}
+
+	private static async _getLactationStats(
+		user: User,
+		animal_id: number,
+		animal_number: string,
+	): Promise<{
+		m_fat: number
+		e_fat: number
+		last_known_fat: number
+		m_snf: number
+		e_snf: number
+		last_known_snf: number
+		pregnantStatus: AnimalAnswerRecord | null
+		milkingStatus: AnimalAnswerRecord | null
+		lastDeliveryDate: AnimalAnswerRecord | null
+		BullNoForAI: AnimalAnswerRecord | null
+		days_in_milk1: number
+		current_lactation_milk_yield: number
+		last_lactation_milk_yield: number
+	}> {
+		const [
+			morning_fat,
+			evening_fat,
+			morning_snf,
+			evening_snf,
+			pregnantStatus,
+			milkingStatus,
+			lastDeliveryDate,
+			BullNoForAI,
+		] = await Promise.all([
+			AnimalService._getLatestAnswerByTag(
+				user.id,
+				animal_id,
+				animal_number,
+				17,
+			), // morning fat
+			AnimalService._getLatestAnswerByTag(
+				user.id,
+				animal_id,
+				animal_number,
+				19,
+			), // evening fat
+			AnimalService._getLatestAnswerByTag(
+				user.id,
+				animal_id,
+				animal_number,
+				18,
+			), // morning snf
+			AnimalService._getLatestAnswerByTag(
+				user.id,
+				animal_id,
+				animal_number,
+				20,
+			), // evening snf
+			AnimalService._getLatestAnswerByTag(
+				user.id,
+				animal_id,
+				animal_number,
+				15,
+			), // pregnant status
+			AnimalService._getLatestAnswerByTag(
+				user.id,
+				animal_id,
+				animal_number,
+				16,
+			), // milking status
+			AnimalService._getLatestAnswerByTag(
+				user.id,
+				animal_id,
+				animal_number,
+				66,
+			), // last delivery date
+			AnimalService._getLatestAnswerByTag(
+				user.id,
+				animal_id,
+				animal_number,
+				35,
+			), // bull no for AI
+		])
+		const m_fat = parseFloat(morning_fat?.answer ?? '0')
+		const e_fat = parseFloat(evening_fat?.answer ?? '0')
+		const last_known_fat = m_fat + e_fat
+		const m_snf = parseFloat(morning_snf?.answer ?? '0')
+		const e_snf = parseFloat(evening_snf?.answer ?? '0')
+		const last_known_snf = m_snf + e_snf
+
+		const lactationHistory = await db.AnimalLactationYieldHistory.findAll({
+			where: { user_id: user.id, animal_id, animal_number },
+			order: [['created_at', 'ASC']],
+			raw: true,
+		})
+		let days_in_milk1 = 0
+		let current_lactation_milk_yield = 0
+		let last_lactation_milk_yield = 0
+		if (lactationHistory.length > 0) {
+			const lastLactation = lactationHistory[lactationHistory.length - 1]
+			if (
+				lastLactation.lactating_status?.toLowerCase() === 'yes' &&
+				lastLactation.date
+			) {
+				const lastLactationDate = lastLactation.date
+				const fromDateStr =
+					typeof lastLactationDate === 'string'
+						? lastLactationDate
+						: lastLactationDate
+							? lastLactationDate.toISOString().slice(0, 10)
+							: undefined
+				if (fromDateStr) {
+					const from = new Date(fromDateStr)
+					const to = new Date()
+					days_in_milk1 = Math.floor(
+						(to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24),
+					)
+					const dates: string[] = []
+					for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+						dates.push(d.toISOString().slice(0, 10))
+					}
+					if (dates.length > 0 && dates[0] !== '1970-01-01') {
+						const milkSum = await db.DailyMilkRecord.sum(
+							'morning_milk_in_litres',
+							{
+								where: {
+									user_id: user.id,
+									animal_number,
+									animal_id,
+									record_date: dates,
+								},
+							},
+						)
+						const milkSumEvening = await db.DailyMilkRecord.sum(
+							'evening_milk_in_litres',
+							{
+								where: {
+									user_id: user.id,
+									animal_number,
+									animal_id,
+									record_date: dates,
+								},
+							},
+						)
+						current_lactation_milk_yield =
+							(milkSum ?? 0) + (milkSumEvening ?? 0)
+					}
+				}
+			}
+			if (lactationHistory.length > 1) {
+				for (let i = 0; i < lactationHistory.length - 1; i++) {
+					if (
+						i < lactationHistory.length - 1 &&
+						lactationHistory[i].lactating_status?.toLowerCase() === 'yes'
+					) {
+						let k = i + 1
+						while (
+							k < lactationHistory.length - 1 &&
+							lactationHistory[k].lactating_status?.toLowerCase() !== 'no'
+						) {
+							k++
+						}
+						if (
+							lactationHistory[i].lactating_status !==
+								lactationHistory[k].lactating_status &&
+							!!lactationHistory[i].date &&
+							!!lactationHistory[k].date
+						) {
+							const iDate = lactationHistory[i].date
+							const kDate = lactationHistory[k].date
+							const startDateStr =
+								typeof iDate === 'string'
+									? iDate
+									: iDate
+										? iDate.toISOString().slice(0, 10)
+										: undefined
+							const endDateStr =
+								typeof kDate === 'string'
+									? kDate
+									: kDate
+										? kDate.toISOString().slice(0, 10)
+										: undefined
+							if (startDateStr && endDateStr) {
+								const from = new Date(startDateStr)
+								const to = new Date(endDateStr)
+								const dates: string[] = []
+								for (
+									let d = new Date(from);
+									d <= to;
+									d.setDate(d.getDate() + 1)
+								) {
+									dates.push(d.toISOString().slice(0, 10))
+								}
+								if (dates.length > 0 && dates[0] !== '1970-01-01') {
+									const milkSum = await db.DailyMilkRecord.sum(
+										'morning_milk_in_litres',
+										{
+											where: {
+												user_id: user.id,
+												animal_number,
+												animal_id,
+												record_date: dates,
+											},
+										},
+									)
+									const milkSumEvening = await db.DailyMilkRecord.sum(
+										'evening_milk_in_litres',
+										{
+											where: {
+												user_id: user.id,
+												animal_number,
+												animal_id,
+												record_date: dates,
+											},
+										},
+									)
+									last_lactation_milk_yield =
+										(milkSum ?? 0) + (milkSumEvening ?? 0)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return {
+			m_fat,
+			e_fat,
+			last_known_fat,
+			m_snf,
+			e_snf,
+			last_known_snf,
+			pregnantStatus,
+			milkingStatus,
+			lastDeliveryDate,
+			BullNoForAI,
+			days_in_milk1,
+			current_lactation_milk_yield,
+			last_lactation_milk_yield,
+		}
+	}
+
+	private static async _getVaccinationList(
+		user: User,
+		animal_number: string,
+	): Promise<{ type: string; date: string }[]> {
+		const vaccinations = (await db.VaccinationDetail.findAll({
+			where: { user_id: user.id },
+			include: [
+				{
+					model: db.AnimalVaccination,
+					as: 'AnimalVaccinations',
+					where: { animal_number },
+					attributes: [],
+				},
+				{
+					model: db.UserVaccinationType,
+					as: 'UserVaccinationTypes',
+					attributes: [],
+					include: [
+						{
+							model: db.VaccinationType,
+							as: 'VaccinationType',
+							attributes: ['type'],
+						},
+					],
+				},
+			],
+			attributes: ['date'],
+			raw: true,
+		})) as unknown as VaccinationListRaw[]
+		return vaccinations.map((v) => ({
+			type: v['UserVaccinationTypes.VaccinationType.type'] ?? '',
+			date: v.date ?? '',
+		}))
+	}
+
+	private static async _getPedigree(
+		user: User,
+		animal_id: number,
+		animal_number: string,
+	): Promise<{
+		mother: { tag_no: string; milk_yield: number }
+		father: {
+			tag_no: string
+			semen_co_name: string
+			sire_dam_yield: number | string
+			daughter_yield: string
+		}
+	}> {
+		const motherNo = await db.AnimalMotherCalf.findOne({
+			where: { user_id: user.id, animal_id, calf_animal_number: animal_number },
+			attributes: ['mother_animal_number', 'delivery_date'],
+			raw: true,
+		})
+		let mother_milk_yield = 0
+		let motherBullNoUsedForAI = ''
+		let semen_co_name = ''
+		let sire_dam_yield = ''
+		if (motherNo) {
+			mother_milk_yield =
+				((await db.DailyMilkRecord.sum('morning_milk_in_litres', {
+					where: {
+						user_id: user.id,
+						animal_id,
+						animal_number: motherNo.mother_animal_number,
+					},
+				})) ?? 0) +
+				((await db.DailyMilkRecord.sum('evening_milk_in_litres', {
+					where: {
+						user_id: user.id,
+						animal_id,
+						animal_number: motherNo.mother_animal_number,
+					},
+				})) ?? 0)
+			const dateOfAI = await db.AnimalQuestionAnswer.findOne({
+				where: {
+					user_id: user.id,
+					animal_id,
+					animal_number: motherNo.mother_animal_number,
+					status: { [Op.ne]: 1 },
+				},
+				include: [
+					{
+						model: db.CommonQuestions,
+						as: 'CommonQuestion',
+						where: { question_tag: 23 },
+						attributes: [],
+					},
+				],
+				order: [['created_at', 'DESC']],
+				attributes: ['answer', 'created_at'],
+				raw: true,
+			})
+			if (dateOfAI) {
+				const [noOfBullUsedForAI, semenCoName, bullMotherYield] =
+					await Promise.all([
+						db.AnimalQuestionAnswer.findOne({
+							where: {
+								user_id: user.id,
+								animal_id,
+								animal_number: motherNo.mother_animal_number,
+								status: { [Op.ne]: 1 },
+								created_at: dateOfAI.created_at,
+							},
+							include: [
+								{
+									model: db.CommonQuestions,
+									as: 'CommonQuestion',
+									where: { question_tag: 35 },
+									attributes: [],
+								},
+							],
+							attributes: ['answer'],
+							raw: true,
+						}) as Promise<AnswerRaw | null>,
+						db.AnimalQuestionAnswer.findOne({
+							where: {
+								user_id: user.id,
+								animal_id,
+								animal_number: motherNo.mother_animal_number,
+								status: { [Op.ne]: 1 },
+								created_at: dateOfAI.created_at,
+							},
+							include: [
+								{
+									model: db.CommonQuestions,
+									as: 'CommonQuestion',
+									where: { question_tag: 42 },
+									attributes: [],
+								},
+							],
+							attributes: ['answer'],
+							raw: true,
+						}) as Promise<AnswerRaw | null>,
+						db.AnimalQuestionAnswer.findOne({
+							where: {
+								user_id: user.id,
+								animal_id,
+								animal_number: motherNo.mother_animal_number,
+								status: { [Op.ne]: 1 },
+								created_at: dateOfAI.created_at,
+							},
+							include: [
+								{
+									model: db.CommonQuestions,
+									as: 'CommonQuestion',
+									where: { question_tag: 14 },
+									attributes: [],
+								},
+							],
+							attributes: ['answer'],
+							raw: true,
+						}) as Promise<AnswerRaw | null>,
+					])
+				motherBullNoUsedForAI = noOfBullUsedForAI?.answer ?? ''
+				semen_co_name = semenCoName?.answer ?? ''
+				sire_dam_yield = bullMotherYield?.answer ?? ''
+			}
+		}
+		return {
+			mother: {
+				tag_no: motherNo?.mother_animal_number ?? '',
+				milk_yield: Number(mother_milk_yield.toFixed(1)),
+			},
+			father: {
+				tag_no: motherBullNoUsedForAI,
+				semen_co_name: semen_co_name,
+				sire_dam_yield: sire_dam_yield
+					? Number(parseFloat(sire_dam_yield).toFixed(1))
+					: '',
+				daughter_yield: '',
+			},
+		}
+	}
+
+	private static async _getProfileImage(
+		user: User,
+		animal_id: number,
+		animal_number: string,
+	): Promise<{ image: string }> {
+		const animalImage = await AnimalImage.findOne({
+			where: { user_id: user.id, animal_id, animal_number },
+			raw: true,
+		})
+		return {
+			image: animalImage?.image ? `/profile_img/${animalImage.image}` : '',
+		}
+	}
+
+	static async getAnimalProfile(
+		user: User,
+		animal_id: number,
+		animal_number: string,
+	): Promise<Record<string, unknown>> {
+		const [general, lactation, vaccination_details, pedigree, profile_img] =
+			await Promise.all([
+				this._getGeneralInfo(user, animal_id, animal_number),
+				this._getLactationStats(user, animal_id, animal_number),
+				this._getVaccinationList(user, animal_number),
+				this._getPedigree(user, animal_id, animal_number),
+				this._getProfileImage(user, animal_id, animal_number),
+			])
+		const breed = general.breeding?.answer ?? ''
+		const age =
+			general.dateOfBirth?.answer &&
+			!isNaN(new Date(general.dateOfBirth.answer).getFullYear())
+				? Math.max(
+						0,
+						new Date().getFullYear() -
+							new Date(general.dateOfBirth.answer).getFullYear(),
+					)
+				: 0
+		return {
+			profile_img,
+			general: {
+				animal_type: general.animalType['Animal.name'] ?? '',
+				birth: general.dateOfBirth?.answer ?? '',
+				weight: general.weight?.answer ?? '',
+				age,
+				breed,
+				lactation_number: general.pregnancyCycle?.answer ?? '',
+			},
+			breeding_details: {
+				pregnant_status: lactation.pregnantStatus?.answer ?? '',
+				lactating_status: lactation.milkingStatus?.answer ?? '',
+				last_delivery_date: lactation.lastDeliveryDate?.answer ?? '',
+				days_in_milk: lactation.days_in_milk1,
+				last_breeding_bull_no: lactation.BullNoForAI?.answer ?? '',
+			},
+			milk_details: {
+				average_daily_milk:
+					lactation.days_in_milk1 > 0
+						? Number(
+								(
+									lactation.current_lactation_milk_yield /
+									lactation.days_in_milk1
+								).toFixed(2),
+							)
+						: '',
+				current_lactation_milk_yield: lactation.current_lactation_milk_yield,
+				last_lactation_milk_yield: lactation.last_lactation_milk_yield,
+				last_known_snf: Number((lactation.last_known_snf / 2).toFixed(2)),
+				last_known_fat: Number((lactation.last_known_fat / 2).toFixed(2)),
+			},
+			vaccination_details,
+			pedigree,
+		}
 	}
 }

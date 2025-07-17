@@ -290,6 +290,16 @@ export const initModels = (sequelize: Sequelize): Models => {
 		as: 'CommonQuestion',
 	})
 
+	// Add association between DailyRecordQuestion and AnimalQuestionAnswer
+	DailyRecordQuestion.hasMany(AnimalQuestionAnswer, {
+		foreignKey: 'question_id',
+		as: 'Answers',
+	})
+	AnimalQuestionAnswer.belongsTo(DailyRecordQuestion, {
+		foreignKey: 'question_id',
+		as: 'DailyRecordQuestion',
+	})
+
 	return {
 		User,
 		Otp,
