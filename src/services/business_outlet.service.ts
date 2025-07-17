@@ -415,7 +415,7 @@ async function getBreedingStats(
 			value.animal_number,
 			40, // Tag for breeding info
 		)
-		if (breeding && breeding.answer) {
+		if (breeding?.answer) {
 			const breedingInfo = JSON.parse(breeding.answer) as BreedingData
 			breeding_data.push(breedingInfo)
 		}
@@ -586,7 +586,7 @@ async function aggregateHealthInfo(
 				value.animal_number,
 				41,
 			)
-			if (milkLoss && milkLoss.answer && !isNaN(Number(milkLoss.answer))) {
+			if (milkLoss?.answer && !isNaN(Number(milkLoss.answer))) {
 				totalMilkLossAnimal = Number(milkLoss.answer)
 				totalMilkLoss += totalMilkLossAnimal
 			}
@@ -796,6 +796,153 @@ async function aggregateMilkInfo(
 	}
 }
 
+// Helper to count animal stats for a single farmer-animal row
+function countAnimalStats(
+	animalGender: AnimalAnswerRecord | null,
+	heifer: AnimalAnswerRecord | null,
+	pregnant: AnimalAnswerRecord | null,
+	milkingStatus: AnimalAnswerRecord | null,
+): {
+	cowCount: number
+	heiferCount: number
+	bullCount: number
+	pregnantAnimal: number
+	nonPregnant: number
+	pregnantHeifer: number
+	nonPregnantHeifer: number
+	lactating: number
+	nonLactating: number
+} {
+	let cowCount = 0,
+		heiferCount = 0,
+		bullCount = 0,
+		pregnantAnimal = 0,
+		nonPregnant = 0,
+		pregnantHeifer = 0,
+		nonPregnantHeifer = 0,
+		lactating = 0,
+		nonLactating = 0
+	if (!animalGender || animalGender.answer?.toLowerCase() === 'female') {
+		if (heifer?.logic_value?.toLowerCase() === 'calf') {
+			heiferCount++
+			if (pregnant?.answer?.toLowerCase() === 'yes') pregnantHeifer++
+			else nonPregnantHeifer++
+		} else {
+			cowCount++
+			if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
+			else nonPregnant++
+			if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
+			else nonLactating++
+		}
+	} else if (animalGender.answer?.toLowerCase() === 'male') {
+		bullCount++
+	}
+	return {
+		cowCount,
+		heiferCount,
+		bullCount,
+		pregnantAnimal,
+		nonPregnant,
+		pregnantHeifer,
+		nonPregnantHeifer,
+		lactating,
+		nonLactating,
+	}
+}
+
+async function aggregateAnimalCounts(
+	farmers: FarmerAnimalRow[],
+): Promise<AnimalCountResult> {
+	async function getAnimalData(
+		tag: number,
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<AnimalAnswerRecord | null> {
+		return AnimalService._getLatestAnswerByTag(
+			user_id,
+			animal_id,
+			animal_number,
+			tag,
+		)
+	}
+	const resData: Record<
+		string,
+		Array<{
+			number: string
+			female: number
+			heifer: number
+			bull: number
+			name: string
+			pregnant_animal: number
+			'non-pregnantAnimal': number
+			pregnant_heifer: number
+			non_pregnant_heifer: number
+			lactating: number
+			nonLactating: number
+		}>
+	> = {}
+	for (const value of farmers) {
+		const [animalGender, heifer, pregnant, milkingStatus] = await Promise.all([
+			getAnimalData(8, value.user_id, value.animal_id, value.animal_number),
+			getAnimalData(60, value.user_id, value.animal_id, value.animal_number),
+			getAnimalData(15, value.user_id, value.animal_id, value.animal_number),
+			getAnimalData(16, value.user_id, value.animal_id, value.animal_number),
+		])
+		const stats = countAnimalStats(
+			animalGender,
+			heifer,
+			pregnant,
+			milkingStatus,
+		)
+		if (!resData[value.animal_name]) resData[value.animal_name] = []
+		resData[value.animal_name].push({
+			number: value.animal_number,
+			female: stats.cowCount,
+			heifer: stats.heiferCount,
+			bull: stats.bullCount,
+			name: value.animal_name,
+			pregnant_animal: stats.pregnantAnimal,
+			'non-pregnantAnimal': stats.nonPregnant,
+			pregnant_heifer: stats.pregnantHeifer,
+			non_pregnant_heifer: stats.nonPregnantHeifer,
+			lactating: stats.lactating,
+			nonLactating: stats.nonLactating,
+		})
+	}
+	// Aggregate by animal name
+	const responseData: AnimalCountResult = {}
+	for (const [key, value1] of Object.entries(resData)) {
+		const agg = value1.reduce(
+			(acc, curr) => {
+				acc.female += curr.female
+				acc.heifer += curr.heifer
+				acc.bull += curr.bull
+				acc.pregnant += curr.pregnant_animal
+				acc.non_pregnant += curr['non-pregnantAnimal']
+				acc.pregnant_heifer += curr.pregnant_heifer
+				acc.non_pregnant_heifer += curr.non_pregnant_heifer
+				acc.lactating += curr.lactating
+				acc.nonLactating += curr.nonLactating
+				return acc
+			},
+			{
+				female: 0,
+				heifer: 0,
+				bull: 0,
+				pregnant: 0,
+				non_pregnant: 0,
+				pregnant_heifer: 0,
+				non_pregnant_heifer: 0,
+				lactating: 0,
+				nonLactating: 0,
+			},
+		)
+		responseData[key] = agg
+	}
+	return responseData
+}
+
 // Helper to get farmers for animal count
 async function getAnimalCountFarmers(
 	data: AnimalCountBody,
@@ -900,142 +1047,6 @@ async function getAnimalCountFarmers(
 		)
 	}
 	return []
-}
-
-// Helper to aggregate animal counts
-async function aggregateAnimalCounts(
-	farmers: FarmerAnimalRow[],
-): Promise<AnimalCountResult> {
-	// Helper for animal data by tag
-	async function getAnimalData(
-		tag: number,
-		user_id: number,
-		animal_id: number,
-		animal_number: string,
-	): Promise<AnimalAnswerRecord | null> {
-		return AnimalService._getLatestAnswerByTag(
-			user_id,
-			animal_id,
-			animal_number,
-			tag,
-		)
-	}
-	const resData: Record<
-		string,
-		Array<{
-			number: string
-			female: number
-			heifer: number
-			bull: number
-			name: string
-			pregnant_animal: number
-			'non-pregnantAnimal': number
-			pregnant_heifer: number
-			non_pregnant_heifer: number
-			lactating: number
-			nonLactating: number
-		}>
-	> = {}
-	for (const value of farmers) {
-		let cowCount = 0,
-			heiferCount = 0,
-			bullCount = 0,
-			pregnantAnimal = 0,
-			nonPregnant = 0,
-			pregnantHeifer = 0,
-			nonPregnantHeifer = 0,
-			lactating = 0,
-			nonLactating = 0
-		const animalGender = await getAnimalData(
-			8,
-			value.user_id,
-			value.animal_id,
-			value.animal_number,
-		)
-		const heifer = await getAnimalData(
-			60,
-			value.user_id,
-			value.animal_id,
-			value.animal_number,
-		)
-		const pregnant = await getAnimalData(
-			15,
-			value.user_id,
-			value.animal_id,
-			value.animal_number,
-		)
-		const milkingStatus = await getAnimalData(
-			16,
-			value.user_id,
-			value.animal_id,
-			value.animal_number,
-		)
-		if (!animalGender || animalGender.answer?.toLowerCase() === 'female') {
-			if (heifer?.logic_value?.toLowerCase() === 'calf') {
-				heiferCount++
-				if (pregnant?.answer?.toLowerCase() === 'yes') pregnantHeifer++
-				else nonPregnantHeifer++
-			} else {
-				cowCount++
-				if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
-				else nonPregnant++
-				if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
-				else nonLactating++
-			}
-		} else if (animalGender.answer?.toLowerCase() === 'male') {
-			bullCount++
-		}
-		if (!resData[value.animal_name]) resData[value.animal_name] = []
-		resData[value.animal_name].push({
-			number: value.animal_number,
-			female: cowCount,
-			heifer: heiferCount,
-			bull: bullCount,
-			name: value.animal_name,
-			pregnant_animal: pregnantAnimal,
-			'non-pregnantAnimal': nonPregnant,
-			pregnant_heifer: pregnantHeifer,
-			non_pregnant_heifer: nonPregnantHeifer,
-			lactating,
-			nonLactating,
-		})
-	}
-	// Aggregate by animal name
-	const responseData: AnimalCountResult = {}
-	for (const [key, value1] of Object.entries(resData)) {
-		let cowCount1 = 0,
-			heiferCount1 = 0,
-			bullCount1 = 0,
-			pregnantAnimal1 = 0,
-			nonPregnantAnimal1 = 0,
-			pregnantHeifer1 = 0,
-			nonPregnantHeifer1 = 0,
-			lactating1 = 0,
-			nonLactating1 = 0
-		for (const value2 of value1) {
-			cowCount1 += value2.female
-			heiferCount1 += value2.heifer
-			bullCount1 += value2.bull
-			pregnantAnimal1 += value2.pregnant_animal
-			nonPregnantAnimal1 += value2['non-pregnantAnimal']
-			pregnantHeifer1 += value2.pregnant_heifer
-			nonPregnantHeifer1 += value2.non_pregnant_heifer
-			lactating1 += value2.lactating
-			nonLactating1 += value2.nonLactating
-		}
-		responseData[key] = {
-			female: cowCount1,
-			heifer: heiferCount1,
-			bull: bullCount1,
-			pregnant: pregnantAnimal1,
-			non_pregnant: nonPregnantAnimal1,
-			pregnant_heifer: pregnantHeifer1,
-			non_pregnant_heifer: nonPregnantHeifer1,
-			lactating: lactating1,
-			nonLactating: nonLactating1,
-		}
-	}
-	return responseData
 }
 
 export class BusinessOutletService {
