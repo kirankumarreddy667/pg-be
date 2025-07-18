@@ -111,6 +111,29 @@ interface AnimalWithName {
 	name: string
 }
 
+// Helper: Add delivery dates for unmapped dates
+function addUnmappedDeliveryDates(
+	resData: { delivery_date: string }[],
+	date: string,
+	count: number,
+): void {
+	for (let i = 0; i < count; i++) {
+		resData.push({ delivery_date: date })
+	}
+}
+
+// Helper: Add delivery dates for mapped dates with insufficient mapping count
+function addMappedDeliveryDates(
+	resData: { delivery_date: string }[],
+	date: string,
+	count: number,
+	mappedCount: number,
+): void {
+	for (let i = 0; i < count - mappedCount; i++) {
+		resData.push({ delivery_date: date })
+	}
+}
+
 export class AnimalQuestionAnswerService {
 	private static getLogicValue(ans: string): string | null {
 		if (['cow', 'गाय', 'ఆవు'].includes(ans)) return 'cow'
@@ -1334,14 +1357,10 @@ export class AnimalQuestionAnswerService {
 			for (const [date, count] of Object.entries(answerCount)) {
 				if (mappedDate.includes(date)) {
 					if (mappedDateCount[date] < count) {
-						for (let i = 0; i < count - mappedDateCount[date]; i++) {
-							resData.push({ delivery_date: date })
-						}
+						addMappedDeliveryDates(resData, date, count, mappedDateCount[date])
 					}
 				} else {
-					for (let i = 0; i < count; i++) {
-						resData.push({ delivery_date: date })
-					}
+					addUnmappedDeliveryDates(resData, date, count)
 				}
 			}
 		} else {

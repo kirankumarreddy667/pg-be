@@ -287,10 +287,7 @@ function getLactationPeriods(
 		const isLactating = currentRow.lactating_status?.toLowerCase() === 'yes'
 		const isNextLactating = nextRow?.lactating_status?.toLowerCase() === 'yes'
 
-		if (isLactating && !isNextLactating) {
-			currentPeriod = updateCurrentPeriod(currentPeriod, currentRow)
-			currentPeriod = closeCurrentPeriod(periods, currentPeriod)
-		} else if (isLactating && !nextRow) {
+		if (isLactating && (!isNextLactating || !nextRow)) {
 			currentPeriod = updateCurrentPeriod(currentPeriod, currentRow)
 			currentPeriod = closeCurrentPeriod(periods, currentPeriod)
 		} else if (!isLactating && currentPeriod) {

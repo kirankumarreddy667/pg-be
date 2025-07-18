@@ -29,6 +29,7 @@ import dailyMilkRecordRouter from './daily_milk_record.routes'
 import commonQuestionRoutes from './common_question.routes'
 import animalQuestionAnswerRoutes from './animal_question_answer.routes'
 import deliveryRecordRoutes from './delivery_record.routes'
+import pedigreeRoutes from './pedigree.routes'
 
 const v1Router: ExpressRouter = Router()
 
@@ -63,5 +64,6 @@ v1Router.use(dailyMilkRecordRouter)
 v1Router.use(commonQuestionRoutes)
 v1Router.use(animalQuestionAnswerRoutes)
 v1Router.use(deliveryRecordRoutes)
+v1Router.use(pedigreeRoutes)
 
 export default v1Router
