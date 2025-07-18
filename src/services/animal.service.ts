@@ -252,6 +252,59 @@ interface LactationHistoryRow {
 	date?: date
 }
 
+function closeCurrentPeriod(
+	periods: { start: date; end: date }[],
+	currentPeriod: { start: date; end: date } | undefined,
+): { start: date; end: date } | undefined {
+	if (currentPeriod) {
+		periods.push(currentPeriod)
+		return undefined
+	}
+	return currentPeriod
+}
+
+function updateCurrentPeriod(
+	currentPeriod: { start: date; end: date } | undefined,
+	currentRow: LactationHistoryRow,
+): { start: date; end: date } {
+	if (!currentPeriod) {
+		return { start: currentRow.date || '', end: '' }
+	} else {
+		currentPeriod.end = currentRow.date || ''
+		return currentPeriod
+	}
+}
+
+function getLactationPeriods(
+	history: LactationHistoryRow[],
+): { start: date; end: date }[] {
+	const periods: { start: date; end: date }[] = []
+	let currentPeriod: { start: date; end: date } | undefined
+
+	for (let i = 0; i < history.length; i++) {
+		const currentRow = history[i]
+		const nextRow = history[i + 1]
+		const isLactating = currentRow.lactating_status?.toLowerCase() === 'yes'
+		const isNextLactating = nextRow?.lactating_status?.toLowerCase() === 'yes'
+
+		if (isLactating && !isNextLactating) {
+			currentPeriod = updateCurrentPeriod(currentPeriod, currentRow)
+			currentPeriod = closeCurrentPeriod(periods, currentPeriod)
+		} else if (isLactating && !nextRow) {
+			currentPeriod = updateCurrentPeriod(currentPeriod, currentRow)
+			currentPeriod = closeCurrentPeriod(periods, currentPeriod)
+		} else if (!isLactating && currentPeriod) {
+			currentPeriod = closeCurrentPeriod(periods, currentPeriod)
+		}
+
+		if (isLactating) {
+			currentPeriod = updateCurrentPeriod(currentPeriod, currentRow)
+		}
+	}
+
+	return periods
+}
+
 // Helper to fetch all required answers in parallel
 async function fetchLactationStatsAnswers(
 	user: User,
@@ -356,55 +409,6 @@ async function calculateLastLactationYield(
 	if (!periods.length) return 0
 	const lastPeriod = periods[periods.length - 1]
 	return sumMilkForPeriod(user, animal_id, animal_number, lastPeriod)
-}
-
-// Helper to get lactation periods from history
-function getLactationPeriods(
-	history: LactationHistoryRow[],
-): { start: date; end: date }[] {
-	const periods: { start: date; end: date }[] = []
-	let currentPeriod: { start: date; end: date } | undefined
-
-	for (let i = 0; i < history.length; i++) {
-		const currentRow = history[i]
-		const nextRow = history[i + 1]
-
-		if (
-			currentRow.lactating_status?.toLowerCase() === 'yes' &&
-			nextRow?.lactating_status?.toLowerCase() !== 'yes'
-		) {
-			// This row marks the end of a lactation period
-			if (currentPeriod) {
-				periods.push(currentPeriod)
-				currentPeriod = undefined
-			}
-		} else if (
-			currentRow.lactating_status?.toLowerCase() === 'yes' &&
-			!nextRow
-		) {
-			// This is the last row, and it's in a lactation period
-			if (currentPeriod) {
-				periods.push(currentPeriod)
-			}
-		} else if (
-			currentRow.lactating_status?.toLowerCase() !== 'yes' &&
-			currentPeriod
-		) {
-			// This row marks the start of a new lactation period
-			periods.push(currentPeriod)
-			currentPeriod = undefined
-		}
-
-		if (currentRow.lactating_status?.toLowerCase() === 'yes') {
-			if (!currentPeriod) {
-				currentPeriod = { start: currentRow.date || '', end: '' }
-			} else {
-				currentPeriod.end = currentRow.date || ''
-			}
-		}
-	}
-
-	return periods
 }
 
 // Refactored: Helper to calculate current lactation yield

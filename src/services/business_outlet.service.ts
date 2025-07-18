@@ -796,7 +796,43 @@ async function aggregateMilkInfo(
 	}
 }
 
-// Helper to count animal stats for a single farmer-animal row
+function countHeiferStats(
+	heifer: AnimalAnswerRecord | null,
+	pregnant: AnimalAnswerRecord | null,
+): { heiferCount: number; pregnantHeifer: number; nonPregnantHeifer: number } {
+	let heiferCount = 0,
+		pregnantHeifer = 0,
+		nonPregnantHeifer = 0
+	if (heifer?.logic_value?.toLowerCase() === 'calf') {
+		heiferCount++
+		if (pregnant?.answer?.toLowerCase() === 'yes') pregnantHeifer++
+		else nonPregnantHeifer++
+	}
+	return { heiferCount, pregnantHeifer, nonPregnantHeifer }
+}
+
+function countCowStats(
+	pregnant: AnimalAnswerRecord | null,
+	milkingStatus: AnimalAnswerRecord | null,
+): {
+	cowCount: number
+	pregnantAnimal: number
+	nonPregnant: number
+	lactating: number
+	nonLactating: number
+} {
+	const cowCount = 1
+	let pregnantAnimal = 0,
+		nonPregnant = 0,
+		lactating = 0,
+		nonLactating = 0
+	if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
+	else nonPregnant++
+	if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
+	else nonLactating++
+	return { cowCount, pregnantAnimal, nonPregnant, lactating, nonLactating }
+}
+
 function countAnimalStats(
 	animalGender: AnimalAnswerRecord | null,
 	heifer: AnimalAnswerRecord | null,
@@ -823,16 +859,17 @@ function countAnimalStats(
 		lactating = 0,
 		nonLactating = 0
 	if (!animalGender || animalGender.answer?.toLowerCase() === 'female') {
-		if (heifer?.logic_value?.toLowerCase() === 'calf') {
-			heiferCount++
-			if (pregnant?.answer?.toLowerCase() === 'yes') pregnantHeifer++
-			else nonPregnantHeifer++
-		} else {
-			cowCount++
-			if (pregnant?.answer?.toLowerCase() === 'yes') pregnantAnimal++
-			else nonPregnant++
-			if (milkingStatus?.answer?.toLowerCase() === 'yes') lactating++
-			else nonLactating++
+		const heiferStats = countHeiferStats(heifer, pregnant)
+		heiferCount += heiferStats.heiferCount
+		pregnantHeifer += heiferStats.pregnantHeifer
+		nonPregnantHeifer += heiferStats.nonPregnantHeifer
+		if (heiferStats.heiferCount === 0) {
+			const cowStats = countCowStats(pregnant, milkingStatus)
+			cowCount += cowStats.cowCount
+			pregnantAnimal += cowStats.pregnantAnimal
+			nonPregnant += cowStats.nonPregnant
+			lactating += cowStats.lactating
+			nonLactating += cowStats.nonLactating
 		}
 	} else if (animalGender.answer?.toLowerCase() === 'male') {
 		bullCount++

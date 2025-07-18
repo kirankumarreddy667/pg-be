@@ -1323,6 +1323,35 @@ export class AnimalQuestionAnswerService {
 		return resData
 	}
 
+	private static buildDeliveryDatesResult(
+		mappedDate: string[],
+		animalAnswers: string[],
+		mappedDateCount: Record<string, number>,
+		answerCount: Record<string, number>,
+	): { delivery_date: string }[] {
+		const resData: { delivery_date: string }[] = []
+		if (mappedDate.length > 0 && animalAnswers.length > 0) {
+			for (const [date, count] of Object.entries(answerCount)) {
+				if (mappedDate.includes(date)) {
+					if (mappedDateCount[date] < count) {
+						for (let i = 0; i < count - mappedDateCount[date]; i++) {
+							resData.push({ delivery_date: date })
+						}
+					}
+				} else {
+					for (let i = 0; i < count; i++) {
+						resData.push({ delivery_date: date })
+					}
+				}
+			}
+		} else {
+			for (const date of animalAnswers) {
+				resData.push({ delivery_date: date })
+			}
+		}
+		return resData
+	}
+
 	static async listOfAnimalDeliveryDates(
 		user_id: number,
 		animal_id: number,
@@ -1368,28 +1397,13 @@ export class AnimalQuestionAnswerService {
 			answerCount[date] = (answerCount[date] || 0) + 1
 		}
 
-		// 4. Build result
-		const resData: { delivery_date: string }[] = []
-		if (mappedDate.length > 0 && animalAnswers.length > 0) {
-			for (const [date, count] of Object.entries(answerCount)) {
-				if (mappedDate.includes(date)) {
-					if (mappedDateCount[date] < count) {
-						for (let i = 0; i < count - mappedDateCount[date]; i++) {
-							resData.push({ delivery_date: date })
-						}
-					}
-				} else {
-					for (let i = 0; i < count; i++) {
-						resData.push({ delivery_date: date })
-					}
-				}
-			}
-		} else {
-			for (const date of animalAnswers) {
-				resData.push({ delivery_date: date })
-			}
-		}
-		return resData
+		// 4. Build result using helper
+		return this.buildDeliveryDatesResult(
+			mappedDate,
+			animalAnswers,
+			mappedDateCount,
+			answerCount,
+		)
 	}
 
 	static async listOfAnimalCalfs(
