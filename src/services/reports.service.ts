@@ -21,6 +21,114 @@ type AnimalWithName = {
 	'Animal.name': string
 }
 
+// Helper to fetch the latest answer for a tag
+async function getLatestAnswer(
+	user_id: number,
+	animal_number: string,
+	animal_id: number | undefined,
+	tag: number,
+): Promise<string> {
+	let query = `SELECT aqa.answer
+    FROM common_questions cq
+    JOIN animal_question_answers aqa ON aqa.question_id = cq.id
+    WHERE cq.question_tag = :tag
+      AND aqa.user_id = :user_id
+      AND aqa.animal_number = :animal_number
+      AND aqa.status <> 1`
+	const replacements: Record<string, unknown> = { user_id, animal_number, tag }
+	if (animal_id !== undefined && [9, 23, 35, 16].includes(tag)) {
+		query += '\n      AND aqa.animal_id = :animal_id'
+		replacements.animal_id = animal_id
+	}
+	query += '\n    ORDER BY aqa.created_at DESC\n    LIMIT 1'
+	const result = await db.sequelize.query<{ answer: string }>(query, {
+		replacements,
+		type: QueryTypes.SELECT,
+	})
+	return result[0]?.answer || 'NA'
+}
+
+// Helper to get animal DOB
+async function getAnimalDOB(
+	user: User,
+	animal_number: string,
+	animal_id: number,
+): Promise<string> {
+	const motherNumbers = await db.sequelize.query<{
+		answer: string
+		animal_id: number
+		animal_number: string
+	}>(
+		`SELECT aqa.answer, aqa.animal_id, aqa.animal_number
+     FROM common_questions cq
+     JOIN animal_question_answers aqa ON aqa.question_id = cq.id
+     WHERE cq.question_tag = 11
+       AND aqa.user_id = :user_id
+       AND aqa.animal_id = :animal_id
+       AND aqa.status <> 1`,
+		{
+			replacements: { user_id: user.id, animal_id },
+			type: QueryTypes.SELECT,
+		},
+	)
+	for (const value1 of motherNumbers as Array<{ answer: string; animal_id: number; animal_number: string }>) {
+		if (value1.answer === animal_number) {
+			return await getLatestAnswer(
+				user.id,
+				value1.animal_number,
+				value1.animal_id,
+				9,
+			)
+		}
+	}
+	return 'NA'
+}
+
+// Helper to build pregnancy info
+function buildPregnancyInfo(params: {
+	animal_number: string
+	monthOfPregnancy: string
+	BullNoForAIAnswer: string
+	monthOfDelivery: string
+	milkingStatusAnswer: string
+	AIDateAnswer1: string
+	SemenCompany: string
+	pregnancyCycle: string
+}): AnimalPregnancyInfo {
+	return {
+		animal_num: params.animal_number,
+		date_of_pregnancy_detection: params.monthOfPregnancy,
+		bull_no: params.BullNoForAIAnswer,
+		expected_month_of_delevry: params.monthOfDelivery,
+		status_milking_dry: params.milkingStatusAnswer,
+		date_of_AI: params.AIDateAnswer1,
+		Semen_company_name: params.SemenCompany,
+		pregnancy_cycle: params.pregnancyCycle,
+	}
+}
+
+function buildNonPregnancyInfo(params: {
+	animal_number: string
+	AIDateAnswer1: string
+	BullNoForAIAnswer: string
+	dateOfPregnancy: string
+	animalDOB: string
+	SemenCompany: string
+	milkingStatusAnswer: string
+	pregnancyCycle: string
+}): AnimalPregnancyInfo {
+	return {
+		animal_num: params.animal_number,
+		date_of_last_AI: params.AIDateAnswer1,
+		bull_no: params.BullNoForAIAnswer,
+		date_of_pregnancy_detection: params.dateOfPregnancy,
+		date_of_last_delivery: params.animalDOB,
+		Semen_company_name: params.SemenCompany,
+		status_milking_dry: params.milkingStatusAnswer,
+		pregnancy_cycle: params.pregnancyCycle,
+	}
+}
+
 export class ReportsService {
 	public static async getPregnantNonPregnantAnimalsCount(
 		user: User,
@@ -143,182 +251,53 @@ export class ReportsService {
 			const animal_number = value.animal_number
 			const animal_id = value.animal_id
 			const animal_name = value['Animal.name'] || 'Unknown'
-			// Get latest sex
-			const animalSex = await db.sequelize.query<{ answer: string }>(
-				`SELECT aqa.answer
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         WHERE cq.question_tag = 8
-           AND aqa.user_id = :user_id
-           AND aqa.animal_number = :animal_number
-           AND aqa.status <> 1
-         ORDER BY aqa.created_at DESC
-         LIMIT 1`,
-				{
-					replacements: { user_id: user.id, animal_number },
-					type: QueryTypes.SELECT,
-				},
+			const animalSex = await getLatestAnswer(
+				user.id,
+				animal_number,
+				undefined,
+				8,
 			)
-			if (
-				!animalSex[0]?.answer ||
-				animalSex[0].answer.toLowerCase() !== 'female'
+			if (animalSex !== 'female') continue
+			const pregnancyStateAnswer = (
+				await getLatestAnswer(user.id, animal_number, undefined, 15)
+			).toLowerCase()
+			if (!pregnancyStateAnswer) continue
+			const SemenCompany = await getLatestAnswer(
+				user.id,
+				animal_number,
+				undefined,
+				42,
 			)
-				continue
-			// Get latest pregnancy state
-			const pregnancyState = await db.sequelize.query<{ answer: string }>(
-				`SELECT aqa.answer
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         WHERE cq.question_tag = 15
-           AND aqa.user_id = :user_id
-           AND aqa.animal_number = :animal_number
-           AND aqa.status <> 1
-         ORDER BY aqa.created_at DESC
-         LIMIT 1`,
-				{
-					replacements: { user_id: user.id, animal_number },
-					type: QueryTypes.SELECT,
-				},
+			const pregnancyCycle = await getLatestAnswer(
+				user.id,
+				animal_number,
+				undefined,
+				59,
 			)
-			if (!pregnancyState[0]?.answer) continue
-			const pregnancyStateAnswer = pregnancyState[0].answer.toLowerCase()
-			// Get latest semen company
-			const semenCompanyName = await db.sequelize.query<{ answer: string }>(
-				`SELECT aqa.answer
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         WHERE cq.question_tag = 42
-           AND aqa.user_id = :user_id
-           AND aqa.animal_number = :animal_number
-           AND aqa.status <> 1
-         ORDER BY aqa.created_at DESC
-         LIMIT 1`,
-				{
-					replacements: { user_id: user.id, animal_number },
-					type: QueryTypes.SELECT,
-				},
+			const animalDOB = await getAnimalDOB(user, animal_number, animal_id)
+			const AIDateAnswer1 = await getLatestAnswer(
+				user.id,
+				animal_number,
+				animal_id,
+				23,
 			)
-			const SemenCompany = semenCompanyName[0]?.answer || 'NA'
-			// Get latest pregnancy cycle
-			const pregnancyCycleData = await db.sequelize.query<{ answer: string }>(
-				`SELECT aqa.answer
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         WHERE cq.question_tag = 59
-           AND aqa.user_id = :user_id
-           AND aqa.animal_number = :animal_number
-           AND aqa.status <> 1
-         ORDER BY aqa.created_at DESC
-         LIMIT 1`,
-				{
-					replacements: { user_id: user.id, animal_number },
-					type: QueryTypes.SELECT,
-				},
+			const BullNoForAIAnswer = await getLatestAnswer(
+				user.id,
+				animal_number,
+				animal_id,
+				35,
 			)
-			const pregnancyCycle = pregnancyCycleData[0]?.answer || 'NA'
-			// Get latest mother number
-			const motherNumbers = await db.sequelize.query<{
-				answer: string
-				animal_id: number
-				animal_number: string
-			}>(
-				`SELECT aqa.answer, aqa.animal_id, aqa.animal_number
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         WHERE cq.question_tag = 11
-           AND aqa.user_id = :user_id
-           AND aqa.animal_id = :animal_id
-           AND aqa.status <> 1`,
-				{
-					replacements: { user_id: user.id, animal_id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			let animalDOB = 'NA'
-			for (const value1 of motherNumbers) {
-				if (value1.answer === animal_number) {
-					const DOB = await db.sequelize.query<{ answer: string }>(
-						`SELECT aqa.answer
-             FROM common_questions cq
-             JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-             WHERE cq.question_tag = 9
-               AND aqa.user_id = :user_id
-               AND aqa.animal_number = :animal_number
-               AND aqa.animal_id = :animal_id
-               AND aqa.status <> 1
-             ORDER BY aqa.created_at DESC
-             LIMIT 1`,
-						{
-							replacements: {
-								user_id: user.id,
-								animal_number: value1.animal_number,
-								animal_id: value1.animal_id,
-							},
-							type: QueryTypes.SELECT,
-						},
-					)
-					animalDOB = DOB[0]?.answer || 'NA'
-				}
-			}
-			// Get latest AI date
-			const AIDate = await db.sequelize.query<{ answer: string }>(
-				`SELECT aqa.answer
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         WHERE cq.question_tag = 23
-           AND aqa.user_id = :user_id
-           AND aqa.animal_number = :animal_number
-           AND aqa.animal_id = :animal_id
-           AND aqa.status <> 1
-         ORDER BY aqa.created_at DESC
-         LIMIT 1`,
-				{
-					replacements: { user_id: user.id, animal_number, animal_id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			const AIDateAnswer1 = AIDate[0]?.answer || 'NA'
-			// Get latest bull no for AI
-			const BullNoForAI = await db.sequelize.query<{ answer: string }>(
-				`SELECT aqa.answer
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         WHERE cq.question_tag = 35
-           AND aqa.user_id = :user_id
-           AND aqa.animal_number = :animal_number
-           AND aqa.animal_id = :animal_id
-           AND aqa.status <> 1
-         ORDER BY aqa.created_at DESC
-         LIMIT 1`,
-				{
-					replacements: { user_id: user.id, animal_number, animal_id },
-					type: QueryTypes.SELECT,
-				},
-			)
-			const BullNoForAIAnswer = BullNoForAI[0]?.answer || 'NA'
-			// Get latest milking status
-			const milkingStatus = await db.sequelize.query<{ answer: string }>(
-				`SELECT aqa.answer
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         WHERE cq.question_tag = 16
-           AND aqa.user_id = :user_id
-           AND aqa.animal_number = :animal_number
-           AND aqa.animal_id = :animal_id
-           AND aqa.status <> 1
-         ORDER BY aqa.created_at DESC
-         LIMIT 1`,
-				{
-					replacements: { user_id: user.id, animal_number, animal_id },
-					type: QueryTypes.SELECT,
-				},
+			const milkingStatus = await getLatestAnswer(
+				user.id,
+				animal_number,
+				animal_id,
+				16,
 			)
 			let milkingStatusAnswer = 'NA'
-			if (milkingStatus[0]?.answer) {
-				const status = milkingStatus[0].answer.toLowerCase()
+			if (milkingStatus !== 'NA') {
+				const status = milkingStatus.toLowerCase()
 				milkingStatusAnswer = status === 'yes' ? 'Lactating' : 'Non-Lactating'
 			}
-			// Calculate pregnancy/delivery months
 			let monthOfPregnancy = 'NA'
 			let monthOfDelivery = 'NA'
 			if (pregnancyStateAnswer === 'yes' && AIDateAnswer1 !== 'NA') {
@@ -335,21 +314,21 @@ export class ReportsService {
 					})
 				}
 			}
-			// Pregnant
 			if (pregnancyStateAnswer === 'yes') {
 				if (!pregnant[animal_name]) pregnant[animal_name] = []
-				pregnant[animal_name].push({
-					animal_num: animal_number,
-					date_of_pregnancy_detection: monthOfPregnancy,
-					bull_no: BullNoForAIAnswer,
-					expected_month_of_delevry: monthOfDelivery,
-					status_milking_dry: milkingStatusAnswer,
-					date_of_AI: AIDateAnswer1,
-					Semen_company_name: SemenCompany,
-					pregnancy_cycle: pregnancyCycle,
-				})
+				pregnant[animal_name].push(
+					buildPregnancyInfo({
+						animal_number,
+						monthOfPregnancy,
+						BullNoForAIAnswer,
+						monthOfDelivery,
+						milkingStatusAnswer,
+						AIDateAnswer1,
+						SemenCompany,
+						pregnancyCycle,
+					}),
+				)
 			} else {
-				// Non-pregnant
 				let dateOfPregnancy = 'NA'
 				if (AIDateAnswer1 !== 'NA') {
 					const aiDate = new Date(AIDateAnswer1)
@@ -359,16 +338,18 @@ export class ReportsService {
 					}
 				}
 				if (!nonpregnant[animal_name]) nonpregnant[animal_name] = []
-				nonpregnant[animal_name].push({
-					animal_num: animal_number,
-					date_of_last_AI: AIDateAnswer1,
-					bull_no: BullNoForAIAnswer,
-					date_of_pregnancy_detection: dateOfPregnancy,
-					date_of_last_delivery: animalDOB,
-					Semen_company_name: SemenCompany,
-					status_milking_dry: milkingStatusAnswer,
-					pregnancy_cycle: pregnancyCycle,
-				})
+				nonpregnant[animal_name].push(
+					buildNonPregnancyInfo({
+						animal_number,
+						AIDateAnswer1,
+						BullNoForAIAnswer,
+						dateOfPregnancy,
+						animalDOB,
+						SemenCompany,
+						milkingStatusAnswer,
+						pregnancyCycle,
+					}),
+				)
 			}
 		}
 		return { pregnant, non_pregnant: nonpregnant }
