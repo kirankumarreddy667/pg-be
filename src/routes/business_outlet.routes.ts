@@ -423,7 +423,7 @@ router.delete(
  *                 description: Search string (required)
  *               type:
  *                 type: string
- *                 description: 'all_time' or undefined
+ *                 description: Use 'all_time' for all-time data, or leave blank for date range.
  *             required:
  *               - search
  *     responses:
@@ -470,10 +470,10 @@ router.post(
  *             properties:
  *               search:
  *                 type: string
- *                 description: 'all_users or search by phone/name'
+ *                 description: Use 'all_users' to get all users, or search by phone/name.
  *               type:
  *                 type: string
- *                 description: 'all_time or undefined for date range'
+ *                 description: Use 'all_time' for all-time data, or leave blank for date range.
  *               start_date:
  *                 type: string
  *                 format: date
