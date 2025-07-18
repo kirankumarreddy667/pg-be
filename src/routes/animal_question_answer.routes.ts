@@ -9,6 +9,7 @@ import {
 	updateAnimalBirthQuestionAnswerSchema,
 	saveAnimalHeatEventQuestionAnswerSchema,
 	updateAnimalHeatEventQuestionAnswerSchema,
+	mapAnimalMotherToCalfSchema,
 } from '@/validations/animal_question_answer.validation'
 import { wrapAsync } from '@/utils/asyncHandler'
 
@@ -910,6 +911,279 @@ router.get(
 	'/user_animal_pregnancy_status/:animal_id/:animal_num',
 	authenticate,
 	wrapAsync(AnimalQuestionAnswerController.getAnimalPregnancyStatus),
+)
+
+/**
+ * @swagger
+ * /animal_calfs/{animal_id}/{animal_number}:
+ *   get:
+ *     summary: Get list of calf animal numbers for an animal
+ *     tags: [AnimalQuestionAnswer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: animal_number
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Animal number
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_calfs/:animal_id/:animal_number',
+	authenticate,
+	wrapAsync(AnimalQuestionAnswerController.listOfAnimalCalfs),
+)
+
+/**
+ * @swagger
+ * /animal_delivery_dates/{animal_id}/{animal_number}:
+ *   get:
+ *     summary: Get list of delivery dates for an animal
+ *     tags: [AnimalQuestionAnswer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: animal_number
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Animal number
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       delivery_date:
+ *                         type: string
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/animal_delivery_dates/:animal_id/:animal_number',
+	authenticate,
+	wrapAsync(AnimalQuestionAnswerController.listOfAnimalDeliveryDates),
+)
+
+/**
+ * @swagger
+ * /save_animal_mapped_mother_calf:
+ *   post:
+ *     summary: Map a mother animal to a calf for a delivery date
+ *     tags: [AnimalQuestionAnswer]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *               delivery_date:
+ *                 type: string
+ *                 format: date
+ *               mother_animal_number:
+ *                 type: string
+ *               calf_animal_number:
+ *                 type: string
+ *             required:
+ *               - animal_id
+ *               - delivery_date
+ *               - mother_animal_number
+ *               - calf_animal_number
+ *     responses:
+ *       201:
+ *         description: Mapping created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       206:
+ *         description: Mapping already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.post(
+	'/save_animal_mapped_mother_calf',
+	authenticate,
+	validateRequest(mapAnimalMotherToCalfSchema),
+	wrapAsync(AnimalQuestionAnswerController.mapAnimalMotherToCalf),
+)
+
+/**
+ * @swagger
+ * /attached_calfs_of_animal/{animal_id}/{mother_number}:
+ *   get:
+ *     summary: Get attached calfs of an animal (by mother)
+ *     tags: [AnimalQuestionAnswer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: mother_number
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Mother animal number
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       calf_number:
+ *                         type: string
+ *                       delivery_date:
+ *                         type: string
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/attached_calfs_of_animal/:animal_id/:mother_number',
+	authenticate,
+	wrapAsync(AnimalQuestionAnswerController.attachedCalfOfAnimal),
+)
+
+/**
+ * @swagger
+ * /AI_history_of_animal/{animal_id}/{animal_number}:
+ *   get:
+ *     summary: Get AI (Artificial Insemination) history of an animal
+ *     tags: [AnimalQuestionAnswer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Animal ID
+ *       - in: path
+ *         name: animal_number
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Animal number
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date_of_AI:
+ *                         type: string
+ *                       bull_no:
+ *                         type: string
+ *                       mother_yield:
+ *                         type: string
+ *                       semen_company:
+ *                         type: string
+ *                       answer_date:
+ *                         type: string
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+router.get(
+	'/AI_history_of_animal/:animal_id/:animal_number',
+	authenticate,
+	wrapAsync(AnimalQuestionAnswerController.getAIHistoryOfAnimal),
 )
 
 export default router

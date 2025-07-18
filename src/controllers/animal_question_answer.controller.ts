@@ -535,4 +535,126 @@ export class AnimalQuestionAnswerController {
 			next(error)
 		}
 	}
+
+	public static readonly listOfAnimalCalfs: RequestHandler = async (
+		req: Request,
+		res: Response,
+		next: NextFunction,
+	) => {
+		try {
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const { animal_id, animal_number } = req.params
+			const data = await AnimalQuestionAnswerService.listOfAnimalCalfs(
+				user.id,
+				Number(animal_id),
+				animal_number,
+			)
+			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly listOfAnimalDeliveryDates: RequestHandler = async (
+		req: Request,
+		res: Response,
+		next: NextFunction,
+	) => {
+		try {
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const { animal_id, animal_number } = req.params
+			const data = await AnimalQuestionAnswerService.listOfAnimalDeliveryDates(
+				user.id,
+				Number(animal_id),
+				animal_number,
+			)
+			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly mapAnimalMotherToCalf: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const user = req.user as { id: number } | undefined
+			const result = await AnimalQuestionAnswerService.mapAnimalMotherToCalf(
+				user?.id,
+				req.body as {
+					animal_id: number
+					delivery_date: string
+					mother_animal_number: string
+					calf_animal_number: string
+				},
+			)
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly attachedCalfOfAnimal: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const { animal_id, mother_number } = req.params
+			const data = await AnimalQuestionAnswerService.attachedCalfOfAnimal(
+				user.id,
+				Number(animal_id),
+				mother_number,
+			)
+			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly getAIHistoryOfAnimal: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const { animal_id, animal_number } = req.params
+			const data = await AnimalQuestionAnswerService.getAIHistoryOfAnimal(
+				user.id,
+				Number(animal_id),
+				animal_number,
+			)
+			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+		} catch (error) {
+			next(error)
+		}
+	}
 }

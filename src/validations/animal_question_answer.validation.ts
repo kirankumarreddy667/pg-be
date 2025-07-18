@@ -70,3 +70,10 @@ export const saveAnimalHeatEventQuestionAnswerSchema = Joi.object({
 	animal_id: Joi.number().required(),
 	animal_number: Joi.string().required(),
 })
+
+export const mapAnimalMotherToCalfSchema = Joi.object({
+	animal_id: Joi.number().required(),
+	delivery_date: Joi.string().required(),
+	mother_animal_number: Joi.string().required(),
+	calf_animal_number: Joi.string().required(),
+})

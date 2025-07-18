@@ -1323,6 +1323,113 @@ export class AnimalQuestionAnswerService {
 		return resData
 	}
 
+	static async listOfAnimalDeliveryDates(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<{ delivery_date: string }[]> {
+		// 1. Get all mapped delivery dates for this user/animal/animal_number
+		const mappedDateRows = await db.AnimalMotherCalf.findAll({
+			where: { user_id, animal_id, mother_animal_number: animal_number },
+			attributes: ['delivery_date'],
+			raw: true,
+		})
+		const mappedDate = mappedDateRows.map((row) => {
+			if (typeof row.delivery_date === 'string') return row.delivery_date
+			return row.delivery_date instanceof Date
+				? row.delivery_date.toISOString().slice(0, 10)
+				: ''
+		})
+
+		// 2. Get all delivery answers for question_tag=66
+		const animalAnswersRows = await db.sequelize.query<{ answer: string }>(
+			`SELECT aqa.answer
+     FROM animal_question_answers aqa
+     JOIN common_questions cq ON cq.id = aqa.question_id
+     WHERE aqa.status <> 1
+       AND aqa.user_id = :user_id
+       AND cq.question_tag = 66
+       AND aqa.animal_id = :animal_id
+       AND aqa.animal_number = :animal_number`,
+			{
+				replacements: { user_id, animal_id, animal_number },
+				type: QueryTypes.SELECT,
+			},
+		)
+		const animalAnswers = animalAnswersRows.map((row) => row.answer)
+
+		// 3. Count occurrences
+		const mappedDateCount: Record<string, number> = {}
+		for (const date of mappedDate) {
+			mappedDateCount[date] = (mappedDateCount[date] || 0) + 1
+		}
+		const answerCount: Record<string, number> = {}
+		for (const date of animalAnswers) {
+			answerCount[date] = (answerCount[date] || 0) + 1
+		}
+
+		// 4. Build result
+		const resData: { delivery_date: string }[] = []
+		if (mappedDate.length > 0 && animalAnswers.length > 0) {
+			for (const [date, count] of Object.entries(answerCount)) {
+				if (mappedDate.includes(date)) {
+					if (mappedDateCount[date] < count) {
+						for (let i = 0; i < count - mappedDateCount[date]; i++) {
+							resData.push({ delivery_date: date })
+						}
+					}
+				} else {
+					for (let i = 0; i < count; i++) {
+						resData.push({ delivery_date: date })
+					}
+				}
+			}
+		} else {
+			for (const date of animalAnswers) {
+				resData.push({ delivery_date: date })
+			}
+		}
+		return resData
+	}
+
+	static async listOfAnimalCalfs(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<string[]> {
+		// 1. Get all mapped calf numbers for this user/animal
+		const mappedCalfRows = await db.AnimalMotherCalf.findAll({
+			where: { user_id, animal_id },
+			attributes: ['calf_animal_number'],
+			raw: true,
+		})
+		const mappedCalf = mappedCalfRows.map((row) => row.calf_animal_number)
+
+		// 2. Query for distinct animal_number of calfs not in mappedCalf or animal_number
+		const calfs = await db.sequelize.query<{ animal_number: string }>(
+			`SELECT DISTINCT aqa.animal_number
+     FROM animal_question_answers aqa
+     JOIN common_questions cq ON cq.id = aqa.question_id
+     WHERE aqa.status <> 1
+       AND aqa.user_id = :user_id
+       AND aqa.logic_value = 'calf'
+       AND cq.question_tag = 60
+       AND aqa.animal_id = :animal_id
+       AND aqa.animal_number NOT IN (:mappedCalf)
+       AND aqa.animal_number <> :animal_number`,
+			{
+				replacements: {
+					user_id,
+					animal_id,
+					mappedCalf: mappedCalf.length ? mappedCalf : [''],
+					animal_number,
+				},
+				type: QueryTypes.SELECT,
+			},
+		)
+		return calfs.map((row) => row.animal_number)
+	}
+
 	static async getAnimalLactationStatus(
 		user_id: number,
 		animal_id: number,
@@ -1393,5 +1500,148 @@ export class AnimalQuestionAnswerService {
 			created_at: row.created_at ?? null,
 			question_id: row.question_id ?? null,
 		}
+	}
+
+	static async mapAnimalMotherToCalf(
+		user_id: number | undefined,
+		data: {
+			animal_id: number
+			delivery_date: string
+			mother_animal_number: string
+			calf_animal_number: string
+		},
+	): Promise<{ status: number; message: string; data: [] }> {
+		if (!user_id) {
+			return { status: 401, message: 'User not found', data: [] }
+		}
+		const exists = await db.AnimalMotherCalf.findOne({
+			where: {
+				user_id,
+				animal_id: data.animal_id,
+				mother_animal_number: data.mother_animal_number,
+				calf_animal_number: data.calf_animal_number,
+				delivery_date: data.delivery_date,
+			},
+		})
+		if (exists) {
+			return {
+				status: 206,
+				message: 'This animal mother is already mapped with animal calf',
+				data: [],
+			}
+		}
+		await db.AnimalMotherCalf.create({
+			user_id,
+			animal_id: data.animal_id,
+			delivery_date: new Date(data.delivery_date.slice(0, 10)),
+			mother_animal_number: data.mother_animal_number,
+			calf_animal_number: data.calf_animal_number,
+		})
+		return { status: 201, message: 'Success', data: [] }
+	}
+
+	static async attachedCalfOfAnimal(
+		user_id: number,
+		animal_id: number,
+		mother_number: string,
+	): Promise<{ calf_number: string; delivery_date: string }[]> {
+		const rows = (await db.AnimalMotherCalf.findAll({
+			where: {
+				user_id,
+				animal_id,
+				mother_animal_number: mother_number,
+			},
+			attributes: [['calf_animal_number', 'calf_number'], 'delivery_date'],
+			order: [['created_at', 'DESC']],
+			raw: true,
+		})) as unknown as { calf_number: string; delivery_date: Date | string }[]
+		// Convert delivery_date to string (yyyy-mm-dd) if needed
+		return rows.map((row) => ({
+			calf_number: row.calf_number,
+			delivery_date:
+				row.delivery_date instanceof Date
+					? row.delivery_date.toISOString().slice(0, 10)
+					: row.delivery_date,
+		}))
+	}
+
+	private static async fetchAIAnswers(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+		question_tag: number,
+	): Promise<Record<string, string>> {
+		const rows = await db.sequelize.query<{
+			answer: string
+			answer_date: string
+		}>(
+			`SELECT aqa.answer, aqa.created_at as answer_date
+     FROM common_questions cq
+     JOIN animal_question_answers aqa ON aqa.question_id = cq.id
+     WHERE cq.question_tag = :question_tag
+       AND aqa.user_id = :user_id
+       AND aqa.animal_id = :animal_id
+       AND aqa.animal_number = :animal_number
+       AND aqa.status != 1`,
+			{
+				replacements: { user_id, animal_id, animal_number, question_tag },
+				type: QueryTypes.SELECT,
+			},
+		)
+		const result: Record<string, string> = {}
+		for (const row of rows) {
+			result[row.answer_date] = row.answer
+		}
+		return result
+	}
+
+	static async getAIHistoryOfAnimal(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<
+		{
+			date_of_AI: string
+			bull_no: string
+			mother_yield: string
+			semen_company: string
+			answer_date: string
+		}[]
+	> {
+		// Fetch answers for each tag
+		const [dateOfAI, noOfBull, semenCompanyName, bullMotherYield] =
+			await Promise.all([
+				this.fetchAIAnswers(user_id, animal_id, animal_number, 23),
+				this.fetchAIAnswers(user_id, animal_id, animal_number, 35),
+				this.fetchAIAnswers(user_id, animal_id, animal_number, 42),
+				this.fetchAIAnswers(user_id, animal_id, animal_number, 14),
+			])
+		// Collect all unique answer_dates
+		const allDates = new Set([
+			...Object.keys(dateOfAI),
+			...Object.keys(noOfBull),
+			...Object.keys(semenCompanyName),
+			...Object.keys(bullMotherYield),
+		])
+		// Merge results by date
+		const res: {
+			date_of_AI: string
+			bull_no: string
+			mother_yield: string
+			semen_company: string
+			answer_date: string
+		}[] = []
+		for (const answer_date of allDates) {
+			res.push({
+				date_of_AI: dateOfAI[answer_date] ?? '',
+				bull_no: noOfBull[answer_date] ?? '',
+				mother_yield: bullMotherYield[answer_date] ?? '',
+				semen_company: semenCompanyName[answer_date] ?? '',
+				answer_date,
+			})
+		}
+		// Sort by answer_date descending
+		res.sort((a, b) => b.answer_date.localeCompare(a.answer_date))
+		return res
 	}
 }
