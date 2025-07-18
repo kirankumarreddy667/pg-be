@@ -506,4 +506,33 @@ export class AnimalQuestionAnswerController {
 			next(error)
 		}
 	}
+
+	public static readonly getAnimalPregnancyStatus: RequestHandler = async (
+		req: Request,
+		res: Response,
+		next: NextFunction,
+	) => {
+		try {
+			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'Unauthorized',
+					data: [],
+				})
+			}
+			const animal_id = Number(req.params.animal_id)
+			const animal_num = req.params.animal_num
+			const result = await AnimalQuestionAnswerService.getAnimalPregnancyStatus(
+				user.id,
+				animal_id,
+				animal_num,
+			)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: { pregnancy_status: result.answer ?? null },
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
 }

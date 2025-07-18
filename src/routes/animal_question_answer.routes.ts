@@ -867,4 +867,49 @@ router.get(
 	wrapAsync(AnimalQuestionAnswerController.getAnimalLactationStatus),
 )
 
+/**
+ * @swagger
+ * /user_animal_pregnancy_status/{animal_id}/{animal_num}:
+ *   get:
+ *     summary: Get the pregnancy status of an animal for the authenticated user
+ *     tags: [AnimalQuestionAnswer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: animal_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: animal_num
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pregnancy_status:
+ *                       type: string
+ *                       example: 'Pregnant'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+	'/user_animal_pregnancy_status/:animal_id/:animal_num',
+	authenticate,
+	wrapAsync(AnimalQuestionAnswerController.getAnimalPregnancyStatus),
+)
+
 export default router

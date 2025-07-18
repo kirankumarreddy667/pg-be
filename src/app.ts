@@ -106,11 +106,7 @@ class Server {
 
 		// Swagger setup
 		const swags = swaggerjsdoc(swagOptions)
-		this.app.use(
-			'/api/v1/docs',
-			swaggerui.serve as unknown as RequestHandler,
-			swaggerui.setup(swags) as unknown as RequestHandler,
-		)
+		this.app.use('/api/v1/docs', swaggerui.serve, swaggerui.setup(swags))
 
 		// Add error handlers
 		this.app.use(notFoundHandler as unknown as RequestHandler)
