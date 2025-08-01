@@ -379,8 +379,6 @@ export class DryingRecordService {
 			},
 		)
 
-		const createdAtCondition = latest ? 'AND aqa.created_at = :latestDate' : ''
-
 		// Get all drying questions and answers for the latest date (if any)
 		const languageQuestions = await db.sequelize.query<DryingRecordQuestionRow>(
 			`SELECT aq.question_id, ql.question, cq.category_id, cq.sub_category_id, cq.validation_rule_id, cl.category_language_name,
@@ -394,7 +392,7 @@ export class DryingRecordService {
            AND aqa.user_id = :user_id
            AND aqa.animal_id = :animal_id
            AND aqa.animal_number = :animal_num
-           ${createdAtCondition}
+           ${latest ? 'AND aqa.created_at = :latestDate' : ''}
          LEFT JOIN form_type ft ON ft.id = cq.form_type_id
          JOIN validation_rules vr ON vr.id = cq.validation_rule_id
          JOIN category_language cl ON cl.category_id = cq.category_id AND cl.language_id = 2 AND cl.category_id = 101

@@ -102,11 +102,51 @@ class Server {
 		// Apply security middleware only to API routes
 		this.app.use('/api/v1', xssProtection as RequestHandler)
 
+		// Add middleware to fix Swagger UI asset loading issues
+		this.app.use('/api/v1/swagger', (req: Request, res: Response, next) => {
+			// Force HTTP protocol for Swagger assets
+			if (req.headers.referer && req.headers.referer.includes('https://')) {
+				res.setHeader('Content-Security-Policy', `upgrade-insecure-requests`)
+			}
+			next()
+		})
+
 		this.app.use('/api/v1', v1Router)
 
 		// Swagger setup
 		const swags = swaggerjsdoc(swagOptions)
-		this.app.use('/api/v1/docs', swaggerui.serve, swaggerui.setup(swags))
+
+		// Serve Swagger JSON
+		this.app.get('/api/v1/swagger.json', (_req: Request, res: Response) => {
+			res.setHeader('Content-Type', 'application/json')
+			res.send(swags)
+		})
+
+		// Serve Swagger UI with proper asset handling
+		this.app.use(
+			'/api/v1/swagger',
+			swaggerui.serve,
+			swaggerui.setup(swags, {
+				swaggerOptions: {
+					url: '/api/v1/swagger.json',
+					dom_id: '#swagger-ui',
+					layout: 'BaseLayout',
+					deepLinking: true,
+					persistAuthorization: true,
+					// Force relative URLs
+					urls: [
+						{
+							name: 'API Documentation',
+							url: '/api/v1/swagger.json',
+						},
+					],
+				},
+				customCss: '.swagger-ui .topbar { display: none }',
+				customSiteTitle: 'POWERGOTHA API Documentation',
+				swaggerUrl: '/api/v1/swagger.json',
+				explorer: true,
+			}),
+		)
 
 		// Add error handlers
 		this.app.use(notFoundHandler as unknown as RequestHandler)

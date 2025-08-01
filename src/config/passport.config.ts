@@ -14,6 +14,7 @@ passport.use(
 		(_accessToken: string, _refreshToken: string, profile: Profile, done) => {
 			;(async () => {
 				let user = await db.User.findOne({ where: { googleId: profile.id } })
+				console.log(profile)
 				if (!user) {
 					user = await db.User.create({
 						googleId: profile.id,
@@ -21,9 +22,17 @@ passport.use(
 						email: profile.emails?.[0]?.value || '',
 						provider: ['google'],
 						avatar: profile.photos?.[0]?.value,
-						emailVerified: true,
+						emailVerified: profile.emails?.[0]?.verified,
 						otp_status: false,
-						phone_number: profile.emails?.[0]?.value || '',
+						phone_number: '',
+					})
+				} else {
+					user.update({
+						googleId: profile.id,
+						avatar: profile.photos?.[0]?.value,
+						emailVerified: profile.emails?.[0]?.verified,
+						provider: ['google'],
+						phone_number: '',
 					})
 				}
 				return done(null, user)

@@ -3,20 +3,20 @@ import RESPONSE from '@/utils/response'
 import { AuthService } from '@/services/auth.service'
 import { User } from '@/models/user.model'
 import { BusinessLoginService } from '@/services/business_login.service'
+import db from '@/config/database'
+import { UserService } from '@/services/user.service'
+import { ValidationError, ValidationRequestError } from '@/utils/errors'
 
 interface UserRegistrationBody {
 	name: string
 	phone_number: string
 	password: string
+	email?: string
 }
 
 interface VerifyOtpBody {
-	userId: number
+	user_id: number
 	otp: string
-}
-
-interface ResendOtpBody {
-	userId: number
 }
 
 interface LoginBody {
@@ -25,10 +25,6 @@ interface LoginBody {
 }
 
 interface ForgotPasswordBody {
-	phone_number: string
-}
-
-interface ResetPasswordBody {
 	phone_number: string
 	otp: string
 	password: string
@@ -41,19 +37,22 @@ export class AuthController {
 		next,
 	) => {
 		try {
-			const { name, phone_number, password } = req.body as UserRegistrationBody
-			const { user, otp } = await AuthService.userRegistration({
+			const { name, phone_number, password, email } =
+				req.body as UserRegistrationBody
+			const { user, otp, sms } = await AuthService.userRegistration({
 				name,
 				phone_number,
 				password,
+				email,
 			})
-			RESPONSE.SuccessResponse(res, 201, {
+			RESPONSE.SuccessResponse(res, 200, {
 				message:
 					'Success. Please verify the otp sent to your registered phone number',
 				data: {
 					otp: otp,
 					user_id: user.id,
-					phone_number: user.phone_number,
+					phone_number: phone_number,
+					sms_response: sms || '',
 				},
 			})
 		} catch (error) {
@@ -63,10 +62,16 @@ export class AuthController {
 
 	public static readonly verifyOtp: RequestHandler = async (req, res, next) => {
 		try {
-			const { userId, otp } = req.body as VerifyOtpBody
-			await AuthService.verifyOtp(userId, otp)
+			const { user_id, otp } = req.body as VerifyOtpBody
+			const result = await AuthService.verifyOtp(user_id, otp)
+			if (!result.success) {
+				return RESPONSE.FailureResponse(res, 400, {
+					message: result.message,
+					data: [],
+				})
+			}
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'OTP verified successfully. Your account is now active.',
+				message: result.message,
 				data: [],
 			})
 		} catch (error) {
@@ -76,11 +81,25 @@ export class AuthController {
 
 	public static readonly resendOtp: RequestHandler = async (req, res, next) => {
 		try {
-			const { userId } = req.body as ResendOtpBody
-			await AuthService.resendOtp(userId)
+			const { phone } = req.params
+			if (!phone) {
+				return RESPONSE.FailureResponse(res, 400, {
+					message: 'Phone number is required',
+					data: [],
+				})
+			}
+
+			const user = await db.User.findOne({ where: { phone_number: phone } })
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 400, {
+					message: 'User not found',
+					data: [],
+				})
+			}
+			const otp = await AuthService.resendOtp(phone, user.get('id'))
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'A new OTP has been sent to your phone number.',
-				data: [],
+				message: 'success',
+				data: otp,
 			})
 		} catch (error) {
 			next(error)
@@ -106,27 +125,17 @@ export class AuthController {
 		next,
 	) => {
 		try {
-			const { phone_number } = req.body as ForgotPasswordBody
-			await AuthService.forgotPassword(phone_number)
-			RESPONSE.SuccessResponse(res, 200, {
-				message: 'We have sent an OTP to your phone number.',
-				data: [],
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
+			const { phone_number, otp, password } = req.body as ForgotPasswordBody
+			const user: User | null = await UserService.findUserByPhone(phone_number)
+			if (!user) {
+				throw new ValidationRequestError({
+					phone_number: ['The selected phone number is invalid.'],
+				})
+			}
 
-	public static readonly resetPassword: RequestHandler = async (
-		req,
-		res,
-		next,
-	) => {
-		try {
-			const { phone_number, otp, password } = req.body as ResetPasswordBody
-			await AuthService.resetPassword(phone_number, otp, password)
+			await AuthService.forgotPassword(otp, password, user.get('id'))
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'Your password has been changed!',
+				message: 'Password changed successfully',
 				data: [],
 			})
 		} catch (error) {
@@ -141,14 +150,14 @@ export class AuthController {
 		const user = req.user as User
 		try {
 			const { token, user: userData } =
-				await AuthService.buildOAuthResponse(user)
+				await AuthService.handleOAuthCallback(user)
 
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success',
 				data: {
 					token,
 					user: {
-						id: userData.get('id'),
+						id: userData.id,
 						email: userData.get('email'),
 						name: userData.get('name'),
 						googleId: userData.get('googleId'),
@@ -169,7 +178,7 @@ export class AuthController {
 		const user = req.user as User
 		try {
 			const { token, user: userData } =
-				await AuthService.buildOAuthResponse(user)
+				await AuthService.handleOAuthCallback(user)
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success',
 				data: { token, user: userData },
@@ -226,7 +235,6 @@ export class AuthController {
 	) => {
 		try {
 			const userId = (req.user as { id: number })?.id
-			if (!userId) throw new Error('User not found')
 			const { old_password, password } = req.body as {
 				old_password: string
 				password: string
@@ -234,7 +242,7 @@ export class AuthController {
 			}
 			await BusinessLoginService.changePassword(userId, old_password, password)
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'Password changed successfully',
+				message: 'password changed successfully',
 				data: [],
 			})
 		} catch (error) {

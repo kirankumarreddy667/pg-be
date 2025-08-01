@@ -10,14 +10,10 @@ const swagOptions = {
 				name: 'API Support',
 				email: process.env.SUPPORT_EMAIL || 'support@powergotha.com',
 			},
-			license: {
-				name: 'MIT',
-				url: 'https://opensource.org/licenses/MIT',
-			},
 		},
 		servers: [
 			{
-				url: process.env.SWAGGER_URL || 'http://localhost:7777',
+				url: process.env.SWAGGER_URL || 'http://143.244.132.143:8888',
 				description:
 					process.env.NODE_ENV === 'production'
 						? 'Production Server'
@@ -112,16 +108,13 @@ const swagOptions = {
 			{
 				bearerAuth: [],
 			},
-		]
+		],
 	},
 	apis: [
 		'./src/services/**/*.ts',
 		'./src/routes/**/*.ts',
 		'./src/models/**/*.ts',
 	],
-	explorer: true,
-	customCss: '.swagger-ui .topbar { display: none }',
-	customSiteTitle: 'POWERGOTHA API Documentation',
 }
 
 export default swagOptions

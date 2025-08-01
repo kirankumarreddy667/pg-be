@@ -1,7 +1,7 @@
 import { Otp } from '@/models/otp.model'
-import { TIME } from '@/constants/time'
 import { Transaction } from 'sequelize'
 import { randomInt } from 'crypto'
+import db from '@/config/database'
 
 export class OtpService {
 	static async generateOtp(
@@ -19,33 +19,22 @@ export class OtpService {
 		return otp
 	}
 
-	static async verifyOtp(userId: number, otpCode: string): Promise<boolean> {
-		const otpInstance = await Otp.findOne({
-			where: {
-				user_id: userId,
-				otp: otpCode,
-			},
+	static async verifyOtp(
+		userId: number,
+		otpCode: string,
+		createdAt: Date,
+		transaction?: Transaction,
+	): Promise<{ success: boolean; message: string }> {
+		const OTP_EXPIRE_SECONDS = 1800
+		if (db.Otp.isExpired(createdAt, OTP_EXPIRE_SECONDS)) {
+			return { success: false, message: 'OTP code expired' }
+		}
+		await db.Otp.destroy({
+			where: { user_id: userId, otp: otpCode },
+			transaction,
 		})
-
-		if (!otpInstance) {
-			return false
-		}
-
-		return !this.isOtpExpired(otpInstance)
-	}
-
-	private static isOtpExpired(otp: Otp): boolean {
-		const OTP_EXPIRATION_MINUTES = 10
-		const expirationTimeInMillis = OTP_EXPIRATION_MINUTES * TIME.MINUTE
-
-		if (!otp.get('created_at')) {
-			return true
-		}
-
-		const createdAt = new Date(otp.get('created_at')).getTime()
-		const now = Date.now()
-
-		return now - createdAt > expirationTimeInMillis
+		// Note: User update is now handled in the calling method with transaction
+		return { success: true, message: 'OTP matched successfully' }
 	}
 
 	static async deleteOtp(

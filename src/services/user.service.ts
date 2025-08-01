@@ -4,7 +4,7 @@ import type { User } from '@/models/user.model'
 import type { Role } from '@/models/role.model'
 import type { RoleUser } from '@/models/role_user.model'
 import type { UserWithLanguage } from '@/types'
-import { Op, fn, col } from 'sequelize'
+import { Op, fn, col, Transaction} from 'sequelize'
 import { AnimalQuestionAnswer } from '@/models/animal_question_answers.model'
 
 export interface UserSortResult {
@@ -75,12 +75,13 @@ export class UserService {
 	static async updatePassword(
 		userId: number,
 		newPassword: string,
+		transaction?: Transaction,
 	): Promise<void> {
 		const salt = await bcrypt.genSalt(10)
 		const hashedPassword = await bcrypt.hash(newPassword, salt)
 		await db.User.update(
 			{ password: hashedPassword },
-			{ where: { id: userId } },
+			{ where: { id: userId }, transaction },
 		)
 	}
 

@@ -5,10 +5,7 @@ import { validateEnv, EnvSchema } from './env.validation'
 config()
 
 // Export validated environment variables
-export const env = {
-	...validateEnv(),
-	APP_URL: process.env.APP_URL,
-}
+export const env = validateEnv()
 
 // Type for environment variables
 export type Env = EnvSchema

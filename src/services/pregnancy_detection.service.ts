@@ -323,9 +323,7 @@ export class PregnancyDetectionService {
 		)
 
 		const latestCreatedAt: string | undefined = date1Result[0]?.created_at
-		const createdAtCondition = latestCreatedAt
-			? 'AND aqa.created_at = :latestCreatedAt'
-			: ''
+
 		// 2. Fetch all relevant questions and answers for this animal, language, and latestCreatedAt
 		const languageQuestions =
 			await db.sequelize.query<PregnancyDetectionQuestion>(
@@ -340,7 +338,7 @@ export class PregnancyDetectionService {
 				AND aqa.user_id = :user_id
 				AND aqa.animal_id = :animal_id
 				AND aqa.animal_number = :animal_num
-				 ${createdAtCondition}
+				${latestCreatedAt ? 'AND aqa.created_at = :latestCreatedAt' : ''}
 			LEFT JOIN form_type ft ON ft.id = cq.form_type_id
 			JOIN validation_rules vr ON vr.id = cq.validation_rule_id
 			JOIN category_language cl ON cl.category_id = cq.category_id AND cl.language_id = :language_id AND cl.category_id = 102

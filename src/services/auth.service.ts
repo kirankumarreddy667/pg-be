@@ -1,36 +1,53 @@
 import db from '@/config/database'
 import type { User, UserAttributes } from '@/models/user.model'
-import type { Role } from '@/models/role.model'
 import {
 	AppError,
 	AuthenticationError,
-	AuthorizationError,
-	ConflictError,
-	NotFoundError,
-	DatabaseError,
+	ValidationRequestError,
 } from '@/utils/errors'
 import { OtpService } from './otp.service'
 import { TokenService } from './token.service'
 import { UserService } from './user.service'
 import { SmsService } from './sms.service'
-import { Transaction } from 'sequelize'
+import { getApiBaseUrl } from '@/utils/url'
 
 export class AuthService {
 	public static async userRegistration(
-		userData: Pick<UserAttributes, 'name' | 'phone_number' | 'password'>,
-	): Promise<{ user: User; otp: string }> {
-		let transaction: Transaction | undefined
+		userData: Pick<
+			UserAttributes,
+			'name' | 'phone_number' | 'password' | 'email'
+		>,
+	): Promise<{ user: User; otp: string; sms: unknown }> {
+		const transaction = await db.sequelize.transaction()
 		try {
-			transaction = await db.sequelize.transaction()
 			const existingUser = await db.User.findOne({
 				where: { phone_number: userData.phone_number },
+				include: [
+					{
+						model: db.RoleUser,
+						as: 'role_users',
+						where: { role_id: 2 },
+					},
+				],
 				transaction,
 			})
 
+			if (userData.email) {
+				const existingEmail = await db.User.findOne({
+					where: { email: userData.email },
+					transaction,
+				})
+				if (existingEmail) {
+					throw new ValidationRequestError({
+						email: ['The email has already been taken.'],
+					})
+				}
+			}
+
 			if (existingUser) {
-				await transaction.rollback()
-				transaction = undefined
-				throw new ConflictError('Phone number already registered.')
+				throw new ValidationRequestError({
+					phone_number: ['The phone number has already been taken.'],
+				})
 			}
 
 			const user = await db.User.create(
@@ -47,34 +64,32 @@ export class AuthService {
 				where: { name: 'User' },
 				transaction,
 			})
-			if (userRole) {
-				await db.RoleUser.create(
-					{
-						user_id: user.id,
-						role_id: userRole.get('id'),
-					},
-					{ transaction },
-				)
-			} else {
+			if (!userRole) {
 				await transaction.rollback()
 				throw new AppError(
 					"Default user role not found. Can't register user.",
-					500,
+					400,
 				)
 			}
+			await db.RoleUser.create(
+				{
+					user_id: user.id,
+					role_id: userRole.get('id'),
+				},
+				{ transaction },
+			)
 
 			const otp = await OtpService.generateOtp(user.id, transaction)
-
 			await transaction.commit()
-			await SmsService.sendOtpLegacy(userData.phone_number, otp.get('otp'))
-			return { user, otp: otp.get('otp') }
-		} catch (error) {
-			if (transaction) await transaction.rollback()
-			if (error instanceof AppError) throw error
-			throw new DatabaseError(
-				'Error during user registration.',
-				error instanceof Error ? [error.message] : [],
+
+			const sms = await SmsService.sendOtp(
+				userData.phone_number,
+				otp.get('otp'),
 			)
+			return { user, otp: otp.get('otp'), sms }
+		} catch (error) {
+			await transaction.rollback()
+			throw error
 		}
 	}
 
@@ -92,143 +107,209 @@ export class AuthService {
 		plan_expires_on: Date | null
 		otp_status: boolean
 	}> {
+		const roleId = phone_number === '7207063149' ? 1 : 2
+
+		const userWithRole = await db.User.findOne({
+			where: { phone_number },
+			include: [
+				{
+					model: db.RoleUser,
+					as: 'role_users',
+					where: { role_id: roleId },
+					required: true,
+				},
+			],
+			attributes: { include: ['password'] },
+		})
+
+		if (!userWithRole) {
+			throw new AuthenticationError('The mobile number is not registered yet')
+		}
+
+		// Check password
+		const isPasswordMatch = await UserService.comparePassword(
+			password,
+			userWithRole.get('password') || '',
+		)
+
+		if (!isPasswordMatch) {
+			throw new AuthenticationError('Invalid credentials!!')
+		}
+
+		// Check OTP status
+		const otpStatus = Boolean(userWithRole.get('otp_status'))
+
+		// Get plan expiry date
+		const planExpDate: Date | null = null
+		if (userWithRole.get('payment_status') !== 'free') {
+			// const planPayment = await db.UserPlanPayment.findOne({
+			//   where: { user_id: user.get('id') },
+			//   order: [['created_at', 'DESC']]
+			// })
+			// planExpDate = planPayment?.get('plan_exp_date') || null
+		}
+
+		// Generate token with proper issuer
+		const token = await TokenService.generateAccessToken(
+			{
+				id: userWithRole.get('id'),
+			},
+			`${getApiBaseUrl()}/login`,
+		)
+
+		return {
+			token,
+			user_id: userWithRole.get('id'),
+			email: userWithRole.get('email'),
+			name: userWithRole.get('name'),
+			phone: userWithRole.get('phone_number'),
+			farm_name: userWithRole.get('farm_name'),
+			payment_status: userWithRole.get('payment_status'),
+			plan_expires_on: planExpDate,
+			otp_status: otpStatus,
+		}
+	}
+
+	public static async verifyOtp(
+		userId: number,
+		otp: string,
+	): Promise<{ success: boolean; message: string }> {
+		const transaction = await db.sequelize.transaction()
 		try {
-			const user = await db.User.findOne({
-				where: { phone_number },
-				attributes: { include: ['password'] },
+			const user = await db.User.findByPk(userId, { transaction })
+			console.log(user)
+			if (!user) {
+				throw new ValidationRequestError({
+					user_id: ['The selected user id is invalid.'],
+				})
+			}
+
+			const otpInstance = await db.Otp.findOne({
+				where: {
+					user_id: userId,
+					otp,
+				},
 			})
 
-			if (!user) {
-				throw new AuthenticationError('mobile number is not registered')
+			if (!otpInstance) {
+				throw new AppError('Not a valid OTP', 400)
 			}
 
-			if (!user.get('otp_status')) {
-				throw new AuthenticationError('Please verify OTP before logging in.')
-			}
+			const createdAt = otpInstance.get('created_at')
 
-			const isPasswordMatch = await UserService.comparePassword(
-				password,
-				user.get('password') || '',
+			const result = await OtpService.verifyOtp(
+				userId,
+				otp,
+				createdAt,
+				transaction,
 			)
 
-			if (!isPasswordMatch) {
-				throw new AuthenticationError('Invalid credentials.')
-			}
+			// Update user OTP status within transaction
+			await db.User.update(
+				{ otp_status: true },
+				{ where: { id: userId }, transaction },
+			)
 
-			const roles: Role[] = await UserService.getUserRoles(user.get('id'))
-			const roleNames = roles.map((role: Role) => role.get('name'))
-
-			if (!roleNames.includes('User') && !roleNames.includes('SuperAdmin')) {
-				throw new AuthorizationError('User does not have a valid role.')
-			}
-
-			await user.save()
-
-			const token = await TokenService.generateAccessToken({
-				id: user.get('id'),
-			})
-
-			return {
-				token,
-				user_id: user.get('id'),
-				email: user.get('email'),
-				name: user.get('name'),
-				phone: user.get('phone_number'),
-				farm_name: user.get('farm_name'),
-				payment_status: user.get('payment_status'),
-				plan_expires_on: null,
-				otp_status: Boolean(user.get('otp_status')),
-			}
+			await transaction.commit()
+			return result
 		} catch (error) {
-			if (error instanceof AppError) throw error
-			throw new DatabaseError(
-				'Login failed',
-				error instanceof Error ? [error.message] : [],
-			)
+			await transaction.rollback()
+			throw error
 		}
 	}
 
-	public static async verifyOtp(userId: number, otp: string): Promise<void> {
+	public static async resendOtp(
+		phone: string,
+		user_id: number,
+	): Promise<{
+		id: number
+		otp: string
+		user_id: number
+		created_at: string
+		updated_at: string
+	}> {
+		const transaction = await db.sequelize.transaction()
 		try {
-			const user = await db.User.findByPk(userId)
-			if (!user) {
-				throw new NotFoundError('User not found.')
-			}
-			const isValid = await OtpService.verifyOtp(userId, otp)
-			if (!isValid) {
-				throw new AppError('Invalid or expired OTP.', 400)
-			}
+			const otp = await OtpService.generateOtp(user_id, transaction)
+			await SmsService.sendOtp(phone, otp.get('otp'))
 
-			user.set('otp_status', true) // Set verified
-			await user.save()
+			await transaction.commit()
+
+			const data = {
+				id: otp.id,
+				otp: otp.get('otp'),
+				user_id: otp.get('user_id'),
+				created_at: otp
+					.get('created_at')
+					.toISOString()
+					.slice(0, 19)
+					.replace('T', ' '),
+				updated_at: otp
+					.get('updated_at')
+					.toISOString()
+					.slice(0, 19)
+					.replace('T', ' '),
+			}
+			return data
 		} catch (error) {
-			if (error instanceof AppError) throw error
-			throw new DatabaseError(
-				'Error verifying OTP.',
-				error instanceof Error ? [error.message] : [],
-			)
+			await transaction.rollback()
+			throw error
 		}
 	}
 
-	public static async resendOtp(userId: number): Promise<void> {
-		try {
-			const user = await db.User.findByPk(userId)
-			if (!user) {
-				throw new NotFoundError('User not found.')
-			}
-
-			const newOtp = await OtpService.generateOtp(userId)
-			await SmsService.sendOtpLegacy(
-				user.get('phone_number'),
-				newOtp.get('otp'),
-			)
-		} catch (error) {
-			if (error instanceof AppError) throw error
-			throw new DatabaseError(
-				'Error resending OTP.',
-				error instanceof Error ? [error.message] : [],
-			)
-		}
-	}
-
-	static async forgotPassword(phoneNumber: string): Promise<void> {
-		// Find user by phone number and role_id = 2 (standard User)
-		const user: User | null = await UserService.findUserByPhone(phoneNumber)
-		if (!user) {
-			throw new NotFoundError("We can't find a user with that phone number.")
-		}
-
-		// Generate and save OTP
-		const otp = await OtpService.generateOtp(user.get('id'))
-
-		// Send OTP via SMS
-		await SmsService.sendOtpLegacy(user.get('phone_number'), otp.get('otp'))
-	}
-
-	static async resetPassword(
-		phoneNumber: string,
+	static async forgotPassword(
 		otp: string,
 		password: string,
+		user_id: number,
 	): Promise<void> {
-		// Find user by phone number
-		const user: User | null = await UserService.findUserByPhone(phoneNumber)
-		if (!user) {
-			// It's generally better not to reveal if a user exists
-			throw new NotFoundError('Invalid OTP or phone number.')
+		const transaction = await db.sequelize.transaction()
+		try {
+			const expireTime = 1800
+
+			// Find OTP and check if it's valid
+			const otpData = await db.Otp.findOne({
+				where: {
+					otp: otp,
+					user_id,
+				},
+				attributes: [
+					'user_id',
+					'created_at',
+					[
+						db.sequelize.literal('TIME_TO_SEC(TIMEDIFF(NOW(), created_at))'),
+						'opt_created',
+					],
+				],
+				transaction,
+			})
+
+			if (!otpData) {
+				throw new AppError('Not a valid OTP', 400)
+			}
+
+			// Check if OTP is expired
+			const optCreated = otpData.get('opt_created') as number
+			if (optCreated >= expireTime) {
+				throw new AppError('OTP code expired', 400)
+			}
+
+			// Delete the OTP after successful verification
+			await db.Otp.destroy({
+				where: {
+					user_id,
+					otp: otp,
+				},
+				transaction,
+			})
+
+			// Update user password using UserService
+			await UserService.updatePassword(user_id, password, transaction)
+
+			await transaction.commit()
+		} catch (error) {
+			await transaction.rollback()
+			throw error
 		}
-
-		// Verify OTP
-		const isValidOtp = await OtpService.verifyOtp(user.get('id'), otp)
-
-		if (!isValidOtp) {
-			throw new NotFoundError('Invalid OTP or phone number.')
-		}
-
-		// Update password
-		await UserService.updatePassword(user.get('id'), password)
-
-		// Invalidate the OTP
-		await OtpService.deleteOtp(user.get('id'), otp)
 	}
 
 	/**
@@ -242,17 +323,14 @@ export class AuthService {
 		if (!user) {
 			throw new AuthenticationError('Unauthorized')
 		}
-		const token = await TokenService.generateAccessToken({ id: user.id })
+		const token = await TokenService.generateAccessToken(
+			{ id: user.id },
+			`${getApiBaseUrl()}/login`,
+		)
+
 		return {
 			token,
 			user,
 		}
-	}
-
-	public static async buildOAuthResponse(
-		user: User,
-	): Promise<{ token: string; user: User }> {
-		const token = await TokenService.generateAccessToken({ id: user.id })
-		return { token, user }
 	}
 }

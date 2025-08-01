@@ -1,11 +1,12 @@
 import { User } from '@/models/user.model'
 import { TokenService } from './token.service'
-import { AuthorizationError } from '@/utils/errors'
+import { AuthorizationError, AppError } from '@/utils/errors'
 import { generateRandomPassword } from '@/utils/password'
 import { addToEmailQueue } from '@/queues/email.queue'
 import { RoleUser } from '@/models/role_user.model'
 import { Role } from '@/models/role.model'
 import { UserService } from './user.service'
+import { getApiBaseUrl } from '@/utils/url'
 
 export class BusinessLoginService {
 	static async businessUserLogin(
@@ -39,7 +40,10 @@ export class BusinessLoginService {
 		if (!isMatch) {
 			throw new AuthorizationError('Invalid email or password')
 		}
-		const token = await TokenService.generateAccessToken({ id: user.get('id') })
+		const token = await TokenService.generateAccessToken(
+			{ id: user.get('id') },
+			getApiBaseUrl(),
+		)
 		return {
 			token,
 			user_id: user.get('id'),
@@ -83,14 +87,13 @@ export class BusinessLoginService {
 		new_password: string,
 	): Promise<void> {
 		const user = await User.findByPk(userId)
-		if (!user) throw new AuthorizationError('User not found')
-		if (!user.get('password'))
-			throw new AuthorizationError('User has no password set')
+		if (!user) throw new AppError('User not found', 400)
+
 		const isMatch = await UserService.comparePassword(
 			old_password,
 			user.get('password') || '',
 		)
-		if (!isMatch) throw new AuthorizationError('Not a valid old Password')
+		if (!isMatch) throw new AppError('Not a valid old Password', 400)
 		await user.update({ password: new_password })
 	}
 }

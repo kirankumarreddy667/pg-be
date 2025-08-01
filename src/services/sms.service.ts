@@ -1,6 +1,6 @@
 import axios, { isAxiosError } from 'axios'
 import { logger } from '@/config/logger'
-import { msg91Config, MSG91_OTP_ENDPOINT } from '@/config/msg91.config'
+import { msg91Config } from '@/config/msg91.config'
 
 // Define the shape of the MSG91 API response for type safety
 interface Msg91Response {
@@ -8,47 +8,58 @@ interface Msg91Response {
 	message: string
 }
 
+// Define SMS template types
+export interface SmsTemplate {
+	template_id: string
+	short_url?: string
+}
+
+// Define recipient data interface
+export interface SmsRecipient {
+	mobiles: string
+	[key: string]: unknown
+}
+
+// Define SMS request data interface
+export interface SmsRequestData {
+	template_id: string
+	short_url?: string
+	recipients: SmsRecipient[]
+}
+
 export class SmsService {
 	/**
-	 * Sends an OTP using the dedicated MSG91 OTP API.
-	 * @param phoneNumber The mobile number to send the OTP to (without country code).
-	 * @param otp The OTP code to be sent.
+	 * Generic method to send SMS using MSG91 API
+	 * @param template The SMS template configuration
+	 * @param recipients Array of recipients with their data
+	 * @returns Promise<void>
 	 */
-	static async sendOtp(phoneNumber: string, otp: string): Promise<void> {
-		// Ensure the phone number is correctly formatted with the country code
-
-		const payload = {
-			DLT_TE_ID: msg91Config.templateId,
-			message: `Your Powergotha OTP:${otp}`,
-			mobile: phoneNumber, // must include country code, e.g., 919999999999
-			authkey: msg91Config.authKey,
-			sender: msg91Config.senderId,
-			otp: otp,
+	static async sendSms(
+		template: SmsTemplate,
+		recipients: SmsRecipient[],
+	): Promise<void> {
+		const options = {
+			method: 'POST',
+			url: msg91Config.endpoint,
+			headers: {
+				accept: 'application/json',
+				authkey: msg91Config.authKey,
+				'content-type': 'application/json',
+			},
+			data: {
+				template_id: template.template_id,
+				short_url: template.short_url || '0',
+				recipients: recipients,
+			} as SmsRequestData,
 		}
 
-		// In non-production environments, we can just log the OTP
-		// if (env.NODE_ENV !== 'production') {
-		// 	logger.info(`====================\nOTP for ${phoneNumber}: ${otp}\n====================`)
-		// 	return
-		// }
-
 		try {
-			logger.info(
-				`Sending OTP via MSG91 API v5. Payload: ${JSON.stringify(payload)}`,
-			)
+			const response = await axios.request<Msg91Response>(options)
 
-			const response = await axios.post<Msg91Response>(
-				MSG91_OTP_ENDPOINT,
-				payload,
-				{
-					headers: { 'Content-Type': 'application/json' },
-				},
-			)
-
-			logger.info(
-				`Response from MSG91 API v5. Status: ${response.status}. Data:`,
-				response.data,
-			)
+			logger.info('SMS sent successfully', {
+				template_id: template.template_id,
+				recipients_count: recipients.length,
+			})
 
 			if (response.data?.type !== 'success') {
 				throw new Error(
@@ -59,54 +70,37 @@ export class SmsService {
 			if (isAxiosError<Msg91Response>(error)) {
 				const errorMessage =
 					error.response?.data?.message || 'No specific error message from API.'
-				logger.error(`Failed to send OTP via API v5. Error: ${errorMessage}`, {
+				logger.error(`Failed to send SMS via API v5. Error: ${errorMessage}`, {
 					status: error.response?.status,
 					data: error.response?.data,
+					template_id: template.template_id,
 				})
 			} else {
-				logger.error('Failed to send OTP. Unexpected Error:', error)
+				logger.error('Failed to send SMS. Unexpected Error:', error)
 			}
 			throw new Error('SMS service failed.')
 		}
 	}
 
 	/**
-	 * Sends an OTP using the legacy MSG91 OTP API.
-	 * @param phoneNumber The mobile number to send the OTP to (with country code, e.g., 919999999999).
-	 * @param otp The OTP code to be sent.
+	 * Send OTP SMS using the generic sendSms method
+	 * @param phoneNumber The mobile number to send the OTP to
+	 * @param otp The OTP code to be sent
+	 * @returns Promise<void>
 	 */
-	static async sendOtpLegacy(phoneNumber: string, otp: string): Promise<void> {
-		const params = {
-			country: '91',
-			sender: msg91Config.senderId,
-			route: '4',
-			mobiles: phoneNumber,
-			authkey: msg91Config.authKey,
-			encrypt: '',
-			message: `Your Powergotha OTP:${otp}`,
-			response: 'json',
-			DLT_TE_ID: msg91Config.templateId,
+	static async sendOtp(phoneNumber: string, otp: string): Promise<void> {
+		const otpTemplate: SmsTemplate = {
+			template_id: '68888a05d6fc0537ae52b462',
+			short_url: '0',
 		}
-		try {
-			logger.info(
-				`Sending OTP via MSG91 Legacy HTTP API. Params: ${JSON.stringify(params)}`,
-			)
-			const response = await axios.get<Msg91Response>(
-				'http://api.msg91.com/api/sendhttp.php',
-				{ params },
-			)
-			logger.info(
-				`Response from MSG91 Legacy HTTP API. Status: ${response.status}. Data:`,
-				response.data,
-			)
-			if (response.data?.type && response.data.type !== 'success') {
-				throw new Error(
-					`MSG91 Legacy HTTP API did not return success: ${JSON.stringify(response.data)}`,
-				)
-			}
-		} catch (error) {
-			logger.error('Failed to send OTP via legacy MSG91 HTTP API:', error)
-			throw new Error('Legacy SMS service failed.')
-		}
+
+		const recipients: SmsRecipient[] = [
+			{
+				mobiles: phoneNumber,
+				otp: otp,
+			},
+		]
+
+		return this.sendSms(otpTemplate, recipients)
 	}
 }

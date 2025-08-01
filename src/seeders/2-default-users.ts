@@ -6,7 +6,7 @@ module.exports = {
 		await queryInterface.bulkDelete('users', {}, {})
 
 		const salt = await bcrypt.genSalt(10)
-		const hashedPassword = await bcrypt.hash('powergotha123', salt)
+		const hashedPassword = await bcrypt.hash('Adm!n@742', salt)
 
 		await queryInterface.bulkInsert(
 			'users',

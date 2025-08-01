@@ -21,12 +21,12 @@ export class TokenService {
 		this.blacklistToken(token)
 	}
 
-	static async generateAccessToken(payload: UserPayload): Promise<string> {
+	static async generateAccessToken(payload: UserPayload, issuer?: string): Promise<string> {
 		return new Promise((resolve, reject) => {
 			const now = Math.floor(Date.now() / 1000)
 			const expiresIn = 3600 // 1 hour
 			const tokenPayload = {
-				iss: env.APP_URL,
+				iss: issuer || env.APP_URL,
 				iat: now,
 				exp: now + expiresIn,
 				nbf: now,

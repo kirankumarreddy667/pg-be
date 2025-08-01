@@ -27,8 +27,6 @@ export class AppError extends Error {
 		RESPONSE.FailureResponse(res, this.statusCode as FailureStatus, {
 			message: this.message,
 			data: [],
-			errors: this.errors,
-			...(process.env.NODE_ENV !== 'production' && { stack: this.stack }),
 		})
 
 		// 1. Log to error.log
@@ -105,8 +103,30 @@ export class DatabaseError extends AppError {
 	}
 }
 
+export class ValidationRequestError extends Error {
+	public status?: number
+	public errors: Record<string, string[]>
+
+	constructor(
+		errors: Record<string, string[]>,
+		message = 'The given data was invalid.',
+	) {
+		super(message)
+		this.name = 'ValidationRequestError'
+		this.errors = errors
+	}
+}
+
 // Global error handler middleware
 export const errorHandler = (err: Error, req: Request, res: Response): void => {
+	if (err instanceof ValidationRequestError) {
+		res.status(422).json({
+			message: err.message,
+			errors: err.errors,
+		})
+		return
+	}
+
 	if (err instanceof AppError) {
 		err.sendErrorResponse(req, res)
 		return
@@ -118,17 +138,7 @@ export const errorHandler = (err: Error, req: Request, res: Response): void => {
 			? 'Internal server error'
 			: err.message
 
-	const errors =
-		process.env.NODE_ENV === 'production'
-			? ['An unexpected error occurred']
-			: [err.message]
-
-	const unknownError = new AppError(message, 500, errors, false)
-
-	// Preserve original stack in non-production
-	if (process.env.NODE_ENV !== 'production') {
-		unknownError.stack = err.stack
-	}
+	const unknownError = new AppError(message, 500, [], false)
 
 	unknownError.sendErrorResponse(req, res)
 }

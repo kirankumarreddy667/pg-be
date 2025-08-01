@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
 import { Schema } from 'joi'
-import RESPONSE from '@/utils/response'
 
 export const validateRequest = (schema: Schema) => {
 	return (req: Request, res: Response, next: NextFunction) => {
@@ -20,7 +19,7 @@ export const validateRequest = (schema: Schema) => {
 				{} as Record<string, string[]>,
 			)
 
-			return RESPONSE.FailureResponse(res, 422, {
+			return res.status(422).json({
 				message: 'The given data was invalid.',
 				errors,
 			})

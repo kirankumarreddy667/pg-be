@@ -244,6 +244,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 	})
 	Otp.belongsTo(User, { foreignKey: 'user_id' })
 	User.hasMany(Otp, { foreignKey: 'user_id' })
+	User.hasMany(RoleUser, { foreignKey: 'user_id', as: 'role_users' })
+	RoleUser.belongsTo(User, { foreignKey: 'user_id', as: 'User' })
 	RoleUser.belongsTo(Role, { foreignKey: 'role_id', as: 'Role' })
 
 	User.belongsTo(Language, { foreignKey: 'language_id', as: 'Language' })

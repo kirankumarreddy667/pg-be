@@ -14,6 +14,12 @@ export class Otp extends Model<OtpAttributes> implements OtpAttributes {
 	public otp!: string
 	public readonly created_at!: Date
 	public readonly updated_at!: Date
+
+	public static isExpired(createdAt: Date, expireSeconds = 1800): boolean {
+		const now = new Date()
+		const diffSeconds = Math.floor((now.getTime() - createdAt.getTime()) / 1000)
+		return diffSeconds >= expireSeconds
+	}
 }
 
 const OtpModel = (sequelize: Sequelize): typeof Otp => {

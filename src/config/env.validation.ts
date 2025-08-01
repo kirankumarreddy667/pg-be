@@ -17,6 +17,9 @@ export interface EnvSchema {
 	MSG91_AUTH_KEY: string
 	MSG91_TEMPLATE_ID: string
 	MSG91_SENDER_ID: string
+	MSG91_ENDPOINT: string
+	APP_URL: string
+	SWAGGER_URL: string
 }
 
 // Define environment schema
@@ -63,6 +66,13 @@ const envSchema = Joi.object<EnvSchema>({
 	MSG91_AUTH_KEY: Joi.string().required(),
 	MSG91_TEMPLATE_ID: Joi.string().required(),
 	MSG91_SENDER_ID: Joi.string().required(),
+	MSG91_ENDPOINT: Joi.string().required(),
+
+	// App URL
+	APP_URL: Joi.string().uri().required(),
+
+	// Swagger URL
+	SWAGGER_URL: Joi.string().uri().default('http://localhost:3000'),
 })
 
 // Custom error class for environment validation
