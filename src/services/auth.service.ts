@@ -140,13 +140,13 @@ export class AuthService {
 		const otpStatus = Boolean(userWithRole.get('otp_status'))
 
 		// Get plan expiry date
-		const planExpDate: Date | null = null
+		let planExpDate: Date | null = null
 		if (userWithRole.get('payment_status') !== 'free') {
-			// const planPayment = await db.UserPlanPayment.findOne({
-			//   where: { user_id: user.get('id') },
-			//   order: [['created_at', 'DESC']]
-			// })
-			// planExpDate = planPayment?.get('plan_exp_date') || null
+			const planPayment = await db.UserPayment.findOne({
+				where: { user_id: userWithRole.get('id') },
+				order: [['created_at', 'DESC']],
+			})
+			planExpDate = planPayment?.get('plan_exp_date') || null
 		}
 
 		// Generate token with proper issuer

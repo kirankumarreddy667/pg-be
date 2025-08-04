@@ -305,7 +305,7 @@ export class UserController {
 			const { user_id, payment_status, exp_date, amount } = req.body as {
 				user_id: number
 				payment_status: string
-				exp_date: string
+				exp_date: Date
 				amount?: number
 			}
 			const result = await UserService.updatePaymentStatus({

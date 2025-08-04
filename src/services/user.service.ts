@@ -4,7 +4,7 @@ import type { User } from '@/models/user.model'
 import type { Role } from '@/models/role.model'
 import type { RoleUser } from '@/models/role_user.model'
 import type { UserWithLanguage } from '@/types'
-import { Op, fn, col, Transaction} from 'sequelize'
+import { Op, fn, col, Transaction } from 'sequelize'
 import { AnimalQuestionAnswer } from '@/models/animal_question_answers.model'
 
 export interface UserSortResult {
@@ -492,10 +492,12 @@ export class UserService {
 	static async updatePaymentStatus({
 		user_id,
 		payment_status,
+		exp_date,
+		amount,
 	}: {
 		user_id: number
 		payment_status: string
-		exp_date: string
+		exp_date: Date
 		amount?: number
 	}): Promise<{ success: boolean; message?: string }> {
 		const status = payment_status.toLowerCase()
@@ -507,24 +509,30 @@ export class UserService {
 		}
 		await db.User.update({ payment_status: status }, { where: { id: user_id } })
 		// Premium plan logic is commented out until UserPlanPayment model is available
-		/*
 		if (status === 'premium') {
-			let userPlan = await db.UserPlanPayment.findOne({ where: { user_id }, order: [['created_at', 'DESC']] });
+			const userPlan = await db.UserPayment.findOne({
+				where: { user_id },
+				order: [['created_at', 'DESC']],
+			})
 			if (userPlan) {
-				await userPlan.update({ plan_exp_date: exp_date, payment_history_id: 0, amount: amount ?? 0 });
+				await userPlan.update({
+					plan_exp_date: exp_date,
+					payment_history_id: 0,
+					amount: amount ?? 0,
+				})
 			} else {
-				await db.UserPlanPayment.create({
+				await db.UserPayment.create({
 					user_id,
 					plan_id: 1,
 					amount: amount ?? 0,
 					num_of_valid_years: 1,
 					plan_exp_date: exp_date,
 					payment_history_id: 0,
-					created_at: new Date()
-				});
+					created_at: new Date(),
+				})
 			}
 		}
-		*/
+
 		return { success: true }
 	}
 

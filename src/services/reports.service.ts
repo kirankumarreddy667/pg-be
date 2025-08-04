@@ -1,6 +1,6 @@
 import db from '@/config/database'
+import { User } from '@/models/user.model'
 import { Op, QueryTypes } from 'sequelize'
-import type { User } from '@/types/index'
 
 interface AnimalPregnancyInfo {
 	animal_num: string
@@ -21,70 +21,81 @@ type AnimalWithName = {
 	'Animal.name': string
 }
 
-// Helper to fetch the latest answer for a tag
+interface AnimalData {
+	animal_number: string
+	animal_id: number
+	animal_name: string
+	animalSex: string
+	pregnancyStateAnswer: string
+	SemenCompany: string
+	pregnancyCycle: string
+	animalDOB: string
+	AIDateAnswer1: string
+	BullNoForAIAnswer: string
+	milkingStatusAnswer: string
+}
+
+interface PregnancyCalculationData {
+	monthOfPregnancy: string
+	monthOfDelivery: string
+}
+
+interface NonPregnancyCalculationData {
+	dateOfPregnancy: string
+}
+
 async function getLatestAnswer(
 	user_id: number,
 	animal_number: string,
 	animal_id: number | undefined,
 	tag: number,
 ): Promise<string> {
-	let query = `SELECT aqa.answer
-    FROM common_questions cq
-    JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-    WHERE cq.question_tag = :tag
-      AND aqa.user_id = :user_id
-      AND aqa.animal_number = :animal_number
-      AND aqa.status <> 1`
-	const replacements: Record<string, unknown> = { user_id, animal_number, tag }
-	if (animal_id !== undefined && [9, 23, 35, 16].includes(tag)) {
-		query += '\n      AND aqa.animal_id = :animal_id'
-		replacements.animal_id = animal_id
-	}
-	query += '\n    ORDER BY aqa.created_at DESC\n    LIMIT 1'
-	const result = await db.sequelize.query<{ answer: string }>(query, {
-		replacements,
-		type: QueryTypes.SELECT,
-	})
+	const result = await db.sequelize.query<{ answer: string }>(
+		`SELECT aqa.answer
+     FROM common_questions cq
+     JOIN animal_question_answers aqa ON aqa.question_id = cq.id
+     WHERE cq.question_tag = :tag
+       AND aqa.user_id = :user_id
+       AND aqa.animal_number = :animal_number
+       AND aqa.status <> 1
+     ORDER BY aqa.created_at DESC
+     LIMIT 1`,
+		{
+			replacements: { tag, user_id, animal_number },
+			type: QueryTypes.SELECT,
+		},
+	)
 	return result[0]?.answer || 'NA'
 }
 
-// Helper to get animal DOB
 async function getAnimalDOB(
 	user: User,
 	animal_number: string,
 	animal_id: number,
 ): Promise<string> {
-	const motherNumbers = await db.sequelize.query<{
-		answer: string
-		animal_id: number
-		animal_number: string
-	}>(
-		`SELECT aqa.answer, aqa.animal_id, aqa.animal_number
+	const result = await db.sequelize.query<{ answer: string }>(
+		`SELECT aqa.answer
      FROM common_questions cq
      JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-     WHERE cq.question_tag = 11
+     WHERE cq.question_tag = 1
        AND aqa.user_id = :user_id
+       AND aqa.animal_number = :animal_number
        AND aqa.animal_id = :animal_id
-       AND aqa.status <> 1`,
+       AND aqa.status <> 1
+     ORDER BY aqa.created_at DESC
+     LIMIT 1`,
 		{
-			replacements: { user_id: user.id, animal_id },
+			replacements: {
+				user_id: user.id,
+				animal_number,
+				animal_id,
+			},
 			type: QueryTypes.SELECT,
 		},
 	)
-	for (const value1 of motherNumbers as Array<{ answer: string; animal_id: number; animal_number: string }>) {
-		if (value1.answer === animal_number) {
-			return await getLatestAnswer(
-				user.id,
-				value1.animal_number,
-				value1.animal_id,
-				9,
-			)
-		}
-	}
-	return 'NA'
+	return result[0]?.answer || 'NA'
 }
 
-// Helper to build pregnancy info
 function buildPregnancyInfo(params: {
 	animal_number: string
 	monthOfPregnancy: string
@@ -142,12 +153,14 @@ export class ReportsService {
 		> = {}
 		const animals = await db.AnimalQuestionAnswer.findAll({
 			where: { user_id: user.id, status: { [Op.ne]: 1 } },
+			include: [{ model: db.Animal, as: 'Animal', attributes: ['name'] }],
 			attributes: [
 				[
 					db.Sequelize.fn('DISTINCT', db.Sequelize.col('animal_number')),
 					'animal_number',
 				],
 				'animal_id',
+				[db.Sequelize.col('Animal.name'), 'Animal.name'],
 			],
 			raw: true,
 		})
@@ -157,13 +170,13 @@ export class ReportsService {
 				animal_name: string
 			}>(
 				`SELECT DISTINCT aqa.animal_number, a.name as animal_name
-         FROM common_questions cq
-         JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-         JOIN animals a ON a.id = aqa.animal_id
-         WHERE cq.question_tag = 15
-           AND aqa.user_id = :user_id
-           AND aqa.animal_id = :animal_id
-           AND aqa.status <> 1`,
+          FROM common_questions cq
+          JOIN animal_question_answers aqa ON aqa.question_id = cq.id
+          JOIN animals a ON a.id = aqa.animal_id
+          WHERE cq.question_tag = 15
+            AND aqa.user_id = :user_id
+            AND aqa.animal_id = :animal_id
+            AND aqa.status <> 1`,
 				{
 					replacements: { user_id: user.id, animal_id: animal.animal_id },
 					type: QueryTypes.SELECT,
@@ -174,15 +187,15 @@ export class ReportsService {
 				let nonPregnantAnimal = 0
 				const animalSex = await db.sequelize.query<{ answer: string }>(
 					`SELECT aqa.answer
-           FROM common_questions cq
-           JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-           JOIN animals a ON a.id = aqa.animal_id
-           WHERE cq.question_tag = 8
-             AND aqa.user_id = :user_id
-             AND aqa.animal_number = :animal_number
-             AND aqa.status <> 1
-           ORDER BY aqa.created_at DESC
-           LIMIT 1`,
+            FROM common_questions cq
+            JOIN animal_question_answers aqa ON aqa.question_id = cq.id
+            JOIN animals a ON a.id = aqa.animal_id
+            WHERE cq.question_tag = 8
+              AND aqa.user_id = :user_id
+              AND aqa.animal_number = :animal_number
+              AND aqa.status <> 1
+            ORDER BY aqa.created_at DESC
+            LIMIT 1`,
 					{
 						replacements: {
 							user_id: user.id,
@@ -197,15 +210,15 @@ export class ReportsService {
 				) {
 					const animalNo = await db.sequelize.query<{ answer: string }>(
 						`SELECT aqa.answer
-             FROM common_questions cq
-             JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-             JOIN animals a ON a.id = aqa.animal_id
-             WHERE cq.question_tag = 15
-               AND aqa.user_id = :user_id
-               AND aqa.animal_number = :animal_number
-               AND aqa.status <> 1
-             ORDER BY aqa.created_at DESC
-             LIMIT 1`,
+            FROM common_questions cq
+            JOIN animal_question_answers aqa ON aqa.question_id = cq.id
+            JOIN animals a ON a.id = aqa.animal_id
+            WHERE cq.question_tag = 15
+              AND aqa.user_id = :user_id
+              AND aqa.animal_number = :animal_number
+              AND aqa.status <> 1
+            ORDER BY aqa.created_at DESC
+            LIMIT 1`,
 						{
 							replacements: {
 								user_id: user.id,
@@ -227,14 +240,8 @@ export class ReportsService {
 		return resData
 	}
 
-	public static async getPregnantNonPregnantAnimalsList(user: User): Promise<{
-		pregnant: Record<string, AnimalPregnancyInfo[]>
-		non_pregnant: Record<string, AnimalPregnancyInfo[]>
-	}> {
-		if (!user) throw new Error('User not found')
-		const pregnant: Record<string, AnimalPregnancyInfo[]> = {}
-		const nonpregnant: Record<string, AnimalPregnancyInfo[]> = {}
-		const animals = (await db.AnimalQuestionAnswer.findAll({
+	private static async fetchAnimalsData(user: User): Promise<AnimalWithName[]> {
+		return (await db.AnimalQuestionAnswer.findAll({
 			where: { user_id: user.id, status: { [Op.ne]: 1 } },
 			include: [{ model: db.Animal, as: 'Animal', attributes: ['name'] }],
 			attributes: [
@@ -247,111 +254,183 @@ export class ReportsService {
 			],
 			raw: true,
 		})) as unknown as AnimalWithName[]
-		for (const value of animals) {
-			const animal_number = value.animal_number
-			const animal_id = value.animal_id
-			const animal_name = value['Animal.name'] || 'Unknown'
-			const animalSex = await getLatestAnswer(
-				user.id,
-				animal_number,
-				undefined,
-				8,
-			)
-			if (animalSex !== 'female') continue
-			const pregnancyStateAnswer = (
-				await getLatestAnswer(user.id, animal_number, undefined, 15)
-			).toLowerCase()
-			if (!pregnancyStateAnswer) continue
-			const SemenCompany = await getLatestAnswer(
-				user.id,
-				animal_number,
-				undefined,
-				42,
-			)
-			const pregnancyCycle = await getLatestAnswer(
-				user.id,
-				animal_number,
-				undefined,
-				59,
-			)
-			const animalDOB = await getAnimalDOB(user, animal_number, animal_id)
-			const AIDateAnswer1 = await getLatestAnswer(
-				user.id,
-				animal_number,
-				animal_id,
-				23,
-			)
-			const BullNoForAIAnswer = await getLatestAnswer(
-				user.id,
-				animal_number,
-				animal_id,
-				35,
-			)
-			const milkingStatus = await getLatestAnswer(
-				user.id,
-				animal_number,
-				animal_id,
-				16,
-			)
-			let milkingStatusAnswer = 'NA'
-			if (milkingStatus !== 'NA') {
-				const status = milkingStatus.toLowerCase()
-				milkingStatusAnswer = status === 'yes' ? 'Lactating' : 'Non-Lactating'
-			}
-			let monthOfPregnancy = 'NA'
-			let monthOfDelivery = 'NA'
-			if (pregnancyStateAnswer === 'yes' && AIDateAnswer1 !== 'NA') {
-				const aiDate = new Date(AIDateAnswer1)
-				if (!isNaN(aiDate.getTime())) {
-					const deliveryDate = new Date(aiDate)
-					const monthsToAdd = animal_name.toLowerCase() === 'buffalo' ? 10 : 9
-					deliveryDate.setMonth(deliveryDate.getMonth() + monthsToAdd)
-					monthOfPregnancy = new Date(aiDate.setMonth(aiDate.getMonth() + 3))
-						.toISOString()
-						.slice(0, 7)
-					monthOfDelivery = deliveryDate.toLocaleString('default', {
-						month: 'long',
-					})
-				}
-			}
-			if (pregnancyStateAnswer === 'yes') {
-				if (!pregnant[animal_name]) pregnant[animal_name] = []
-				pregnant[animal_name].push(
-					buildPregnancyInfo({
-						animal_number,
-						monthOfPregnancy,
-						BullNoForAIAnswer,
-						monthOfDelivery,
-						milkingStatusAnswer,
-						AIDateAnswer1,
-						SemenCompany,
-						pregnancyCycle,
-					}),
-				)
-			} else {
-				let dateOfPregnancy = 'NA'
-				if (AIDateAnswer1 !== 'NA') {
-					const aiDate = new Date(AIDateAnswer1)
-					if (!isNaN(aiDate.getTime())) {
-						aiDate.setMonth(aiDate.getMonth() + 3)
-						dateOfPregnancy = aiDate.toISOString().slice(0, 10)
-					}
-				}
-				if (!nonpregnant[animal_name]) nonpregnant[animal_name] = []
-				nonpregnant[animal_name].push(
-					buildNonPregnancyInfo({
-						animal_number,
-						AIDateAnswer1,
-						BullNoForAIAnswer,
-						dateOfPregnancy,
-						animalDOB,
-						SemenCompany,
-						milkingStatusAnswer,
-						pregnancyCycle,
-					}),
-				)
+	}
+
+	private static async collectAnimalData(
+		user: User,
+		animal: AnimalWithName,
+	): Promise<AnimalData | null> {
+		const { animal_number, animal_id } = animal
+		const animal_name = animal['Animal.name'] || 'Unknown'
+
+		const animalSex = await getLatestAnswer(
+			user.id,
+			animal_number,
+			undefined,
+			8,
+		)
+		if (animalSex !== 'female') return null
+
+		const pregnancyStateAnswer = (
+			await getLatestAnswer(user.id, animal_number, undefined, 15)
+		).toLowerCase()
+		if (!pregnancyStateAnswer) return null
+
+		const [
+			SemenCompany,
+			pregnancyCycle,
+			animalDOB,
+			AIDateAnswer1,
+			BullNoForAIAnswer,
+			milkingStatus,
+		] = await Promise.all([
+			getLatestAnswer(user.id, animal_number, undefined, 42),
+			getLatestAnswer(user.id, animal_number, undefined, 59),
+			getAnimalDOB(user, animal_number, animal_id),
+			getLatestAnswer(user.id, animal_number, animal_id, 23),
+			getLatestAnswer(user.id, animal_number, animal_id, 35),
+			getLatestAnswer(user.id, animal_number, animal_id, 16),
+		])
+
+		const milkingStatusAnswer = this.calculateMilkingStatus(milkingStatus)
+
+		return {
+			animal_number,
+			animal_id,
+			animal_name,
+			animalSex,
+			pregnancyStateAnswer,
+			SemenCompany,
+			pregnancyCycle,
+			animalDOB,
+			AIDateAnswer1,
+			BullNoForAIAnswer,
+			milkingStatusAnswer,
+		}
+	}
+
+	private static calculateMilkingStatus(milkingStatus: string): string {
+		if (milkingStatus === 'NA') return 'NA'
+		const status = milkingStatus.toLowerCase()
+		return status === 'yes' ? 'Lactating' : 'Non-Lactating'
+	}
+
+	private static calculatePregnancyDates(
+		pregnancyStateAnswer: string,
+		AIDateAnswer1: string,
+		animal_name: string,
+	): PregnancyCalculationData {
+		let monthOfPregnancy = 'NA'
+		let monthOfDelivery = 'NA'
+
+		if (pregnancyStateAnswer === 'yes' && AIDateAnswer1 !== 'NA') {
+			const aiDate = new Date(AIDateAnswer1)
+			if (!isNaN(aiDate.getTime())) {
+				const deliveryDate = new Date(aiDate)
+				const monthsToAdd = animal_name.toLowerCase() === 'buffalo' ? 10 : 9
+				deliveryDate.setMonth(deliveryDate.getMonth() + monthsToAdd)
+				monthOfPregnancy = new Date(aiDate.setMonth(aiDate.getMonth() + 3))
+					.toISOString()
+					.slice(0, 7)
+				monthOfDelivery = deliveryDate.toLocaleString('default', {
+					month: 'long',
+				})
 			}
 		}
+
+		return { monthOfPregnancy, monthOfDelivery }
+	}
+
+	private static calculateNonPregnancyDate(
+		AIDateAnswer1: string,
+	): NonPregnancyCalculationData {
+		let dateOfPregnancy = 'NA'
+
+		if (AIDateAnswer1 !== 'NA') {
+			const aiDate = new Date(AIDateAnswer1)
+			if (!isNaN(aiDate.getTime())) {
+				aiDate.setMonth(aiDate.getMonth() + 3)
+				dateOfPregnancy = aiDate.toISOString().slice(0, 10)
+			}
+		}
+
+		return { dateOfPregnancy }
+	}
+
+	private static addToPregnantList(
+		pregnant: Record<string, AnimalPregnancyInfo[]>,
+		animalData: AnimalData,
+		pregnancyData: PregnancyCalculationData,
+	): void {
+		const { animal_name } = animalData
+		if (!pregnant[animal_name]) pregnant[animal_name] = []
+
+		pregnant[animal_name].push(
+			buildPregnancyInfo({
+				animal_number: animalData.animal_number,
+				monthOfPregnancy: pregnancyData.monthOfPregnancy,
+				BullNoForAIAnswer: animalData.BullNoForAIAnswer,
+				monthOfDelivery: pregnancyData.monthOfDelivery,
+				milkingStatusAnswer: animalData.milkingStatusAnswer,
+				AIDateAnswer1: animalData.AIDateAnswer1,
+				SemenCompany: animalData.SemenCompany,
+				pregnancyCycle: animalData.pregnancyCycle,
+			}),
+		)
+	}
+
+	private static addToNonPregnantList(
+		nonpregnant: Record<string, AnimalPregnancyInfo[]>,
+		animalData: AnimalData,
+		nonPregnancyData: NonPregnancyCalculationData,
+	): void {
+		const { animal_name } = animalData
+		if (!nonpregnant[animal_name]) nonpregnant[animal_name] = []
+
+		nonpregnant[animal_name].push(
+			buildNonPregnancyInfo({
+				animal_number: animalData.animal_number,
+				AIDateAnswer1: animalData.AIDateAnswer1,
+				BullNoForAIAnswer: animalData.BullNoForAIAnswer,
+				dateOfPregnancy: nonPregnancyData.dateOfPregnancy,
+				animalDOB: animalData.animalDOB,
+				SemenCompany: animalData.SemenCompany,
+				milkingStatusAnswer: animalData.milkingStatusAnswer,
+				pregnancyCycle: animalData.pregnancyCycle,
+			}),
+		)
+	}
+
+	public static async getPregnantNonPregnantAnimalsList(user: User): Promise<{
+		pregnant: Record<string, AnimalPregnancyInfo[]>
+		non_pregnant: Record<string, AnimalPregnancyInfo[]>
+	}> {
+		if (!user) throw new Error('User not found')
+
+		const pregnant: Record<string, AnimalPregnancyInfo[]> = {}
+		const nonpregnant: Record<string, AnimalPregnancyInfo[]> = {}
+
+		const animals = await this.fetchAnimalsData(user)
+
+		for (const animal of animals) {
+			const animalData = await this.collectAnimalData(user, animal)
+			if (!animalData) continue
+
+			const { pregnancyStateAnswer, AIDateAnswer1, animal_name } = animalData
+
+			if (pregnancyStateAnswer === 'yes') {
+				const pregnancyData = this.calculatePregnancyDates(
+					pregnancyStateAnswer,
+					AIDateAnswer1,
+					animal_name,
+				)
+				this.addToPregnantList(pregnant, animalData, pregnancyData)
+			} else {
+				const nonPregnancyData = this.calculateNonPregnancyDate(AIDateAnswer1)
+				this.addToNonPregnantList(nonpregnant, animalData, nonPregnancyData)
+			}
+		}
+
 		return { pregnant, non_pregnant: nonpregnant }
 	}
 

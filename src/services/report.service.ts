@@ -6,6 +6,8 @@ import path from 'path'
 import { addToEmailQueue } from '../queues/email.queue'
 import fs from 'fs/promises'
 
+type MilkValue = string | number | null
+
 interface AnimalNumber {
 	animal_id: number
 	animal_number: string
@@ -517,15 +519,26 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<HealthReportData> {
-		const user = await db.User.findByPk(user_id)
-		if (!user) {
-			throw new Error('User not found')
-		}
+		const userAnimals = await this.getUserAnimals(user_id)
+		const dates = this.generateDateRange(start_date, end_date)
+		const totalcostOfTreatment = await this.calculateTreatmentCost(
+			user_id,
+			start_date,
+			end_date,
+		)
+		const resData = await this.processHealthData(user_id, userAnimals, dates)
 
-		const userAnimals = (await db.AnimalQuestionAnswer.findAll({
-			where: {
-				user_id,
-			},
+		return {
+			total_cost_of_treatment: totalcostOfTreatment,
+			data: resData,
+		}
+	}
+
+	private static async getUserAnimals(
+		user_id: number,
+	): Promise<AnimalNumber[]> {
+		return (await db.AnimalQuestionAnswer.findAll({
+			where: { user_id },
 			attributes: [
 				[
 					Sequelize.fn('DISTINCT', Sequelize.col('animal_number')),
@@ -533,7 +546,12 @@ export class ReportService {
 				],
 			],
 		})) as AnimalNumber[]
+	}
 
+	private static generateDateRange(
+		start_date: string,
+		end_date: string,
+	): string[] {
 		const dates: string[] = []
 		const date_from = new Date(start_date)
 		const date_to = new Date(end_date)
@@ -542,6 +560,14 @@ export class ReportService {
 			dates.push(new Date(i).toISOString().split('T')[0])
 		}
 
+		return dates
+	}
+
+	private static async calculateTreatmentCost(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<number> {
 		const dailyRecordQuestions = await db.DailyRecordQuestionAnswer.findAll({
 			where: {
 				user_id,
@@ -566,167 +592,106 @@ export class ReportService {
 			],
 		})
 
-		let totalcostOfTreatment = 0
-		for (const value5 of dailyRecordQuestions) {
-			const answer = JSON.parse(value5.answer) as Array<{ price: number }>
-			totalcostOfTreatment += answer[0].price
-		}
+		return dailyRecordQuestions.reduce((total, value) => {
+			const answer = JSON.parse(value.answer) as Array<{
+				price: number
+			}>
+			return total + answer[0].price
+		}, 0)
+	}
 
+	private static async processHealthData(
+		user_id: number,
+		userAnimals: AnimalNumber[],
+		dates: string[],
+	): Promise<HealthReportRow[]> {
 		const resData: HealthReportRow[] = []
+
 		for (const animal of userAnimals) {
 			for (const date of dates) {
-				let answer1: string | null = null
-				let answer2: string | null = null
-				let answer3: string | null = null
-				let answer4: string | null = null
-
-				const answerDate = await db.CommonQuestions.findAll({
-					include: [
-						{
-							model: db.AnimalQuestionAnswer,
-							as: 'AnimalQuestionAnswers',
-							where: {
-								animal_number: animal.animal_number,
-								user_id,
-								created_at: {
-									[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
-								},
-								status: {
-									[Op.ne]: 1,
-								},
-							},
-						},
-					],
-					where: {
-						question_tag: 38,
-					},
-				})
-
-				for (const value1 of answerDate) {
-					const aqa = (
-						value1 as unknown as { AnimalQuestionAnswers: { answer: string }[] }
-					).AnimalQuestionAnswers
-					if (aqa && aqa[0]) {
-						answer1 = new Date(aqa[0].answer).toLocaleDateString('en-GB', {
-							day: 'numeric',
-							month: 'short',
-							year: 'numeric',
-						})
-					}
-				}
-
-				const diseasName = await db.CommonQuestions.findAll({
-					include: [
-						{
-							model: db.AnimalQuestionAnswer,
-							as: 'AnimalQuestionAnswers',
-							where: {
-								animal_number: animal.animal_number,
-								user_id,
-								created_at: {
-									[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
-								},
-								status: {
-									[Op.ne]: 1,
-								},
-							},
-						},
-					],
-					where: {
-						question_tag: 39,
-					},
-				})
-
-				for (const value1 of diseasName) {
-					const aqa = (
-						value1 as unknown as { AnimalQuestionAnswers: { answer: string }[] }
-					).AnimalQuestionAnswers
-					if (aqa && aqa[0]) {
-						answer2 = aqa[0].answer
-					}
-				}
-
-				const treatmentData = await db.CommonQuestions.findAll({
-					include: [
-						{
-							model: db.AnimalQuestionAnswer,
-							as: 'AnimalQuestionAnswers',
-							where: {
-								animal_number: animal.animal_number,
-								user_id,
-								created_at: {
-									[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
-								},
-								status: {
-									[Op.ne]: 1,
-								},
-							},
-						},
-					],
-					where: {
-						question_tag: 40,
-					},
-				})
-
-				for (const value1 of treatmentData) {
-					const aqa = (
-						value1 as unknown as { AnimalQuestionAnswers: { answer: string }[] }
-					).AnimalQuestionAnswers
-					if (aqa && aqa[0]) {
-						answer3 = aqa[0].answer
-					}
-				}
-
-				const milkLoss = await db.CommonQuestions.findAll({
-					include: [
-						{
-							model: db.AnimalQuestionAnswer,
-							as: 'AnimalQuestionAnswers',
-							where: {
-								animal_number: animal.animal_number,
-								user_id,
-								created_at: {
-									[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
-								},
-								status: {
-									[Op.ne]: 1,
-								},
-							},
-						},
-					],
-					where: {
-						question_tag: 41,
-					},
-				})
-
-				for (const value1 of milkLoss) {
-					const aqa = (
-						value1 as unknown as { AnimalQuestionAnswers: { answer: string }[] }
-					).AnimalQuestionAnswers
-					if (aqa && aqa[0]) {
-						answer4 = aqa[0].answer
-					}
-				}
-
-				const abc: HealthReportRow = {
-					date: answer1 as string,
-					diseasName: answer2 ?? '',
-					details_of_treatment: answer3 ?? '',
-					milk_loss_in_litres: answer4 ?? '',
-					animal_number: animal.animal_number,
-					font: 'Noto Sans',
-				}
-
-				if (abc.date) {
-					resData.push(abc)
+				const healthData = await this.getHealthDataForDate(
+					user_id,
+					animal.animal_number,
+					date,
+				)
+				if (healthData !== null) {
+					resData.push(healthData)
 				}
 			}
 		}
 
-		return {
-			total_cost_of_treatment: totalcostOfTreatment,
-			data: resData,
+		return resData
+	}
+
+	private static async getHealthDataForDate(
+		user_id: number,
+		animal_number: string,
+		date: string,
+	): Promise<HealthReportRow | null> {
+		const [answer1, answer2, answer3, answer4] = await Promise.all([
+			this.getAnswerForQuestionTag(user_id, animal_number, date, 38),
+			this.getAnswerForQuestionTag(user_id, animal_number, date, 39),
+			this.getAnswerForQuestionTag(user_id, animal_number, date, 40),
+			this.getAnswerForQuestionTag(user_id, animal_number, date, 41),
+		])
+
+		if (!answer1) {
+			return null
 		}
+
+		return {
+			date: answer1,
+			diseasName: answer2 ?? '',
+			details_of_treatment: answer3 ?? '',
+			milk_loss_in_litres: answer4 ?? '',
+			animal_number,
+			font: 'Noto Sans',
+		}
+	}
+
+	private static async getAnswerForQuestionTag(
+		user_id: number,
+		animal_number: string,
+		date: string,
+		question_tag: number,
+	): Promise<string | null> {
+		const questions = await db.CommonQuestions.findAll({
+			include: [
+				{
+					model: db.AnimalQuestionAnswer,
+					as: 'AnimalQuestionAnswers',
+					where: {
+						animal_number,
+						user_id,
+						created_at: {
+							[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
+						},
+						status: {
+							[Op.ne]: 1,
+						},
+					},
+				},
+			],
+			where: { question_tag },
+		})
+
+		for (const value of questions) {
+			const aqa = (
+				value as unknown as { AnimalQuestionAnswers: { answer: string }[] }
+			).AnimalQuestionAnswers
+			if (aqa?.[0]) {
+				const answer = aqa[0].answer
+				return question_tag === 38
+					? new Date(answer).toLocaleDateString('en-GB', {
+							day: 'numeric',
+							month: 'short',
+							year: 'numeric',
+						})
+					: answer
+			}
+		}
+
+		return null
 	}
 
 	public static async manureProductionReportPDFData(
@@ -1780,7 +1745,7 @@ export class ReportService {
 		)
 		// Age
 		let age = 0
-		if (dateOfBirth && dateOfBirth.answer) {
+		if (dateOfBirth?.answer) {
 			const bday = new Date(dateOfBirth.answer)
 			const today = new Date()
 			age = today.getFullYear() - bday.getFullYear()
@@ -1936,10 +1901,9 @@ export class ReportService {
 		}
 		return {
 			profile_img: {
-				image:
-					animalImage && animalImage.image
-						? `profile_img/thumb/${animalImage.image}`
-						: '',
+				image: animalImage?.image
+					? `profile_img/thumb/${animalImage.image}`
+					: '',
 			},
 			general,
 			breeding_details,
@@ -3045,9 +3009,9 @@ export class ReportService {
 			],
 			raw: true,
 		})) as {
-			t_morning_milk: string | number | null
-			t_evening_milk: string | number | null
-			t_day_milk: string | number | null
+			t_morning_milk: MilkValue
+			t_evening_milk: MilkValue
+			t_day_milk: MilkValue
 		} | null
 		// Animal-wise totals
 		const animalwise_total = (await db.DailyMilkRecord.findAll({
@@ -4973,10 +4937,7 @@ const REPORT_CONFIGS: Record<
 > = {
 	health_report: {
 		fetchData: (...args) =>
-			ReportService.healthReportPDFData.apply(
-				ReportService,
-				args as [number, string, string],
-			),
+			ReportService.healthReportPDFData(...(args as [number, string, string])),
 		viewName: 'healthReportPDF',
 		emailTemplate: 'helathReport',
 		emailSubject: 'Health Report',
@@ -4984,9 +4945,8 @@ const REPORT_CONFIGS: Record<
 	},
 	manure_production: {
 		fetchData: (...args) =>
-			ReportService.manureProductionReportPDFData.apply(
-				ReportService,
-				args as [number, string, string],
+			ReportService.manureProductionReportPDFData(
+				...(args as [number, string, string]),
 			),
 		viewName: 'manureProductionPDF',
 		emailTemplate: 'manureProductionReport',
@@ -4995,9 +4955,8 @@ const REPORT_CONFIGS: Record<
 	},
 	animal_milk_production_quantity: {
 		fetchData: (...args) =>
-			ReportService.animalMilkProductionQuantityPDFData.apply(
-				ReportService,
-				args as [number, string, string],
+			ReportService.animalMilkProductionQuantityPDFData(
+				...(args as [number, string, string]),
 			),
 		viewName: 'animalMilkProductionQuantityPDF',
 		emailTemplate: 'animalMilkProductionQuantityReport',
@@ -5006,9 +4965,8 @@ const REPORT_CONFIGS: Record<
 	},
 	profit_loss_graph_with_selling_and_purchase_price: {
 		fetchData: (...args) =>
-			ReportService.profitLossGraphWithSellingAndPurcahsePricePDFData.apply(
-				ReportService,
-				args as [number, string, string],
+			ReportService.profitLossGraphWithSellingAndPurcahsePricePDFData(
+				...(args as [number, string, string]),
 			),
 		viewName: 'profitLossGraphWithSellingAndPurcahsePricePDF',
 		emailTemplate: 'profitLossGraphWithSellingAndPurcahsePriceReport',
@@ -5017,10 +4975,7 @@ const REPORT_CONFIGS: Record<
 	},
 	profit_loss: {
 		fetchData: (...args) =>
-			ReportService.profitLossPDFData.apply(
-				ReportService,
-				args as [number, string, string],
-			),
+			ReportService.profitLossPDFData(...(args as [number, string, string])),
 		viewName: 'profitLossPDF',
 		emailTemplate: 'profitLossReport',
 		emailSubject: 'Profit Loss Report',
@@ -5028,10 +4983,7 @@ const REPORT_CONFIGS: Record<
 	},
 	income_expense: {
 		fetchData: (...args) =>
-			ReportService.incomeExpensePDFData.apply(
-				ReportService,
-				args as [number, string, string],
-			),
+			ReportService.incomeExpensePDFData(...(args as [number, string, string])),
 		viewName: 'incomeExpensePDF',
 		emailTemplate: 'incomeExpenseReport',
 		emailSubject: 'Income Expense Report',
@@ -5039,9 +4991,8 @@ const REPORT_CONFIGS: Record<
 	},
 	milk_production_quantity: {
 		fetchData: (...args) =>
-			ReportService.animalMilkProductionQuantityPDFData.apply(
-				ReportService,
-				args as [number, string, string],
+			ReportService.animalMilkProductionQuantityPDFData(
+				...(args as [number, string, string]),
 			),
 		viewName: 'milkProductionQuantityPDF',
 		emailTemplate: 'milkProductionQuantityReport',
@@ -5050,9 +5001,8 @@ const REPORT_CONFIGS: Record<
 	},
 	milk_report: {
 		fetchData: (...args) =>
-			ReportService.milkReportPDFData.apply(
-				ReportService,
-				args as [number, string, string, string?],
+			ReportService.milkReportPDFData(
+				...(args as [number, string, string, string?]),
 			),
 		viewName: 'milkReportPDF',
 		emailTemplate: 'milkReport',
@@ -5061,10 +5011,7 @@ const REPORT_CONFIGS: Record<
 	},
 	get_profile: {
 		fetchData: (...args) =>
-			ReportService.getProfileData.apply(
-				ReportService,
-				args as [number, number, string],
-			),
+			ReportService.getProfileData(...(args as [number, number, string])),
 		viewName: 'profilePDF',
 		emailTemplate: 'profileReport',
 		emailSubject: 'Profile Report',
@@ -5072,9 +5019,8 @@ const REPORT_CONFIGS: Record<
 	},
 	animal_breeding_history: {
 		fetchData: (...args) =>
-			ReportService.animalBreedingHistoryData.apply(
-				ReportService,
-				args as [number, number, string],
+			ReportService.animalBreedingHistoryData(
+				...(args as [number, number, string]),
 			),
 		viewName: 'animalBreedingHistoryPDF',
 		emailTemplate: 'animalBreedingHistoryReport',
@@ -5083,10 +5029,7 @@ const REPORT_CONFIGS: Record<
 	},
 	all_animal_breeding_history: {
 		fetchData: (...args) =>
-			ReportService.allAnimalBreedingHistoryData.apply(
-				ReportService,
-				args as [number],
-			),
+			ReportService.allAnimalBreedingHistoryData(...(args as [number])),
 		viewName: 'allAnimalBreedingHistoryPDF',
 		emailTemplate: 'allAnimalBreedingHistoryReport',
 		emailSubject: 'All Animal Breeding History Report',
