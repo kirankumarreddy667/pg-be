@@ -5,7 +5,7 @@ import { User } from '@/models/user.model'
 import { BusinessLoginService } from '@/services/business_login.service'
 import db from '@/config/database'
 import { UserService } from '@/services/user.service'
-import { ValidationError, ValidationRequestError } from '@/utils/errors'
+import { ValidationRequestError } from '@/utils/errors'
 
 interface UserRegistrationBody {
 	name: string
@@ -194,16 +194,16 @@ export class AuthController {
 		next,
 	) => {
 		try {
-			const { email, password } = req.body as {
-				email: string
+			const { phone_number, password } = req.body as {
+				phone_number: string
 				password: string
 			}
 			const result = await BusinessLoginService.businessUserLogin(
-				email,
+				phone_number,
 				password,
 			)
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'Login successful',
+				message: 'Success.',
 				data: result,
 			})
 		} catch (error) {
@@ -220,7 +220,7 @@ export class AuthController {
 			const { email } = req.body as { email: string }
 			await BusinessLoginService.businessForgotPassword(email)
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'A new password has been sent to your email.',
+				message: 'success',
 				data: [],
 			})
 		} catch (error) {

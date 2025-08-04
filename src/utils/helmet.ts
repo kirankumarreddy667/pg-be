@@ -4,14 +4,18 @@ export const helmetOptions: HelmetOptions = {
 	contentSecurityPolicy: {
 		directives: {
 			defaultSrc: ["'self'"],
-			scriptSrc: ["'self'", "'unsafe-inline'"],
-			styleSrc: ["'self'", "'unsafe-inline'"],
-			imgSrc: ["'self'", 'data:', 'https:'],
-			connectSrc: ["'self'"],
-			fontSrc: ["'self'"],
+			scriptSrc: [
+				"'self'",
+				"'unsafe-inline'",
+				"'unsafe-eval'",
+				'https:',
+				'http:',
+			],
+			styleSrc: ["'self'", "'unsafe-inline'", 'https:', 'http:'],
+			imgSrc: ["'self'", 'data:', 'https:', 'http:'],
+			connectSrc: ["'self'", 'https:', 'http:'],
+			fontSrc: ["'self'", 'https:', 'http:'],
 			objectSrc: ["'none'"],
-			mediaSrc: ["'self'"],
-			frameSrc: ["'none'"],
 		},
 	},
 	crossOriginEmbedderPolicy: false,
@@ -20,4 +24,5 @@ export const helmetOptions: HelmetOptions = {
 	xssFilter: true,
 	noSniff: true,
 	referrerPolicy: { policy: 'same-origin' },
+	hsts: false,
 }

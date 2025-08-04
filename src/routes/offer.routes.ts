@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { OfferController } from '@/controllers/offer.controller' // ✅ correct instance
+import { OfferController } from '@/controllers/offer.controller' 
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
 import { validateRequest } from '@/middlewares/validateRequest'
 import { createOfferSchema } from '@/validations/offer.validation'

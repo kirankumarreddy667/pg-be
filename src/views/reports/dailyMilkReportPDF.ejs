@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<style>
+
+table,
+table th,
+table td{
+	text-align: center;
+}
+
+</style>
+<center><h1>Daily Milk Report</h1></center> <br>
+</head>
+
+<body>
+<div class="container">
+	@if(isset($milkReportPDF['animal_number']) && !empty($milkReportPDF['animal_number']))
+	<h4 style="margin-bottom: 20px"><b><span style="text-transform: uppercase;">Details of Selected Animal</span> {{$milkReportPDF['animal_number']}}</b></h4>
+	@endif
+	<h4>Cow Daily Milk Data</h4>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Record Date</th>
+				<!-- <th>Animal Id</th> -->
+				<th>Animal Number</th>
+				<th>Morning Milk In Litres</th>
+				<th>Evening Milk In Litres</th>
+				<th>Total Milk In Litres</th>
+			</tr>
+		</thead>
+		<tbody>
+			 @foreach ($milkReportPDF['cow_daily_milk'] as $value)
+			<tr>
+				<td>{{ $value['record_date'] }}</td>
+				{{-- <td>{{ $value['animal_id'] }}</td> --}}
+				<td>{{ $value['animal_number'] }}</td>
+				<td>{{ $value['morning_milk_in_litres'] }}</td>
+				<td>{{ $value['evening_milk_in_litres'] }}</td>
+				<td>{{ $value['total_milk_in_litres'] }}</td>
+
+			</tr>
+			@endforeach
+		</tbody>
+	</table>
+
+    <h4>Buffalo Daily Milk Data</h4>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Record Date</th>
+				<!-- <th>Animal Id</th> -->
+				<th>Animal Number</th>
+				<th>Morning Milk In Litres</th>
+				<th>Evening Milk In Litres</th>
+				<th>Total Milk In Litres</th>
+			</tr>
+		</thead>
+		<tbody>
+		    @foreach ($milkReportPDF['buffalo_daily_milk'] as $value)
+			<tr>
+				<td>{{ $value['record_date'] }}</td>
+				{{-- <td>{{ $value['animal_id'] }}</td> --}}
+				<td>{{ $value['animal_number'] }}</td>
+				<td>{{ $value['morning_milk_in_litres'] }}</td>
+				<td>{{ $value['evening_milk_in_litres'] }}</td>
+				<td>{{ $value['total_milk_in_litres'] }}</td>
+
+			</tr>
+			@endforeach
+		</tbody>
+	</table>
+
+	<h4>Relevant Totals Milk Data</h4>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Record Period</th>
+				<th>Cow Morning Milk In Litres</th>
+				<th>Cow Evening Milk In Litres</th>
+				<th>Buffalo Morning Milk In Litres</th>
+				<th>Buffalo Evening Milk In Litres</th>
+				<th>Total Milk In Litres</th>
+			</tr>
+		</thead>
+		<tbody>  
+			<tr>
+				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['record_period'])) ? $milkReportPDF['relevent_total']['record_period'] : "" }}</td>
+				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_cow_morning_milk'])) ? $milkReportPDF['relevent_total']['total_cow_morning_milk'] : "" }}</td>
+				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_cow_evening_milk'])) ? $milkReportPDF['relevent_total']['total_cow_evening_milk'] : ""}}</td>
+				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_buffalo_morning_milk'])) ? $milkReportPDF['relevent_total']['total_buffalo_morning_milk'] : "" }}</td>
+				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_buffalo_evening_milk'])) ? $milkReportPDF['relevent_total']['total_buffalo_evening_milk'] : "" }}</td>
+				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_milk'])) ? $milkReportPDF['relevent_total']['total_milk'] : "" }}</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h4>Daywise Sub Total Milk Data</h4>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Record Date</th>
+				<th>Cow Morning Milk In Litres</th>
+				<th>Cow Evening Milk In Litres</th>
+				<th>Buffalo Morning Milk In Litres</th>
+				<th>Buffalo Evening Milk In Litres</th>
+				<th>Total Milk In Litres</th>
+			</tr>
+		</thead>
+		<tbody> 
+		 @foreach($milkReportPDF['daywise_sub_total'] as $key => $value)
+			<tr>
+				<td>{{$key}}</td>
+				<td>{{ (isset($value['cow_morning_milk'])) ? $value['cow_morning_milk'] : 0 }}</td>
+				<td>{{ (isset($value['cow_evening_milk'])) ? $value['cow_evening_milk'] : 0 }}</td>
+				<td>{{ (isset($value['buffalo_morning_milk'])) ? $value['buffalo_morning_milk'] : 0 }}</td>
+				<td>{{ (isset($value['buffalo_evening_milk'])) ? $value['buffalo_evening_milk'] : 0 }}</td>
+				<td>{{ ((isset($value['cow_total'])) ? $value['cow_total'] : 0) + ((isset($value['buffalo_total'])) ? $value['buffalo_total'] : 0) }}</td>
+			</tr>
+			@endforeach
+		</tbody>
+	</table>
+
+	<h4>Total Milk Data</h4>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Record Date</th>
+				<th>Cow Milk In Litres</th>
+				<th>Buffalo Milk In Litres</th>
+				<th>Total Milk In Litres</th>
+			</tr>
+		</thead>
+		<tbody> 
+		 @foreach($milkReportPDF['daywise_sub_total'] as $key => $value)
+			<tr>
+				<td>{{$key}}</td>
+				<td>{{ (isset($value['cow_total'])) ? $value['cow_total'] : 0 }}</td>
+				<td>{{ (isset($value['buffalo_total'])) ? $value['buffalo_total'] : 0 }}</td>
+				<td>{{ ((isset($value['cow_total'])) ? $value['cow_total'] : 0) + ((isset($value['buffalo_total'])) ? $value['buffalo_total'] : 0) }}</td>
+			</tr>
+			@endforeach
+		</tbody>
+	</table>
+</div>
+
+</body>
+
+</html>

@@ -73,6 +73,10 @@ class Server {
 	}
 
 	private config(): void {
+		this.app.use((req, res, next) => {
+			res.setHeader('Origin-Agent-Cluster', '?0')
+			next()
+		})
 		this.app.disable('x-powered-by')
 		this.app.use(helmet(helmetOptions))
 		this.app.use(cors(options))
@@ -104,10 +108,10 @@ class Server {
 
 		// Add middleware to fix Swagger UI asset loading issues
 		this.app.use('/api/v1/swagger', (req: Request, res: Response, next) => {
-			// Force HTTP protocol for Swagger assets
-			if (req.headers.referer && req.headers.referer.includes('https://')) {
-				res.setHeader('Content-Security-Policy', `upgrade-insecure-requests`)
-			}
+			res.setHeader(
+				'Content-Security-Policy',
+				"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:;",
+			)
 			next()
 		})
 
@@ -133,13 +137,6 @@ class Server {
 					layout: 'BaseLayout',
 					deepLinking: true,
 					persistAuthorization: true,
-					// Force relative URLs
-					urls: [
-						{
-							name: 'API Documentation',
-							url: '/api/v1/swagger.json',
-						},
-					],
 				},
 				customCss: '.swagger-ui .topbar { display: none }',
 				customSiteTitle: 'POWERGOTHA API Documentation',

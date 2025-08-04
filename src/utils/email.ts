@@ -14,7 +14,12 @@ export async function sendEmail<K extends keyof EmailTemplateMap>({
 	template: K
 	data: EmailTemplateMap[K]
 	text?: string
-	attachments?: { filename: string; path: string }[]
+	attachments?: {
+		filename: string
+		content?: string | Buffer
+		path?: string
+		contentType?: string
+	}[]
 }): Promise<void> {
 	const transporter = nodemailer.createTransport({
 		host: process.env.SMTP_HOST,

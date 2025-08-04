@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+<center><h1>Fixed Investment Report</h1></center> <br>
+<style>
+table,
+table th,
+table td{
+	text-align: center;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Total Investment In The Farm</th>
+				<th>Amount In Rs</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>{{ $farmInvestmentData['number_of_investments'] }}</td>
+				<td>{{ $farmInvestmentData['total_investment'] }}</td>
+			</tr>
+		</tbody>
+	</table>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Name Of Equipment/Building</th>
+				<th>Date Of Purchase/Construction</th>
+				<th>Age In Years</th>
+				<th>Amount Invested (in Rs)</th>
+				
+			</tr>
+		</thead>
+		<tbody>
+			@foreach ($farmInvestmentData['reportData'] as $value)
+			<tr>
+				<td>{{ $value['type_of_investment'] }}</td>
+				<td>{{ $value['date_of_installation_or_purchase'] }}</td>
+				<td>{{ $value['age_in_year'] }}</td>
+				<td>{{ $value['amount_in_rs'] }}</td>
+
+			</tr>
+			@endforeach
+		</tbody>
+	</table>
+</div>
+
+</body>
+
+</html>

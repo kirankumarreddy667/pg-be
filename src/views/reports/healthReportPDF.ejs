@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+
+<center><h1>Animal Health Record</h1></center> <br>
+
+<style>
+.disease {
+	font-family: 'Pothana2000','mangal','DejaVuSans',sans-serif;
+}
+	table,
+	table th,
+	table td{
+		text-align: center;
+	}
+
+	.disease{
+		text-align: left;
+		 word-break: break-word;
+	}
+	.treatment{
+		text-align: center;
+	}
+	.treatment p{
+		width: fit-content;
+		word-break: break-all;
+	}
+
+	.disease p{
+		width: 100px;
+		word-break: break-word;
+	}
+
+</style>
+</head>
+<body>
+<div class="container">
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Total Cost Of Treatment</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><%= locals.animalHealthData ? animalHealthData.total_cost_of_treatment : '' %></td>
+			</tr>
+		</tbody>
+	</table>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th >Date</th>
+				<th>Animal Number</th>
+				<th>Disease Name</th>
+				<th>Details Of Treatment</th>
+				<th>Milk Loss (litres)</th>
+			</tr>
+		</thead>
+		<tbody style="text-align: center;">
+			<% if (locals.animalHealthData && animalHealthData.data && animalHealthData.data.length) { %>
+				<% animalHealthData.data.forEach(function(value) { %>
+				<tr>
+					<td><%= value.date %></td>
+					<td><%= value.animal_number %></td>
+					<td class="disease"><p style="font-family:'<%= value.font %>';"><%= value.diseasName %></p></td>
+					<td class="treatment"><p><%= value.details_of_treatment %></p></td>
+					<td><%= value.milk_loss_in_litres %></td>
+				</tr>
+				<% }); %>
+			<% } else { %>
+				<tr>
+					<td colspan="5">No data available.</td>
+				</tr>
+			<% } %>
+		</tbody>
+	</table>
+</div>
+
+</body>
+
+</html>

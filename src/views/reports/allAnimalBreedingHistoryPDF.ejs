@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<style>
+
+table,
+table th,
+table td{
+	text-align: center;
+}
+
+</style>
+<center><h1>All Animal Breeding History Report</h1></center> <br>
+</head>
+
+<body>
+<div class="container">
+	<h3 style="font-family:'Times New Roman', Times, serif;">Pregnant Animals</h3><hr>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Animal</th>
+				<th>Breeding History</th>
+			</tr>
+		</thead>
+		<tbody>
+			@if(isset($reportData['pregnant']) && count($reportData['pregnant']) > 0)
+			   @foreach($reportData['pregnant'] as $key=>$history)
+				<tr>
+					<td>{{$key}}</td> 
+					<td>
+						<div class="container">
+							<h4>AI History</h4>
+							<table class="table table-bordered">
+								<thead>
+									<tr>
+										<th>Date Of AI</th>
+										<th>Bull Number</th>
+										<th>Mother Yield</th>
+										<th>Semen Company Name</th>
+									</tr>
+								</thead>
+								<tbody>
+									@if(isset($history['aiHistory']) && count($history['aiHistory']) > 0)
+									   @foreach($history['aiHistory'] as $value)
+										<tr>
+											<td>{{ (isset($value['dateOfAI']) ? $value['dateOfAI'] :'') }}</td>
+											<td>{{ (isset($value['bullNumber']) ? $value['bullNumber'] :'') }}</td>
+											<td>{{ (isset($value['motherYield']) ? $value['motherYield'] :'') }}</td>
+											<td>{{ (isset($value['semenCompanyName']) ? $value['semenCompanyName'] :'') }}</td>
+										</tr>
+										@endforeach
+									@endif
+								</tbody>
+							</table>
+
+						    <h4>Delivery History</h4>
+							<table class="table table-bordered">
+								<thead>
+									<tr>
+										<th>Calf Number</th>
+										<th>Date Of Delivery</th>
+										<th>Type of Delivery</th>
+									</tr>
+								</thead>
+								<tbody>
+									@if(isset($history['deliveryHistory']) && count($history['deliveryHistory']) > 0)
+										@foreach($history['deliveryHistory'] as $value)
+										<tr>
+											<td>{{ $value['calfNumber'] }}</td>
+											<td>{{ $value['dateOfDelvery'] }}</td>
+											<td>{{ $value['typeOfDelivery'] }}</td>
+										</tr>
+										@endforeach
+									@endif
+								</tbody>
+							</table>
+
+							<h4>Heat History</h4>
+							<table class="table table-bordered">
+								<thead>
+									<tr>
+										<th>Heat Date</th>
+									</tr>
+								</thead>
+								<tbody>
+									@if(isset($history['heatHistory']) && count($history['heatHistory']) > 0)
+										@foreach($history['heatHistory'] as $value)
+										<tr>
+											<td>{{ $value['heatDate'] }}</td>	
+										</tr>
+										@endforeach
+									@endif
+								</tbody>
+							</table>
+                        </div>
+                 </td> 
+				</tr>
+				@endforeach
+			@endif
+		</tbody>
+	</table>
+	<h3 style="font-family:'Times New Roman', Times, serif;">Non Pregnant Animals</h3><hr>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Animal Number</th>
+				<th>Breeding History</th>
+			</tr>
+		</thead>
+		<tbody>
+			@if(isset($reportData['no_pregnant']) && count($reportData['no_pregnant']) > 0)
+			   @foreach($reportData['no_pregnant'] as $key=>$history)
+				<tr>
+					<td>{{$key}}</td> 
+					<td>
+						<div class="container">
+							<h4>AI History</h4>
+							<table class="table table-bordered">
+								<thead>
+									<tr>
+										<th>Date Of AI</th>
+										<th>Bull Number</th>
+										<th>Mother Yield</th>
+										<th>Semen Company Name</th>
+									</tr>
+								</thead>
+								<tbody>
+									@if(isset($history['aiHistory']) && count($history['aiHistory']) > 0)
+									   @foreach($history['aiHistory'] as $value)
+										<tr>
+											<td>{{ (isset($value['dateOfAI']) ? $value['dateOfAI'] :'') }}</td>
+											<td>{{ (isset($value['bullNumber']) ? $value['bullNumber'] :'') }}</td>
+											<td>{{ (isset($value['motherYield']) ? $value['motherYield'] :'') }}</td>
+											<td>{{ (isset($value['semenCompanyName']) ? $value['semenCompanyName'] :'') }}</td>
+										</tr>
+										@endforeach
+									@endif
+								</tbody>
+							</table>
+
+						    <h4>Delivery History</h4>
+							<table class="table table-bordered">
+								<thead>
+									<tr>
+										<th>Calf Number</th>
+										<th>Date Of Delivery</th>
+										<th>Type of Delivery</th>
+									</tr>
+								</thead>
+								<tbody>
+									@if(isset($history['deliveryHistory']) && count($history['deliveryHistory']) > 0)
+										@foreach($history['deliveryHistory'] as $value)
+										<tr>
+											<td>{{ $value['calfNumber'] }}</td>
+											<td>{{ $value['dateOfDelvery'] }}</td>
+											<td>{{ $value['typeOfDelivery'] }}</td>
+										</tr>
+										@endforeach
+									@endif
+								</tbody>
+							</table>
+
+							<h4>Heat History</h4>
+							<table class="table table-bordered">
+								<thead>
+									<tr>
+										<th>Heat Date</th>
+									</tr>
+								</thead>
+								<tbody>
+									@if(isset($history['heatHistory']) && count($history['heatHistory']) > 0)
+										@foreach($history['heatHistory'] as $value)
+										<tr>
+											<td>{{ $value['heatDate'] }}</td>	
+										</tr>
+										@endforeach
+									@endif
+								</tbody>
+							</table>
+                        </div>
+                 </td> 
+				</tr>
+				@endforeach
+			@endif
+		</tbody>
+	</table>
+</div>
+
+</body>
+
+</html>

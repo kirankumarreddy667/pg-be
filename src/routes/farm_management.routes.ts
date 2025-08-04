@@ -298,6 +298,98 @@ import { wrapAsync } from '@/utils/asyncHandler'
  *               $ref: '#/components/schemas/FailureResponse'
  */
 
+/**
+ * @swagger
+ * /farm_investment/{id}:
+ *   put:
+ *     summary: Update farm investment details by ID
+ *     tags: [FarmManagement]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Investment ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount_in_rs:
+ *                 type: number
+ *                 example: 10000
+ *               date_of_installation_or_purchase:
+ *                 type: string
+ *                 format: date
+ *                 example: '2024-07-18'
+ *     responses:
+ *       200:
+ *         description: Investment details updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+
+/**
+ * @swagger
+ * /farm_investment/{id}:
+ *   delete:
+ *     summary: Delete farm investment details by ID
+ *     tags: [FarmManagement]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Investment ID
+ *     responses:
+ *       200:
+ *         description: Investment details deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ */
+
 const router: Router = Router()
 
 router.post(
@@ -338,10 +430,23 @@ router.post(
 	wrapAsync(FarmManagementController.storeFixedInvestmentDetails),
 )
 
+router.put(
+	'/farm_investment/:id',
+	authenticate,
+	validateRequest(fixedInvestmentDetailsSchema),
+	wrapAsync(FarmManagementController.updateInvestmentDetails),
+)
+
 router.get(
 	'/investment_details_report/:id',
 	authenticate,
 	wrapAsync(FarmManagementController.investmentDetailsReport),
+)
+
+router.delete(
+	'/farm_investment/:id',
+	authenticate,
+	wrapAsync(FarmManagementController.deleteInvestmentDetails),
 )
 
 export default router

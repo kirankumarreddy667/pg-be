@@ -60,6 +60,8 @@ import AnimalModel, { Animal } from './animal.model'
 import TypeModel, { Type } from './type.model'
 import AnimalTypeModel, { AnimalType } from './animal_type.model'
 import AnimalLanguageModel, { AnimalLanguage } from './animal_language.model'
+import enquireUsModel, { EnquireUs } from './enquireUs.model'
+
 import AnimalQuestionAnswerModel, {
 	AnimalQuestionAnswer,
 } from './animal_question_answers.model'
@@ -77,6 +79,11 @@ import AnimalVaccinationModel, {
 import UserVaccinationTypeModel, {
 	UserVaccinationType,
 } from './user_vaccination_type.model'
+import UserPaymentModel, { UserPayment } from './userPayment.model'
+import UserPaymentHistoryModel, {
+	UserPaymentHistory,
+} from './userPaymentHistory.model'
+
 import DailyRecordQuestionModel, {
 	DailyRecordQuestion,
 } from './daily_record_questions.model'
@@ -147,6 +154,7 @@ interface Models {
 	Type: typeof Type
 	AnimalType: typeof AnimalType
 	AnimalLanguage: typeof AnimalLanguage
+	EnquireUs: typeof EnquireUs
 	AnimalQuestionAnswer: typeof AnimalQuestionAnswer
 	DeletedAnimalDetails: typeof DeletedAnimalDetails
 	CommonQuestions: typeof CommonQuestions
@@ -154,6 +162,8 @@ interface Models {
 	VaccinationDetail: typeof VaccinationDetail
 	AnimalVaccination: typeof AnimalVaccination
 	UserVaccinationType: typeof UserVaccinationType
+	UserPayment: typeof UserPayment
+	UserPaymentHistory: typeof UserPaymentHistory
 	DailyRecordQuestion: typeof DailyRecordQuestion
 	QuestionTagMapping: typeof QuestionTagMapping
 	DailyRecordQuestionLanguage: typeof DailyRecordQuestionLanguage
@@ -201,9 +211,9 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const InvestmentTypesLanguage = InvestmentTypesLanguageFactory(sequelize)
 	const Plan = planModel(sequelize)
 	const PlanType = plan_typeModel(sequelize)
-
-	Plan.belongsTo(PlanType, { foreignKey: 'plan_type_id', as: 'PlanType' })
-	PlanType.hasMany(Plan, { foreignKey: 'plan_type_id', as: 'Plans' })
+	const EnquireUs = enquireUsModel(sequelize)
+	const UserPayment = UserPaymentModel(sequelize)
+	const UserPaymentHistory = UserPaymentHistoryModel(sequelize)
 	const UserBusinessOutlet = UserBusinessOutletModel(sequelize)
 	const Animal = AnimalModel(sequelize)
 	const Type = TypeModel(sequelize)
@@ -260,8 +270,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 		as: 'advertisement',
 	})
 
-	BusinessOutlet.belongsTo(User, { foreignKey: 'user_id' })
-	User.hasMany(BusinessOutlet, { foreignKey: 'user_id' })
+	BusinessOutlet.belongsTo(User, { foreignKey: 'assign_to' })
+	User.hasMany(BusinessOutlet, { foreignKey: 'assign_to' })
 
 	AnimalType.belongsTo(Animal, { foreignKey: 'animal_id', as: 'Animal' })
 	AnimalType.belongsTo(Type, { foreignKey: 'type_id', as: 'Type' })
@@ -307,6 +317,13 @@ export const initModels = (sequelize: Sequelize): Models => {
 		as: 'DailyRecordQuestion',
 	})
 
+	Plan.belongsTo(PlanType, { foreignKey: 'plan_type_id', as: 'PlanType' })
+	PlanType.hasMany(Plan, { foreignKey: 'plan_type_id', as: 'Plans' })
+	UserPaymentHistory.belongsTo(Plan, {
+		foreignKey: 'plan_id',
+		as: 'plan',
+	})
+
 	return {
 		User,
 		Otp,
@@ -346,6 +363,7 @@ export const initModels = (sequelize: Sequelize): Models => {
 		Type,
 		AnimalType,
 		AnimalLanguage,
+		EnquireUs,
 		AnimalQuestionAnswer,
 		DeletedAnimalDetails,
 		CommonQuestions,
@@ -353,6 +371,8 @@ export const initModels = (sequelize: Sequelize): Models => {
 		VaccinationDetail,
 		AnimalVaccination,
 		UserVaccinationType,
+		UserPayment,
+		UserPaymentHistory,
 		DailyRecordQuestion,
 		QuestionTagMapping,
 		DailyRecordQuestionLanguage,
@@ -387,6 +407,7 @@ export { QuestionTag } from './question_tag.model'
 export { UserBusinessOutlet } from './user_business_outlet.model'
 export { Animal } from './animal.model'
 export { AnimalType } from './animal_type.model'
+export { EnquireUs } from './enquireUs.model'
 export { AnimalQuestionAnswer } from './animal_question_answers.model'
 export { DeletedAnimalDetails } from './deleted_animal_details.model'
 export { CommonQuestions } from './common_questions.model'
@@ -394,6 +415,10 @@ export { VaccinationType } from './vaccination_type.model'
 export { VaccinationDetail } from './vaccination_detail.model'
 export { AnimalVaccination } from './animal_vaccination.model'
 export { UserVaccinationType } from './user_vaccination_type.model'
+export { UserPayment } from './userPayment.model'
+export { UserPaymentHistory } from './userPaymentHistory.model'
+export { Coupon } from './coupon.model'
+export { Plan } from './plan.model'
 export { DailyRecordQuestion } from './daily_record_questions.model'
 export { QuestionTagMapping } from './question_tag_mapping.model'
 export { DailyRecordQuestionLanguage } from './daily_record_question_language.model'
@@ -406,3 +431,5 @@ export { NotificationLanguage } from './notification_language.model'
 export { AnimalMotherCalf } from './animal_mother_calf.model'
 export { AnimalImage } from './animal_image.model'
 export { DailyRecordQuestionAnswer } from './daily_record_question_answer.model'
+export { FixedInvestmentDetails } from './fixed_investment_details.model'
+export { InvestmentTypes } from './investment_types.model'

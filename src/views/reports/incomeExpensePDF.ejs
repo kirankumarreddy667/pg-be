@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<style>
+table,
+table th,
+table td{
+	text-align: center;
+	padding:5px;
+}
+
+</style>
+<center><h1>Expense/Income Report</h1></center> <br>
+</head>
+
+<body>
+
+<div class="container">
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Date</th>
+				<th>Expense</th>
+				<th>Income</th>
+				<th>Profit/Loss</th>
+				<th>Green Feed Expense</th>
+				<th>Dry Feed Expense</th>
+				<th>Cattle Feed Expense</th>
+				<th>Supplements Expense</th>
+				<th>Other Expense</th>	
+			</tr>
+		</thead>
+		<tbody>
+			@if(isset($incomeExpense['expenseData']))
+			  @foreach ($incomeExpense['expenseData'] as $value)
+				<tr>
+					<td>{{ $value['Date'] }}</td>
+					<td>{{ $value['Expense'] }}</td>
+					<td>{{ $value['Income'] }}</td>
+					<td>{{ $value['Profit'] }}</td>
+					<td>{{ $value['GreenFeed'] }}</td>
+					<td>{{ $value['DryFeed'] }}</td>
+					<td>{{ $value['CattleFeed'] }}</td>
+					<td>{{ $value['Supplement'] }}</td>
+					<td>{{ $value['OtherExpense'] }}</td>
+
+				</tr>
+			  @endforeach
+			@endif
+
+			<tr style="margin-top: 20px">
+				<th>Totals:</th>
+				<td>{{ (isset($incomeExpense['totalExpenseData']['totalExpense']))? $incomeExpense['totalExpenseData']['totalExpense'] : '' }}</td>
+				<td>{{ (isset($incomeExpense['totalExpenseData']['totalIncome']))? $incomeExpense['totalExpenseData']['totalIncome'] : '' }}</td>
+				<td>{{ (isset($incomeExpense['totalExpenseData']['totalProfit']))? $incomeExpense['totalExpenseData']['totalProfit'] : '' }}</td>
+				<td>{{ (isset($incomeExpense['totalExpenseData']['totalGreenFeed']))? $incomeExpense['totalExpenseData']['totalGreenFeed'] : '' }}</td>
+				<td>{{ (isset($incomeExpense['totalExpenseData']['totalDryFeed']))? $incomeExpense['totalExpenseData']['totalDryFeed'] : '' }}</td>
+				<td>{{ (isset($incomeExpense['totalExpenseData']['totalCattleFeed']))? $incomeExpense['totalExpenseData']['totalCattleFeed'] : '' }}</td>
+				<td>{{ (isset($incomeExpense['totalExpenseData']['totalSupplement']))? $incomeExpense['totalExpenseData']['totalSupplement'] : '' }}</td>
+				<td>{{ (isset($incomeExpense['totalExpenseData']['totalOtherExpense']))? $incomeExpense['totalExpenseData']['totalOtherExpense'] : '' }}</td>
+			</tr>
+
+		</tbody>
+	</table>
+
+</div>
+
+</body>
+
+</html>

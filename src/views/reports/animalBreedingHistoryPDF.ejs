@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<style>
+
+table,
+table th,
+table td{
+	text-align: center;
+}
+
+</style>
+<center><h1>Animal Breeding History Report</h1></center> <br>
+</head>
+
+<body>
+<div class="container">
+	<h3 style="font-family:'Times New Roman', Times, serif;">Animal Number: {{(isset($reportData['animal_number']) ? $reportData['animal_number'] : '')}}</h3><hr>
+	<h4>AI History</h4>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Date Of AI</th>
+				<th>Bull Number</th>
+				<th>Mother Yield</th>
+				<th>Semen Company Name</th>
+			</tr>
+		</thead>
+		<tbody>
+			@if(isset($reportData['aiHistory']) && count($reportData['aiHistory']) > 0)
+			   @foreach($reportData['aiHistory'] as $value)
+				<tr>
+					<td>{{ (isset($value['dateOfAI']) ? $value['dateOfAI'] :'') }}</td>
+					<td>{{ (isset($value['bullNumber']) ? $value['bullNumber'] :'') }}</td>
+					<td>{{ (isset($value['motherYield']) ? $value['motherYield'] :'') }}</td>
+					<td>{{ (isset($value['semenCompanyName']) ? $value['semenCompanyName'] :'') }}</td>
+				</tr>
+				@endforeach
+			@endif
+		</tbody>
+	</table>
+
+    <h4>Delivery History</h4>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Calf Number</th>
+				<th>Date Of Delivery</th>
+				<th>Type of Delivery</th>
+			</tr>
+		</thead>
+		<tbody>
+			@if(isset($reportData['deliveryHistory']) && count($reportData['deliveryHistory']) > 0)
+				@foreach($reportData['deliveryHistory'] as $value)
+				<tr>
+					<td>{{ $value['calfNumber'] }}</td>
+					<td>{{ $value['dateOfDelvery'] }}</td>
+					<td>{{ $value['typeOfDelivery'] }}</td>
+				</tr>
+				@endforeach
+			@endif
+		</tbody>
+	</table>
+
+	<h4>Heat History</h4>
+	<table class="table table-bordered">
+		<thead>
+			<tr>
+				<th>Heat Date</th>
+			</tr>
+		</thead>
+		<tbody>
+			@if(isset($reportData['heatHistory']) && count($reportData['heatHistory']) > 0)
+				@foreach($reportData['heatHistory'] as $value)
+				<tr>
+					<td>{{ $value['heatDate'] }}</td>	
+				</tr>
+				@endforeach
+			@endif
+		</tbody>
+	</table>
+</div>
+
+</body>
+
+</html>

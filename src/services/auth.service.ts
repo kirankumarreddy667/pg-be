@@ -177,7 +177,6 @@ export class AuthService {
 		const transaction = await db.sequelize.transaction()
 		try {
 			const user = await db.User.findByPk(userId, { transaction })
-			console.log(user)
 			if (!user) {
 				throw new ValidationRequestError({
 					user_id: ['The selected user id is invalid.'],

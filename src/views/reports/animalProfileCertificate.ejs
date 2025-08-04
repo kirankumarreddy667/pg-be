@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Animal Profile Certificate</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        table {
+          font-family: arial, sans-serif;
+          border-collapse: collapse;
+          width: 100%;
+        }
+        td, th {
+          border: 1px solid #dddddd;
+          text-align: left;
+          padding: 8px;
+        }
+        tr:nth-child(even) {
+          background-color: #dddddd;
+        }
+    </style>
+</head>
+
+<body class="body-wrapper">
+    <h2 style="font-size: 16px;text-align: center;border-bottom: 1px solid #000">Animal Profile</h2>
+    
+    <% const general = locals.profileData?.general; %>
+    <% const profile_img = locals.profileData?.profile_img; %>
+    <% const breeding_details = locals.profileData?.breeding_details; %>
+    <% const milk_details = locals.profileData?.milk_details; %>
+    <% const vaccination_details = locals.profileData?.vaccination_details; %>
+    <% const pedigree = locals.profileData?.pedigree; %>
+
+    <div style="display: inline-block; width: 100%;">
+        <h2 style="font-size: 16px; width: 90%; float: left;"> Animal Tag No: <%= general?.animal_number || '' %></h2>
+    </div>
+
+    <div style="display: inline-block; width: 100%; margin-top: 15px;">
+        <div style="width: 48%; float: left; padding: 15px; border: 1px solid #d5d5d5;">
+            <p><b>General</b></p>
+            <p>Type: <%= general?.animal_type || '' %></p>
+            <p>Breed: <%= general?.breed || '' %></p>
+            <p>Birth: <%= general?.birth || '' %></p>
+            <p>Age: <%= general?.age || '' %></p>
+            <p>Weight: <%= general?.Weight || '' %></p>
+            <p>Lactation No:</p>
+        </div>
+        <div style="width: 48%; float: right;">
+            <img src="<%= profile_img?.image || '' %>" alt="img" style="max-width: 100%;">
+        </div>
+    </div>
+
+    <div style="display: inline-block; width: 100%; border: 1px solid #d5d5d5; padding: 15px; margin-top: 15px;">
+        <h4><b>Breeding Details</b></h4>
+        <div style="width: 48%; float: left;">
+            <p>Pregnant: <%= breeding_details?.pregnant_status || '' %></p>
+            <p>Last Delivery Date: <%= breeding_details?.last_delivery_date || '' %></p>
+            <p>Last Breeding Bull No: <%= breeding_details?.last_breeding_bull_no || '' %></p>
+        </div>
+        <div style="width: 48%; float: right;">
+            <p>Days in Milk: <%= breeding_details?.days_in_milk || '' %></p>
+        </div>
+    </div>
+
+    <div style="display: inline-block; width: 100%; border: 1px solid #d5d5d5; padding: 15px; margin-top: 15px;">
+        <h4 class="milk"><b>Milk Details</b></h4>
+        <div style="width: 48%; float: left;">
+            <p>Average Daily Milk: <%= milk_details?.average_daily_milk || '' %></p>
+            <p>Current Lactation Milk Yield: <%= milk_details?.current_lactation_milk_yield || '' %></p>
+        </div>
+        <div style="width: 48%; float: right;">
+            <p>Last Lactation Milk Yield: <%= milk_details?.last_lactation_milk_yield || '' %></p>
+        </div>
+    </div>
+
+    <div style="display: inline-block; width: 100%; border: 1px solid #d5d5d5; padding: 15px; margin-top: 15px;">
+        <h4 class="milk">Vaccination Details</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Vaccination Type</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (vaccination_details && vaccination_details.length) { %>
+                    <% vaccination_details.forEach(function(value) { %>
+                        <tr>
+                            <td><%= value.type %></td>
+                            <td><%= value.date %></td>
+                        </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="2">No data available.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="display: inline-block; width: 100%; border: 1px solid #d5d5d5; padding: 15px; margin-top: 15px;">
+        <h4 class="milk">Pedigree</h4>
+        <p><b>Mother (Dam)</b></p>
+        <p>Tag No: <%= pedigree?.mother?.tag_no || '' %></p>
+        <p>Milk Yield: <%= pedigree?.mother?.milk_yield || '' %></p>
+        <p><b>Father (Sire)</b></p>
+        <p>Tag No: <%= pedigree?.father?.tag_no || '' %></p>
+        <p>Semen Co Name: <%= pedigree?.father?.semen_co_name || '' %></p>
+        <p>Sire’s Dam Yield: <%= pedigree?.father?.sire_dam_yield || '' %></p>
+        <p>Daughter Yield: <%= pedigree?.father?.daughter_yield || '' %></p>
+    </div>
+</body>
+
+</html>

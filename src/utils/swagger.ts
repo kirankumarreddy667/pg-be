@@ -1,6 +1,9 @@
-const swagOptions = {
+import { SwaggerOptions } from 'swagger-ui-express'
+
+const swagOptions: SwaggerOptions = {
 	definition: {
 		openapi: '3.0.0',
+		schemes: ['http'],
 		info: {
 			title: 'POWERGOTHA API Documentation',
 			version: '1.0.0',
@@ -12,12 +15,16 @@ const swagOptions = {
 			},
 		},
 		servers: [
+			// {
+			// 	url: process.env.SWAGGER_URL || 'http://143.244.132.143:8888',
+			// 	description:
+			// 		process.env.NODE_ENV === 'production'
+			// 			? 'Production Server'
+			// 			: 'Development Server',
+			// },
 			{
-				url: process.env.SWAGGER_URL || 'http://143.244.132.143:8888',
-				description:
-					process.env.NODE_ENV === 'production'
-						? 'Production Server'
-						: 'Development Server',
+				url: 'http://143.244.132.143:8888/api/v1',
+				description: 'Local Server (HTTP)',
 			},
 		],
 		components: {

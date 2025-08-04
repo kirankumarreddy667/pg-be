@@ -51,7 +51,8 @@ export class FarmManagementService {
 		})
 		const data = {
 			user_id: userId ?? null,
-			farm_name: userFarmDetails?.get('farm_name') ?? userFarmDetails?.farm_name ?? null,
+			farm_name:
+				userFarmDetails?.get('farm_name') ?? userFarmDetails?.farm_name ?? null,
 			farm_type:
 				userFarmDetails?.get('farm_type') ?? userFarmDetails?.farm_type ?? null,
 			farm_type_id:
@@ -159,5 +160,38 @@ export class FarmManagementService {
 		const data: FixedInvestmentDetails[] =
 			await db.FixedInvestmentDetails.findAll({ where: { user_id } })
 		return { status: 200, message: 'Success', data }
+	}
+
+	static async updateInvestmentDetails(
+		userId: number,
+		id: number,
+		data: { amount_in_rs: number; date_of_installation_or_purchase: string },
+	): Promise<ServiceResponse<[]>> {
+		const investmentDetails = await db.FixedInvestmentDetails.findOne({
+			where: { id, user_id: userId },
+		})
+		if (!investmentDetails) {
+			return { status: 404, message: 'Investment not found', data: [] }
+		}
+		investmentDetails.amount_in_rs = data.amount_in_rs
+		investmentDetails.date_of_installation_or_purchase = new Date(
+			data.date_of_installation_or_purchase,
+		)
+		await investmentDetails.save()
+		return { status: 200, message: 'Success', data: [] }
+	}
+
+	static async deleteInvestmentDetails(
+		userId: number,
+		id: number,
+	): Promise<ServiceResponse<[]>> {
+		const investmentDetails = await db.FixedInvestmentDetails.findOne({
+			where: { id, user_id: userId },
+		})
+		if (!investmentDetails) {
+			return { status: 404, message: 'Investment not found', data: [] }
+		}
+		await investmentDetails.destroy()
+		return { status: 200, message: 'Success', data: [] }
 	}
 }

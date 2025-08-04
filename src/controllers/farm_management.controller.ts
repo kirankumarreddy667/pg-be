@@ -78,6 +78,53 @@ export class FarmManagementController {
 		}
 	}
 
+	public static readonly updateInvestmentDetails: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const userId = Number((req.user as User)?.id)
+			const id = Number(req.params.id)
+			const { amount_in_rs, date_of_installation_or_purchase } = req.body as {
+				amount_in_rs: number
+				date_of_installation_or_purchase: string
+			}
+			const result = await FarmManagementService.updateInvestmentDetails(
+				userId,
+				id,
+				{ amount_in_rs, date_of_installation_or_purchase },
+			)
+			RESPONSE.SuccessResponse(res, result.status, {
+				message: result.message,
+				data: result.data,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly deleteInvestmentDetails: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const userId = Number((req.user as User)?.id)
+			const id = Number(req.params.id)
+			const result = await FarmManagementService.deleteInvestmentDetails(
+				userId,
+				id,
+			)
+			RESPONSE.SuccessResponse(res, result.status, {
+				message: result.message,
+				data: result.data,
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
 	public static readonly farmTypes: RequestHandler = async (req, res, next) => {
 		try {
 			const language_id = Number(req.params.language_id)

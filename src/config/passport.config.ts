@@ -13,8 +13,9 @@ passport.use(
 		},
 		(_accessToken: string, _refreshToken: string, profile: Profile, done) => {
 			;(async () => {
-				let user = await db.User.findOne({ where: { googleId: profile.id } })
-				console.log(profile)
+				let user = await db.User.findOne({
+					where: { email: profile.emails?.[0]?.value },
+				})
 				if (!user) {
 					user = await db.User.create({
 						googleId: profile.id,
@@ -22,18 +23,20 @@ passport.use(
 						email: profile.emails?.[0]?.value || '',
 						provider: ['google'],
 						avatar: profile.photos?.[0]?.value,
-						emailVerified: profile.emails?.[0]?.verified,
+						emailVerified: true,
 						otp_status: false,
 						phone_number: '',
 					})
 				} else {
-					user.update({
-						googleId: profile.id,
-						avatar: profile.photos?.[0]?.value,
-						emailVerified: profile.emails?.[0]?.verified,
-						provider: ['google'],
-						phone_number: '',
-					})
+					await db.User.update(
+						{
+							googleId: profile.id,
+							avatar: profile.photos?.[0]?.value,
+							emailVerified: true,
+							provider: ['google'],
+						},
+						{ where: { id: user.id } },
+					)
 				}
 				return done(null, user)
 			})().catch((err) => done(err, false))
@@ -51,7 +54,9 @@ passport.use(
 		},
 		(_accessToken: string, _refreshToken: string, profile: Profile, done) => {
 			;(async () => {
-				let user = await db.User.findOne({ where: { facebookId: profile.id } })
+				let user = await db.User.findOne({
+					where: { email: profile.emails?.[0]?.value },
+				})
 				const email = profile.emails?.[0]?.value || ''
 				if (!user) {
 					user = await db.User.create({
@@ -64,6 +69,16 @@ passport.use(
 						otp_status: false,
 						phone_number: email,
 					})
+				} else {
+					await db.User.update(
+						{
+							facebookId: profile.id,
+							avatar: profile.photos?.[0]?.value,
+							emailVerified: true,
+							provider: ['facebook'],
+						},
+						{ where: { id: user.id } },
+					)
 				}
 				return done(null, user)
 			})().catch((err) => done(err, false))
