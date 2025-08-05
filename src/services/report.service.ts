@@ -3926,7 +3926,7 @@ export class ReportService {
 			this.fetchSummaryDataByTag(user_id, start_date, end_date, 31),
 			this.fetchSummaryDataByTag(user_id, start_date, end_date, 32),
 			this.fetchSummaryDataByTag(user_id, start_date, end_date, 33),
-			this.fetchBreedingExpenseDataByDateRange(user_id, start_date, end_date),
+			this.fetchBreedingExpense(user_id, start_date, end_date),
 		])
 
 		return {
@@ -3962,27 +3962,6 @@ export class ReportService {
 							where: { question_tag_id },
 						},
 					],
-				},
-			],
-			raw: true,
-		})
-	}
-
-	private static async fetchBreedingExpenseDataByDateRange(
-		user_id: number,
-		start_date: string,
-		end_date: string,
-	): Promise<InstanceType<typeof db.AnimalQuestionAnswer>[]> {
-		return await db.AnimalQuestionAnswer.findAll({
-			where: {
-				user_id,
-				created_at: { [Op.between]: [start_date, end_date] },
-			},
-			include: [
-				{
-					model: db.CommonQuestions,
-					as: 'CommonQuestion',
-					where: { question_tag: 36 },
 				},
 			],
 			raw: true,
@@ -4367,14 +4346,14 @@ export class ReportService {
 			breedingExpense,
 			daysCount,
 		] = await Promise.all([
-			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 1),
-			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 30),
-			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 31),
-			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 32),
-			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 33),
-			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 22),
-			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 37),
-			this.fetchBreedingExpenseDataByDateRange(user_id, start_date, end_date),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 1),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 30),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 31),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 32),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 33),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 22),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 37),
+			this.fetchBreedingExpense(user_id, start_date, end_date),
 			this.fetchDaysCount(user_id, start_date, end_date),
 		])
 
@@ -4389,34 +4368,6 @@ export class ReportService {
 			breedingExpense,
 			daysCount,
 		}
-	}
-
-	private static async fetchTotalExpenseDataByTag(
-		user_id: number,
-		start_date: string,
-		end_date: string,
-		question_tag_id: number,
-	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
-		return await db.DailyRecordQuestionAnswer.findAll({
-			where: {
-				user_id,
-				answer_date: { [Op.between]: [start_date, end_date] },
-			},
-			include: [
-				{
-					model: db.DailyRecordQuestion,
-					as: 'DailyRecordQuestion',
-					include: [
-						{
-							model: db.QuestionTagMapping,
-							as: 'QuestionTagMappings',
-							where: { question_tag_id },
-						},
-					],
-				},
-			],
-			raw: true,
-		})
 	}
 
 	private static async fetchDaysCount(
@@ -4696,7 +4647,7 @@ export class ReportService {
 					animal.animal_number,
 					date,
 				)
-				if (healthData && healthData.date) {
+				if (healthData?.date) {
 					resData.push(healthData)
 				}
 			}
