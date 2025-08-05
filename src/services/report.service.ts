@@ -80,14 +80,7 @@ export interface IncomeExpenseResult {
 		totalSupplement: string
 	}
 }
-interface VaccinationDetailWithUserTypes {
-	UserVaccinationTypes?: { VaccinationType?: { type?: string } }[]
-	date?: string | Date
-}
-interface VaccinationListItem {
-	type: string
-	date: string
-}
+
 interface AnimalQuestionAnswerIncluded {
 	created_at: string | Date
 	answer?: string
@@ -884,109 +877,126 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<ProfitLossGraphRow[]> {
-		const date_from = new Date(start_date)
-		const date_to = new Date(end_date)
-		const dates: string[] = []
-		for (
-			let d = new Date(date_from);
-			d <= date_to;
-			d.setDate(d.getDate() + 1)
-		) {
-			dates.push(d.toISOString().split('T')[0])
-		}
+		const dates = this.generateDateRange(start_date, end_date)
 		const resData: ProfitLossGraphRow[] = []
+
 		for (const date of dates) {
-			const newDate = new Date(date).toLocaleDateString('en-GB', {
-				day: 'numeric',
-				month: 'short',
-				year: 'numeric',
-			})
-			let profit = 0
-			let loss = 0
-			let totalWithSellingAndPurchasePrice = 0
-			let totalIncomeWithSellingPrice = 0
-			let totalExpenseWithPurchasePrice = 0
-			// Income (question_tag_id 2,28)
-			const income = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: { [Op.in]: [2, 28] } },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const value1 of income as { answer: string }[]) {
-				const answer = JSON.parse(value1.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuew of answer) {
-					const amount = valuew.amount || 1
-					const price = valuew.price * amount
-					totalIncomeWithSellingPrice += price
-				}
-			}
-			// Expense (question_tag_id 1,22)
-			const expense = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: { [Op.in]: [1, 22] } },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const value3 of expense as { answer: string }[]) {
-				const answer = JSON.parse(value3.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuea of answer) {
-					const amount = valuea.amount || 1
-					const price = valuea.price * amount
-					totalExpenseWithPurchasePrice += price
-				}
-			}
-			totalWithSellingAndPurchasePrice =
-				totalIncomeWithSellingPrice - totalExpenseWithPurchasePrice
-			if (totalWithSellingAndPurchasePrice > 0) {
-				profit = totalWithSellingAndPurchasePrice
-			} else {
-				loss = Math.abs(totalWithSellingAndPurchasePrice)
-			}
-			const abc: ProfitLossGraphRow = {
-				date: newDate,
-				profit: profit.toFixed(2),
-				loss: loss.toFixed(2),
-			}
-			if (abc.profit !== '0.00' || abc.loss !== '0.00') {
-				resData.push(abc)
+			const profitLossData = await this.calculateProfitLossForDate(
+				user_id,
+				date,
+			)
+			if (profitLossData) {
+				resData.push(profitLossData)
 			}
 		}
+
 		return resData
+	}
+
+	private static async calculateProfitLossForDate(
+		user_id: number,
+		date: string,
+	): Promise<ProfitLossGraphRow | null> {
+		const newDate = this.formatDate(date)
+		const [totalIncomeWithSellingPrice, totalExpenseWithPurchasePrice] =
+			await Promise.all([
+				this.calculateIncomeWithSellingPrice(user_id, date),
+				this.calculateExpenseWithPurchasePrice(user_id, date),
+			])
+
+		const totalWithSellingAndPurchasePrice =
+			totalIncomeWithSellingPrice - totalExpenseWithPurchasePrice
+		const { profit, loss } = this.calculateProfitAndLoss(
+			totalWithSellingAndPurchasePrice,
+		)
+
+		const result: ProfitLossGraphRow = {
+			date: newDate,
+			profit: profit.toFixed(2),
+			loss: loss.toFixed(2),
+		}
+
+		return result.profit !== '0.00' || result.loss !== '0.00' ? result : null
+	}
+
+	private static formatDate(date: string): string {
+		return new Date(date).toLocaleDateString('en-GB', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric',
+		})
+	}
+
+	private static async calculateIncomeWithSellingPrice(
+		user_id: number,
+		date: string,
+	): Promise<number> {
+		const income = await this.fetchDailyRecordQuestions(user_id, date, [2, 28])
+		return this.calculateTotalFromAnswers(income)
+	}
+
+	private static async calculateExpenseWithPurchasePrice(
+		user_id: number,
+		date: string,
+	): Promise<number> {
+		const expense = await this.fetchDailyRecordQuestions(user_id, date, [1, 22])
+		return this.calculateTotalFromAnswers(expense)
+	}
+
+	private static async fetchDailyRecordQuestions(
+		user_id: number,
+		date: string,
+		questionTagIds: number[],
+	): Promise<{ answer: string }[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: date,
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id: { [Op.in]: questionTagIds } },
+						},
+					],
+				},
+			],
+			order: [['answer_date', 'DESC']],
+		})
+	}
+
+	private static calculateTotalFromAnswers(
+		records: { answer: string }[],
+	): number {
+		let total = 0
+		for (const record of records) {
+			const answer = JSON.parse(record.answer) as Array<{
+				price: number
+				amount: number
+			}>
+			for (const item of answer) {
+				const amount = item.amount || 1
+				const price = item.price * amount
+				total += price
+			}
+		}
+		return total
+	}
+
+	private static calculateProfitAndLoss(total: number): {
+		profit: number
+		loss: number
+	} {
+		if (total > 0) {
+			return { profit: total, loss: 0 }
+		} else {
+			return { profit: 0, loss: Math.abs(total) }
+		}
 	}
 
 	public static async profitLossPDFData(
@@ -994,112 +1004,67 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<ProfitLossRow[]> {
-		const date_from = new Date(start_date)
-		const date_to = new Date(end_date)
-		const dates: string[] = []
-		for (
-			let d = new Date(date_from);
-			d <= date_to;
-			d.setDate(d.getDate() + 1)
-		) {
-			dates.push(d.toISOString().split('T')[0])
-		}
+		const dates = this.generateDateRange(start_date, end_date)
 		const resData: ProfitLossRow[] = []
+
 		for (const date of dates) {
-			const newDate = new Date(date).toLocaleDateString('en-GB', {
-				day: 'numeric',
-				month: 'short',
-				year: 'numeric',
-			})
-			let profit = 0
-			let loss = 0
-			let totalWithoutSellingAndPurchasePrice = 0
-			let totalIncomeWithoutSellingPrice = 0
-			let totalExpenseWithoutPurchasePrice = 0
-			// Income (question_tag_id 2)
-			const income = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 2 },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const value1 of income as { answer: string }[]) {
-				const answer = JSON.parse(value1.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuew of answer) {
-					const amount = valuew.amount || 1
-					const price = valuew.price * amount
-					totalIncomeWithoutSellingPrice += price
-				}
-			}
-			// Expense (question_tag_id 1)
-			const expense = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 1 },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const value3 of expense as { answer: string }[]) {
-				const answer = JSON.parse(value3.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuea of answer) {
-					const amount = valuea.amount || 1
-					const price = valuea.price * amount
-					totalExpenseWithoutPurchasePrice += price
-				}
-			}
-			totalWithoutSellingAndPurchasePrice =
-				totalIncomeWithoutSellingPrice - totalExpenseWithoutPurchasePrice
-			if (totalWithoutSellingAndPurchasePrice > 0) {
-				profit = totalWithoutSellingAndPurchasePrice
-			} else {
-				loss = Math.abs(totalWithoutSellingAndPurchasePrice)
-			}
-			const abc: ProfitLossRow = {
-				date: newDate,
-				profitWithoutSellingAndPurchasePrice: profit.toFixed(2),
-				lossWithoutSellingAndPurchasePrice: loss.toFixed(2),
-			}
-			if (
-				abc.profitWithoutSellingAndPurchasePrice !== '0.00' ||
-				abc.lossWithoutSellingAndPurchasePrice !== '0.00'
-			) {
-				resData.push(abc)
+			const profitLossData =
+				await this.calculateProfitLossWithoutSellingPurchase(user_id, date)
+			if (profitLossData) {
+				resData.push(profitLossData)
 			}
 		}
+
 		return resData
+	}
+
+	private static async calculateProfitLossWithoutSellingPurchase(
+		user_id: number,
+		date: string,
+	): Promise<ProfitLossRow | null> {
+		const newDate = this.formatDate(date)
+		const [totalIncomeWithoutSellingPrice, totalExpenseWithoutPurchasePrice] =
+			await Promise.all([
+				this.calculateIncomeWithoutSellingPrice(user_id, date),
+				this.calculateExpenseWithoutPurchasePrice(user_id, date),
+			])
+
+		const totalWithoutSellingAndPurchasePrice =
+			totalIncomeWithoutSellingPrice - totalExpenseWithoutPurchasePrice
+		const { profit, loss } = this.calculateProfitAndLoss(
+			totalWithoutSellingAndPurchasePrice,
+		)
+
+		const result: ProfitLossRow = {
+			date: newDate,
+			profitWithoutSellingAndPurchasePrice: profit.toFixed(2),
+			lossWithoutSellingAndPurchasePrice: loss.toFixed(2),
+		}
+
+		return this.shouldIncludeProfitLossRow(result) ? result : null
+	}
+
+	private static async calculateIncomeWithoutSellingPrice(
+		user_id: number,
+		date: string,
+	): Promise<number> {
+		const income = await this.fetchDailyRecordQuestions(user_id, date, [2])
+		return this.calculateTotalFromAnswers(income)
+	}
+
+	private static async calculateExpenseWithoutPurchasePrice(
+		user_id: number,
+		date: string,
+	): Promise<number> {
+		const expense = await this.fetchDailyRecordQuestions(user_id, date, [1])
+		return this.calculateTotalFromAnswers(expense)
+	}
+
+	private static shouldIncludeProfitLossRow(result: ProfitLossRow): boolean {
+		return (
+			result.profitWithoutSellingAndPurchasePrice !== '0.00' ||
+			result.lossWithoutSellingAndPurchasePrice !== '0.00'
+		)
 	}
 
 	public static async incomeExpensePDFData(
@@ -1107,278 +1072,176 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<IncomeExpenseResult> {
-		const date_from = new Date(start_date)
-		const date_to = new Date(end_date)
-		const dates: string[] = []
-		for (
-			let d = new Date(date_from);
-			d <= date_to;
-			d.setDate(d.getDate() + 1)
-		) {
-			dates.push(d.toISOString().split('T')[0])
-		}
-		let t_expense = 0
-		let t_income = 0
-		let t_profit = 0
-		let t_greenFeed = 0
-		let t_cattleFeed = 0
-		let t_dryFeed = 0
-		let t_otherExpense = 0
-		let t_supplement = 0
+		const dates = this.generateDateRange(start_date, end_date)
+		const totals = this.initializeTotals()
 		const data: IncomeExpenseRow[] = []
+
 		for (const date of dates) {
-			const newDate = new Date(date).toLocaleDateString('en-GB', {
-				day: 'numeric',
-				month: 'short',
-				year: 'numeric',
-			})
-			let totalExpense = 0
-			let totalIncome = 0
-			let profit = 0
-			let totalGreenFeed = 0
-			let totalCattleFeed = 0
-			let totalDryFeed = 0
-			let otherExpense = 0
-			let totalSupplement = 0
-			// Expense (question_tag_id 1)
-			const expense = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 1 },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const value3 of expense as { answer: string }[]) {
-				const answer = JSON.parse(value3.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuea of answer) {
-					const amount = valuea.amount || 1
-					const price = valuea.price * amount
-					totalExpense += price
-				}
-			}
-			// Income (question_tag_id 2)
-			const income = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 2 },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const value1 of income as { answer: string }[]) {
-				const answer = JSON.parse(value1.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuew of answer) {
-					const amount = valuew.amount || 1
-					const price = valuew.price * amount
-					totalIncome += price
-				}
-			}
-			profit = totalIncome - totalExpense
-			// Green Feed (question_tag_id 30)
-			const greenFeed = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 30 },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const value of greenFeed as { answer: string }[]) {
-				const answer = JSON.parse(value.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valueg of answer) {
-					const amount = valueg.amount || 1
-					const price = valueg.price * amount
-					totalGreenFeed += price
-				}
-			}
-			// Cattle Feed (question_tag_id 31)
-			const cattleFeed = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 31 },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const valuec of cattleFeed as { answer: string }[]) {
-				const answer = JSON.parse(valuec.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuecf of answer) {
-					const amount = valuecf.amount || 1
-					const price = valuecf.price * amount
-					totalCattleFeed += price
-				}
-			}
-			// Dry Feed (question_tag_id 32)
-			const dryFeed = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 32 },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const valued of dryFeed as { answer: string }[]) {
-				const answer = JSON.parse(valued.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuecdf of answer) {
-					const amount = valuecdf.amount || 1
-					const price = valuecdf.price * amount
-					totalDryFeed += price
-				}
-			}
-			// Supplements (question_tag_id 33)
-			const supplements = await db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: date,
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 33 },
-							},
-						],
-					},
-				],
-				order: [['answer_date', 'DESC']],
-			})
-			for (const values of supplements as { answer: string }[]) {
-				const answer = JSON.parse(values.answer) as Array<{
-					price: number
-					amount: number
-				}>
-				for (const valuesup of answer) {
-					const amount = valuesup.amount || 1
-					const price = valuesup.price * amount
-					totalSupplement += price
-				}
-			}
-			otherExpense =
-				totalExpense -
-				(totalGreenFeed + totalCattleFeed + totalDryFeed + totalSupplement)
-			t_expense += totalExpense
-			t_income += totalIncome
-			t_profit += profit
-			t_greenFeed += totalGreenFeed
-			t_cattleFeed += totalCattleFeed
-			t_dryFeed += totalDryFeed
-			t_otherExpense += otherExpense
-			t_supplement += totalSupplement
-			const abc: IncomeExpenseRow = {
-				Date: newDate,
-				Expense: totalExpense.toFixed(2),
-				Income: totalIncome.toFixed(2),
-				Profit: profit.toFixed(2),
-				GreenFeed: totalGreenFeed.toFixed(2),
-				CattleFeed: totalCattleFeed.toFixed(2),
-				DryFeed: totalDryFeed.toFixed(2),
-				OtherExpense: otherExpense.toFixed(2),
-				Supplement: totalSupplement.toFixed(2),
-			}
-			if (
-				abc.Expense !== '0.00' ||
-				abc.Income !== '0.00' ||
-				abc.GreenFeed !== '0.00' ||
-				abc.DryFeed !== '0.00' ||
-				abc.Supplement !== '0.00' ||
-				abc.CattleFeed !== '0.00'
-			) {
-				data.push(abc)
+			const dailyData = await this.processDailyIncomeExpense(user_id, date)
+			if (dailyData) {
+				data.push(dailyData)
+				this.updateTotals(totals, dailyData)
 			}
 		}
+
 		return {
 			expenseData: data,
-			totalExpenseData: {
-				totalExpense: t_expense.toFixed(2),
-				totalIncome: t_income.toFixed(2),
-				totalProfit: t_profit.toFixed(2),
-				totalGreenFeed: t_greenFeed.toFixed(2),
-				totalCattleFeed: t_cattleFeed.toFixed(2),
-				totalDryFeed: t_dryFeed.toFixed(2),
-				totalOtherExpense: t_otherExpense.toFixed(2),
-				totalSupplement: t_supplement.toFixed(2),
-			},
+			totalExpenseData: this.formatTotals(totals),
 		}
+	}
+
+	private static initializeTotals(): {
+		t_expense: number
+		t_income: number
+		t_profit: number
+		t_greenFeed: number
+		t_cattleFeed: number
+		t_dryFeed: number
+		t_otherExpense: number
+		t_supplement: number
+	} {
+		return {
+			t_expense: 0,
+			t_income: 0,
+			t_profit: 0,
+			t_greenFeed: 0,
+			t_cattleFeed: 0,
+			t_dryFeed: 0,
+			t_otherExpense: 0,
+			t_supplement: 0,
+		}
+	}
+
+	private static async processDailyIncomeExpense(
+		user_id: number,
+		date: string,
+	): Promise<IncomeExpenseRow | null> {
+		const newDate = this.formatDate(date)
+		const [totalExpense, totalIncome] = await Promise.all([
+			this.calculateExpenseForDate(user_id, date),
+			this.calculateIncomeForDate(user_id, date),
+		])
+
+		const profit = totalIncome - totalExpense
+		const [totalGreenFeed, totalCattleFeed, totalDryFeed, totalSupplement] =
+			await Promise.all([
+				this.calculateFeedTypeForDate(user_id, date, 30),
+				this.calculateFeedTypeForDate(user_id, date, 31),
+				this.calculateFeedTypeForDate(user_id, date, 32),
+				this.calculateFeedTypeForDate(user_id, date, 33),
+			])
+
+		const otherExpense =
+			totalExpense -
+			(totalGreenFeed + totalCattleFeed + totalDryFeed + totalSupplement)
+
+		const result: IncomeExpenseRow = {
+			Date: newDate,
+			Expense: totalExpense.toFixed(2),
+			Income: totalIncome.toFixed(2),
+			Profit: profit.toFixed(2),
+			GreenFeed: totalGreenFeed.toFixed(2),
+			CattleFeed: totalCattleFeed.toFixed(2),
+			DryFeed: totalDryFeed.toFixed(2),
+			OtherExpense: otherExpense.toFixed(2),
+			Supplement: totalSupplement.toFixed(2),
+		}
+
+		return this.shouldIncludeIncomeExpenseRow(result) ? result : null
+	}
+
+	private static async calculateExpenseForDate(
+		user_id: number,
+		date: string,
+	): Promise<number> {
+		const expense = await this.fetchDailyRecordQuestions(user_id, date, [1])
+		return this.calculateTotalFromAnswers(expense)
+	}
+
+	private static async calculateIncomeForDate(
+		user_id: number,
+		date: string,
+	): Promise<number> {
+		const income = await this.fetchDailyRecordQuestions(user_id, date, [2])
+		return this.calculateTotalFromAnswers(income)
+	}
+
+	private static async calculateFeedTypeForDate(
+		user_id: number,
+		date: string,
+		questionTagId: number,
+	): Promise<number> {
+		const feedData = await this.fetchDailyRecordQuestions(user_id, date, [
+			questionTagId,
+		])
+		return this.calculateTotalFromAnswers(feedData)
+	}
+
+	private static updateTotals(
+		totals: {
+			t_expense: number
+			t_income: number
+			t_profit: number
+			t_greenFeed: number
+			t_cattleFeed: number
+			t_dryFeed: number
+			t_otherExpense: number
+			t_supplement: number
+		},
+		dailyData: IncomeExpenseRow,
+	): void {
+		totals.t_expense += parseFloat(dailyData.Expense)
+		totals.t_income += parseFloat(dailyData.Income)
+		totals.t_profit += parseFloat(dailyData.Profit)
+		totals.t_greenFeed += parseFloat(dailyData.GreenFeed)
+		totals.t_cattleFeed += parseFloat(dailyData.CattleFeed)
+		totals.t_dryFeed += parseFloat(dailyData.DryFeed)
+		totals.t_otherExpense += parseFloat(dailyData.OtherExpense)
+		totals.t_supplement += parseFloat(dailyData.Supplement)
+	}
+
+	private static formatTotals(totals: {
+		t_expense: number
+		t_income: number
+		t_profit: number
+		t_greenFeed: number
+		t_cattleFeed: number
+		t_dryFeed: number
+		t_otherExpense: number
+		t_supplement: number
+	}): {
+		totalExpense: string
+		totalIncome: string
+		totalProfit: string
+		totalGreenFeed: string
+		totalCattleFeed: string
+		totalDryFeed: string
+		totalOtherExpense: string
+		totalSupplement: string
+	} {
+		return {
+			totalExpense: totals.t_expense.toFixed(2),
+			totalIncome: totals.t_income.toFixed(2),
+			totalProfit: totals.t_profit.toFixed(2),
+			totalGreenFeed: totals.t_greenFeed.toFixed(2),
+			totalCattleFeed: totals.t_cattleFeed.toFixed(2),
+			totalDryFeed: totals.t_dryFeed.toFixed(2),
+			totalOtherExpense: totals.t_otherExpense.toFixed(2),
+			totalSupplement: totals.t_supplement.toFixed(2),
+		}
+	}
+
+	private static shouldIncludeIncomeExpenseRow(
+		result: IncomeExpenseRow,
+	): boolean {
+		return (
+			result.Expense !== '0.00' ||
+			result.Income !== '0.00' ||
+			result.GreenFeed !== '0.00' ||
+			result.DryFeed !== '0.00' ||
+			result.Supplement !== '0.00' ||
+			result.CattleFeed !== '0.00'
+		)
 	}
 
 	public static async milkReportPDFData(
@@ -1688,180 +1551,117 @@ export class ReportService {
 		vaccination_details: { type: string; date: string }[]
 		pedigree: Record<string, unknown>
 	}> {
-		// General info
-		const animalType = await db.AnimalQuestionAnswer.findOne({
+		const [animalType, animalImage, vaccinations, motherNo] = await Promise.all(
+			[
+				this.getAnimalType(user_id, animal_id, animal_number),
+				this.getAnimalImage(user_id, animal_id, animal_number),
+				this.getVaccinations(user_id),
+				this.getMotherInfo(user_id, animal_id, animal_number),
+			],
+		)
+
+		const generalData = await this.getGeneralData(
+			user_id,
+			animal_id,
+			animal_number,
+			animalType,
+		)
+		const breedingData = await this.getBreedingData(
+			user_id,
+			animal_id,
+			animal_number,
+		)
+		const milkData = await this.getMilkData(user_id, animal_id, animal_number)
+		const pedigreeData = await this.getPedigreeData(motherNo)
+
+		return {
+			profile_img: this.formatProfileImage(animalImage),
+			general: generalData,
+			breeding_details: breedingData,
+			milk_details: milkData,
+			vaccination_details: this.formatVaccinations(vaccinations),
+			pedigree: pedigreeData,
+		}
+	}
+
+	private static async getAnimalType(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<InstanceType<typeof db.AnimalQuestionAnswer> | null> {
+		return await db.AnimalQuestionAnswer.findOne({
 			where: { user_id, animal_id, animal_number, status: { [Op.ne]: 1 } },
 			include: [{ model: db.Animal, as: 'Animal' }],
 		})
-		// Helper to get last answer by tag
-		async function getLastQuestionAnswerByQuestionTag(
-			animal_id: number,
-			animal_number: string,
-			tag: number,
-		): Promise<{ answer?: string } | null> {
-			return await db.AnimalQuestionAnswer.findOne({
-				where: { user_id, animal_id, animal_number, status: { [Op.ne]: 1 } },
-				include: [
-					{
-						model: db.CommonQuestions,
-						as: 'CommonQuestion',
-						where: { question_tag: tag },
-					},
-				],
-				order: [['created_at', 'DESC']],
-			})
-		}
-		// General
-		const dateOfBirth = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			9,
-		)
-		const weight = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			12,
-		)
-		let breed = ''
-		if (animal_id == 1) {
-			const breeding = await getLastQuestionAnswerByQuestionTag(
-				animal_id,
-				animal_number,
-				62,
-			)
-			breed = breeding ? (breeding.answer ?? '') : ''
-		} else if (animal_id == 2) {
-			const breeding = await getLastQuestionAnswerByQuestionTag(
-				animal_id,
-				animal_number,
-				63,
-			)
-			breed = breeding ? (breeding.answer ?? '') : ''
-		}
-		const pregnancyCycle = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			59,
-		)
-		// Age
-		let age = 0
-		if (dateOfBirth?.answer) {
-			const bday = new Date(dateOfBirth.answer)
-			const today = new Date()
-			age = today.getFullYear() - bday.getFullYear()
-		}
-		// Pregnancy status
-		const pregnantStatus = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			15,
-		)
-		// Lactating status
-		const milkingStatus = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			16,
-		)
-		// Last delivery
-		const lastDeliveryDate = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			66,
-		)
-		// Bull no for AI
-		const BullNoForAI = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			35,
-		)
-		// Fat/SNF
-		const morning_fat = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			17,
-		)
-		const evening_fat = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			19,
-		)
-		const m_fat = morning_fat ? (morning_fat.answer ?? '') : ''
-		const e_fat = evening_fat ? (evening_fat.answer ?? '') : ''
-		const last_known_fat =
-			(parseFloat(m_fat ?? '') || 0) + (parseFloat(e_fat ?? '') || 0)
-		const morning_snf = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			18,
-		)
-		const evening_snf = await getLastQuestionAnswerByQuestionTag(
-			animal_id,
-			animal_number,
-			20,
-		)
-		const m_snf = morning_snf?.answer ?? ''
-		const e_snf = evening_snf?.answer ?? ''
-		const last_known_snf =
-			(parseFloat(m_snf ?? '') || 0) + (parseFloat(e_snf ?? '') || 0)
-		// Animal image
-		const animalImage = await db.AnimalImage.findOne({
+	}
+
+	private static async getAnimalImage(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<{ image?: string } | null> {
+		return await db.AnimalImage.findOne({
 			where: { user_id, animal_id, animal_number },
 		})
-		// Vaccinations
-		const vaccinations = await db.VaccinationDetail.findAll({
+	}
+
+	private static async getVaccinations(
+		user_id: number,
+	): Promise<InstanceType<typeof db.VaccinationDetail>[]> {
+		return await db.VaccinationDetail.findAll({
 			where: { user_id },
 			include: [
 				{
-					model: db.AnimalVaccination,
-					as: 'AnimalVaccinations',
-					where: { animal_number },
-					required: false,
-				},
-				{
-					model: db.UserVaccinationType,
-					as: 'UserVaccinationTypes',
-					required: false,
-					include: [{ model: db.VaccinationType, as: 'VaccinationType' }],
+					model: db.VaccinationType,
+					as: 'VaccinationType',
 				},
 			],
 		})
+	}
 
-		const vaccination_list: VaccinationListItem[] = vaccinations.map(
-			(v: VaccinationDetailWithUserTypes) => ({
-				type: v.UserVaccinationTypes?.[0]?.VaccinationType?.type ?? '',
-				date: String(v.date ?? ''),
-			}),
-		)
-		// Mother info
-		const motherNo = await db.AnimalMotherCalf.findOne({
+	private static async getMotherInfo(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<InstanceType<typeof db.AnimalMotherCalf> | null> {
+		return await db.AnimalMotherCalf.findOne({
 			where: { user_id, animal_id, calf_animal_number: animal_number },
 		})
-		let mother_milk_yield = 0
-		const motherBullNoUsedForAI = ''
-		const semen_co_name = ''
-		const sire_dam_yield = ''
-		if (motherNo) {
-			mother_milk_yield =
-				(await db.DailyMilkRecord.sum('morning_milk_in_litres', {
-					where: {
-						user_id,
-						animal_id,
-						animal_number: motherNo.mother_animal_number || '',
-					},
-				})) +
-				(await db.DailyMilkRecord.sum('evening_milk_in_litres', {
-					where: {
-						user_id,
-						animal_id,
-						animal_number: motherNo.mother_animal_number || '',
-					},
-				}))
-			// BullNoForAI, semenCoName, bullMotherYield can be fetched similarly if needed
-		}
-		// General
-		const general = {
+	}
+
+	private static async getGeneralData(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+		animalType: InstanceType<typeof db.AnimalQuestionAnswer> | null,
+	): Promise<Record<string, unknown>> {
+		const [dateOfBirth, weight, pregnancyCycle] = await Promise.all([
+			this.getLastQuestionAnswerByQuestionTag(
+				user_id,
+				animal_id,
+				animal_number,
+				9,
+			),
+			this.getLastQuestionAnswerByQuestionTag(
+				user_id,
+				animal_id,
+				animal_number,
+				12,
+			),
+			this.getLastQuestionAnswerByQuestionTag(
+				user_id,
+				animal_id,
+				animal_number,
+				59,
+			),
+		])
+
+		const breed = await this.getBreed(user_id, animal_id, animal_number)
+		const age = this.calculateAge(dateOfBirth)
+
+		return {
 			animal_type: animalType
-				? (animalType.get('Animal') as { name?: string })?.name || ''
+				? (animalType as { Animal?: { name?: string } }).Animal?.name || ''
 				: '',
 			birth: dateOfBirth ? dateOfBirth.answer : '',
 			weight: weight ? weight.answer : '',
@@ -1870,47 +1670,220 @@ export class ReportService {
 			lactation_number: pregnancyCycle ? pregnancyCycle.answer : '',
 			animal_number,
 		}
-		// Breeding details
-		const breeding_details = {
+	}
+
+	private static async getBreedingData(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<Record<string, unknown>> {
+		const [pregnantStatus, milkingStatus, lastDeliveryDate, BullNoForAI] =
+			await Promise.all([
+				this.getLastQuestionAnswerByQuestionTag(
+					user_id,
+					animal_id,
+					animal_number,
+					15,
+				),
+				this.getLastQuestionAnswerByQuestionTag(
+					user_id,
+					animal_id,
+					animal_number,
+					16,
+				),
+				this.getLastQuestionAnswerByQuestionTag(
+					user_id,
+					animal_id,
+					animal_number,
+					66,
+				),
+				this.getLastQuestionAnswerByQuestionTag(
+					user_id,
+					animal_id,
+					animal_number,
+					35,
+				),
+			])
+
+		return {
 			pregnant_status: pregnantStatus ? pregnantStatus.answer : '',
 			lactating_status: milkingStatus ? milkingStatus.answer : '',
 			last_delivery_date: lastDeliveryDate ? lastDeliveryDate.answer : '',
 			days_in_milk: 0, // Not calculated here
 			last_breeding_bull_no: BullNoForAI ? BullNoForAI.answer : '',
 		}
-		// Milk details
-		const milk_details = {
+	}
+
+	private static async getMilkData(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<Record<string, unknown>> {
+		const [morning_fat, evening_fat, morning_snf, evening_snf] =
+			await Promise.all([
+				this.getLastQuestionAnswerByQuestionTag(
+					user_id,
+					animal_id,
+					animal_number,
+					17,
+				),
+				this.getLastQuestionAnswerByQuestionTag(
+					user_id,
+					animal_id,
+					animal_number,
+					19,
+				),
+				this.getLastQuestionAnswerByQuestionTag(
+					user_id,
+					animal_id,
+					animal_number,
+					18,
+				),
+				this.getLastQuestionAnswerByQuestionTag(
+					user_id,
+					animal_id,
+					animal_number,
+					20,
+				),
+			])
+
+		const last_known_fat = this.calculateFatSNF(morning_fat, evening_fat)
+		const last_known_snf = this.calculateFatSNF(morning_snf, evening_snf)
+
+		return {
 			average_daily_milk: '', // Not calculated here
 			current_lactation_milk_yield: '', // Not calculated here
 			last_lactation_milk_yield: '', // Not calculated here
 			last_known_snf: (last_known_snf / 2).toFixed(2),
 			last_known_fat: (last_known_fat / 2).toFixed(2),
 		}
-		// Pedigree
-		const pedigree = {
+	}
+
+	private static async getPedigreeData(
+		motherNo: { mother_animal_number?: string } | null,
+	): Promise<Record<string, unknown>> {
+		let mother_milk_yield = 0
+		if (motherNo) {
+			mother_milk_yield = await this.calculateMotherMilkYield(motherNo)
+		}
+
+		return {
 			mother: {
 				tag_no: motherNo ? motherNo.mother_animal_number : '',
 				milk_yield: mother_milk_yield ? mother_milk_yield.toFixed(1) : '',
 			},
 			father: {
-				tag_no: motherBullNoUsedForAI,
-				semen_co_name: semen_co_name,
-				sire_dam_yield: sire_dam_yield ? Number(sire_dam_yield).toFixed(1) : '',
+				tag_no: '',
+				semen_co_name: '',
+				sire_dam_yield: '',
 				daughter_yield: '',
 			},
 		}
-		return {
-			profile_img: {
-				image: animalImage?.image
-					? `profile_img/thumb/${animalImage.image}`
-					: '',
-			},
-			general,
-			breeding_details,
-			milk_details,
-			vaccination_details: vaccination_list,
-			pedigree,
+	}
+
+	private static async getLastQuestionAnswerByQuestionTag(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+		tag: number,
+	): Promise<{ answer?: string } | null> {
+		return await db.AnimalQuestionAnswer.findOne({
+			where: { user_id, animal_id, animal_number, status: { [Op.ne]: 1 } },
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'CommonQuestion',
+					where: { question_tag: tag },
+				},
+			],
+			order: [['created_at', 'DESC']],
+		})
+	}
+
+	private static async getBreed(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<string> {
+		if (animal_id === 1) {
+			const breeding = await this.getLastQuestionAnswerByQuestionTag(
+				user_id,
+				animal_id,
+				animal_number,
+				62,
+			)
+			return breeding ? (breeding.answer ?? '') : ''
+		} else if (animal_id === 2) {
+			const breeding = await this.getLastQuestionAnswerByQuestionTag(
+				user_id,
+				animal_id,
+				animal_number,
+				63,
+			)
+			return breeding ? (breeding.answer ?? '') : ''
 		}
+		return ''
+	}
+
+	private static calculateAge(dateOfBirth: { answer?: string } | null): number {
+		if (!dateOfBirth?.answer) return 0
+		const bday = new Date(dateOfBirth.answer)
+		const today = new Date()
+		return today.getFullYear() - bday.getFullYear()
+	}
+
+	private static calculateFatSNF(
+		morning: { answer?: string } | null,
+		evening: { answer?: string } | null,
+	): number {
+		const m_value = morning ? (morning.answer ?? '') : ''
+		const e_value = evening ? (evening.answer ?? '') : ''
+		return (parseFloat(m_value ?? '') || 0) + (parseFloat(e_value ?? '') || 0)
+	}
+
+	private static async calculateMotherMilkYield(
+		motherNo: {
+			user_id?: number
+			animal_id?: number
+			mother_animal_number?: string
+		} | null,
+	): Promise<number> {
+		const [morningSum, eveningSum] = await Promise.all([
+			db.DailyMilkRecord.sum('morning_milk_in_litres', {
+				where: {
+					user_id: motherNo?.user_id,
+					animal_id: motherNo?.animal_id,
+					animal_number: motherNo?.mother_animal_number || '',
+				},
+			}),
+			db.DailyMilkRecord.sum('evening_milk_in_litres', {
+				where: {
+					user_id: motherNo?.user_id,
+					animal_id: motherNo?.animal_id,
+					animal_number: motherNo?.mother_animal_number || '',
+				},
+			}),
+		])
+		return (morningSum || 0) + (eveningSum || 0)
+	}
+
+	private static formatProfileImage(animalImage: { image?: string } | null): {
+		image: string
+	} {
+		return {
+			image: animalImage?.image || '',
+		}
+	}
+
+	private static formatVaccinations(
+		vaccinations: InstanceType<typeof db.VaccinationDetail>[],
+	): { type: string; date: string }[] {
+		return vaccinations.map((vaccination) => ({
+			type:
+				(vaccination as { VaccinationType?: { type?: string } }).VaccinationType
+					?.type || '',
+			date: '',
+		}))
 	}
 
 	static async animalBreedingHistoryData(
@@ -1918,7 +1891,25 @@ export class ReportService {
 		animal_id: number,
 		animal_number: string,
 	): Promise<AnimalBreedingHistoryResult> {
-		// AI History
+		const [aiHistory, deliveryHistory, heatHistory] = await Promise.all([
+			this.getAIHistory(user_id, animal_id, animal_number),
+			this.getDeliveryHistory(user_id, animal_id, animal_number),
+			this.getHeatHistory(user_id, animal_id, animal_number),
+		])
+
+		return {
+			animal_number,
+			aiHistory,
+			deliveryHistory,
+			heatHistory,
+		}
+	}
+
+	private static async getAIHistory(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<AIHistoryItem[]> {
 		const AI = (await db.CommonQuestions.findAll({
 			where: { question_tag: { [Op.in]: [23, 35, 42, 14] } },
 			include: [
@@ -1935,28 +1926,49 @@ export class ReportService {
 			],
 			order: [['created_at', 'DESC']],
 		})) as CommonQuestionsIncluded[]
-		const ai: Record<string, AIHistoryItem> = {}
+
 		const aiHistory: Record<string, AIHistoryItem> = {}
 		for (const value of AI) {
 			const aqa = value.AnimalQuestionAnswers?.[0]
 			if (!aqa) continue
 			const createdAtKey = String(aqa.created_at)
-			if (value.question_tag === 23) {
-				ai[createdAtKey] = ai[createdAtKey] || {}
-				ai[createdAtKey]['dateOfAI'] = aqa.answer ?? ''
-			} else if (value.question_tag === 35) {
-				ai[createdAtKey] = ai[createdAtKey] || {}
-				ai[createdAtKey]['bullNumber'] = aqa.answer ?? ''
-			} else if (value.question_tag === 42) {
-				ai[createdAtKey] = ai[createdAtKey] || {}
-				ai[createdAtKey]['motherYield'] = aqa.answer ?? ''
-			} else if (value.question_tag === 14) {
-				ai[createdAtKey] = ai[createdAtKey] || {}
-				ai[createdAtKey]['semenCompanyName'] = aqa.answer ?? ''
-			}
-			aiHistory[createdAtKey] = ai[createdAtKey]
+			aiHistory[createdAtKey] = aiHistory[createdAtKey] || {}
+			this.updateAIHistoryItem(
+				aiHistory[createdAtKey],
+				value.question_tag,
+				aqa.answer,
+			)
 		}
-		// Delivery History
+
+		return Object.values(aiHistory)
+	}
+
+	private static updateAIHistoryItem(
+		item: AIHistoryItem,
+		questionTag: number,
+		answer: string | undefined,
+	): void {
+		switch (questionTag) {
+			case 23:
+				item.dateOfAI = answer ?? ''
+				break
+			case 35:
+				item.bullNumber = answer ?? ''
+				break
+			case 42:
+				item.motherYield = answer ?? ''
+				break
+			case 14:
+				item.semenCompanyName = answer ?? ''
+				break
+		}
+	}
+
+	private static async getDeliveryHistory(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<DeliveryHistoryItem[]> {
 		const Delivery = (await db.CommonQuestions.findAll({
 			where: { question_tag: { [Op.in]: [65, 66] } },
 			include: [
@@ -1973,34 +1985,73 @@ export class ReportService {
 			],
 			order: [['created_at', 'DESC']],
 		})) as CommonQuestionsIncluded[]
-		const delivery: Record<string, DeliveryHistoryItem> = {}
+
 		const deliveryHistory: Record<string, DeliveryHistoryItem> = {}
 		for (const value of Delivery) {
 			const aqa = value.AnimalQuestionAnswers?.[0]
 			if (!aqa) continue
 			const createdAtKey = String(aqa.created_at)
-			if (value.question_tag === 65) {
-				delivery[createdAtKey] = delivery[createdAtKey] || {}
-				delivery[createdAtKey]['dateOfDelvery'] = aqa.answer ?? ''
-				// Calf number
-				const calf = await db.AnimalMotherCalf.findOne({
-					where: {
-						user_id,
-						animal_id,
-						mother_animal_number: animal_number,
-						delivery_date: aqa.answer ?? '',
-					},
-				})
-				delivery[createdAtKey]['calfNumber'] = calf
-					? calf.calf_animal_number
-					: null
-			} else if (value.question_tag === 66) {
-				delivery[createdAtKey] = delivery[createdAtKey] || {}
-				delivery[createdAtKey]['typeOfDelivery'] = aqa.answer ?? ''
-			}
-			deliveryHistory[createdAtKey] = delivery[createdAtKey]
+			deliveryHistory[createdAtKey] = deliveryHistory[createdAtKey] || {}
+			await this.updateDeliveryHistoryItem(
+				deliveryHistory[createdAtKey],
+				value.question_tag,
+				aqa.answer,
+				user_id,
+				animal_id,
+				animal_number,
+			)
 		}
-		// Heat Events
+
+		return Object.values(deliveryHistory)
+	}
+
+	private static async updateDeliveryHistoryItem(
+		item: DeliveryHistoryItem,
+		questionTag: number,
+		answer: string | undefined,
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<void> {
+		switch (questionTag) {
+			case 65:
+				item.dateOfDelvery = answer ?? ''
+				item.calfNumber = await this.getCalfNumber(
+					user_id,
+					animal_id,
+					animal_number,
+					answer,
+				)
+				break
+			case 66:
+				item.typeOfDelivery = answer ?? ''
+				break
+		}
+	}
+
+	private static async getCalfNumber(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+		deliveryDate: string | undefined,
+	): Promise<string | null> {
+		if (!deliveryDate) return null
+		const calf = await db.AnimalMotherCalf.findOne({
+			where: {
+				user_id,
+				animal_id,
+				mother_animal_number: animal_number,
+				delivery_date: deliveryDate,
+			},
+		})
+		return calf ? calf.calf_animal_number : null
+	}
+
+	private static async getHeatHistory(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<{ heatDate: string }[]> {
 		const heatEvents = (await db.CommonQuestions.findAll({
 			where: { question_tag: 64 },
 			include: [
@@ -2017,18 +2068,11 @@ export class ReportService {
 			],
 			order: [['created_at', 'DESC']],
 		})) as CommonQuestionsIncluded[]
-		const heatEventDates: { heatDate: string }[] = []
-		for (const value of heatEvents) {
-			const aqa = value.AnimalQuestionAnswers?.[0]
-			if (!aqa) continue
-			heatEventDates.push({ heatDate: aqa.answer ?? '' })
-		}
-		return {
-			animal_number,
-			aiHistory: Object.values(aiHistory),
-			deliveryHistory: Object.values(deliveryHistory),
-			heatHistory: heatEventDates,
-		}
+
+		return heatEvents
+			.map((value) => value.AnimalQuestionAnswers?.[0])
+			.filter((aqa) => aqa)
+			.map((aqa) => ({ heatDate: aqa!.answer ?? '' }))
 	}
 
 	public static async allAnimalBreedingHistoryData(
@@ -2103,124 +2147,173 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<ProfitLossRowWithBreedingExpense[]> {
-		const date_from = new Date(start_date)
-		const date_to = new Date(end_date)
-		const dates: string[] = []
-		for (
-			let d = new Date(date_from);
-			d <= date_to;
-			d.setDate(d.getDate() + 1)
-		) {
-			dates.push(d.toISOString().split('T')[0])
-		}
+		const dates = this.generateDateRange(start_date, end_date)
+		const [incomeMap, expenseMap, breedingMap] = await this.fetchProfitLossData(
+			user_id,
+			start_date,
+			end_date,
+		)
 
-		// Batch fetch all income, expense, and breeding expense answers for the date range
+		return this.buildProfitLossResults(
+			dates,
+			incomeMap,
+			expenseMap,
+			breedingMap,
+		)
+	}
+
+	private static async fetchProfitLossData(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<[Map<string, number>, Map<string, number>, Map<string, number>]> {
 		const [incomeAnswers, expenseAnswers, breedingAnswers] = await Promise.all([
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 2 },
-							},
-						],
-					},
-				],
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 1 },
-							},
-						],
-					},
-				],
-			}),
-			db.CommonQuestions.findAll({
-				where: { question_tag: 36 },
-				include: [
-					{
-						model: db.AnimalQuestionAnswer,
-						as: 'AnimalQuestionAnswers',
-						where: {
-							user_id,
-							created_at: {
-								[Op.between]: [
-									`${start_date} 00:00:00`,
-									`${end_date} 23:59:59`,
-								],
-							},
-						},
-					},
-				],
-			}),
+			this.fetchIncomeAnswers(user_id, start_date, end_date),
+			this.fetchExpenseAnswers(user_id, start_date, end_date),
+			this.fetchBreedingAnswers(user_id, start_date, end_date),
 		])
 
-		// Aggregate by date
+		const incomeMap = this.processIncomeMap(incomeAnswers)
+		const expenseMap = this.processExpenseMap(expenseAnswers)
+		const breedingMap = this.processBreedingMap(breedingAnswers)
+
+		return [incomeMap, expenseMap, breedingMap]
+	}
+
+	private static async fetchIncomeAnswers(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id: 2 },
+						},
+					],
+				},
+			],
+		})
+	}
+
+	private static async fetchExpenseAnswers(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id: 1 },
+						},
+					],
+				},
+			],
+		})
+	}
+
+	private static async fetchBreedingAnswers(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.CommonQuestions>[]> {
+		return await db.CommonQuestions.findAll({
+			where: { question_tag: 36 },
+			include: [
+				{
+					model: db.AnimalQuestionAnswer,
+					as: 'AnimalQuestionAnswers',
+					where: {
+						user_id,
+						created_at: {
+							[Op.between]: [`${start_date} 00:00:00`, `${end_date} 23:59:59`],
+						},
+					},
+				},
+			],
+		})
+	}
+
+	private static processIncomeMap(
+		incomeAnswers: InstanceType<typeof db.DailyRecordQuestionAnswer>[],
+	): Map<string, number> {
 		const incomeMap = new Map<string, number>()
-		for (const ans of incomeAnswers) {
-			const answer_date =
-				ans.answer_date instanceof Date
-					? ans.answer_date.toISOString().split('T')[0]
-					: String(ans.answer_date).split('T')[0]
-			const arr = JSON.parse(ans.answer) as Array<{
-				price: number
-				amount?: number
-			}>
-			let sum = incomeMap.get(answer_date) || 0
-			for (const v of arr) sum += v.price * (v.amount ?? 1)
-			incomeMap.set(answer_date, sum)
+		for (const answer of incomeAnswers) {
+			const dateKey = this.formatAnswerDate(answer.answer_date)
+			const amount = parseFloat(answer.answer || '0')
+			incomeMap.set(dateKey, (incomeMap.get(dateKey) || 0) + amount)
 		}
+		return incomeMap
+	}
+
+	private static processExpenseMap(
+		expenseAnswers: InstanceType<typeof db.DailyRecordQuestionAnswer>[],
+	): Map<string, number> {
 		const expenseMap = new Map<string, number>()
-		for (const ans of expenseAnswers) {
-			const answer_date =
-				ans.answer_date instanceof Date
-					? ans.answer_date.toISOString().split('T')[0]
-					: String(ans.answer_date).split('T')[0]
-			const arr = JSON.parse(ans.answer) as Array<{
-				price: number
-				amount?: number
-			}>
-			let sum = expenseMap.get(answer_date) || 0
-			for (const v of arr) sum += v.price * (v.amount ?? 1)
-			expenseMap.set(answer_date, sum)
+		for (const answer of expenseAnswers) {
+			const dateKey = this.formatAnswerDate(answer.answer_date)
+			const amount = parseFloat(answer.answer || '0')
+			expenseMap.set(dateKey, (expenseMap.get(dateKey) || 0) + amount)
 		}
+		return expenseMap
+	}
+
+	private static processBreedingMap(
+		breedingAnswers: InstanceType<typeof db.CommonQuestions>[],
+	): Map<string, number> {
 		const breedingMap = new Map<string, number>()
-		for (const q of breedingAnswers as {
-			AnimalQuestionAnswers?: { answer: string; created_at: Date }[]
-		}[]) {
-			if (q.AnimalQuestionAnswers) {
-				for (const aqa of q.AnimalQuestionAnswers) {
-					const date =
-						aqa.created_at instanceof Date
-							? aqa.created_at.toISOString().split('T')[0]
-							: String(aqa.created_at).split('T')[0]
-					const val = parseFloat(aqa.answer)
-					if (!isNaN(val))
-						breedingMap.set(date, (breedingMap.get(date) || 0) + val)
+		for (const question of breedingAnswers) {
+			const animalAnswers = (
+				question as {
+					AnimalQuestionAnswers?: {
+						created_at: string | Date
+						answer?: string
+					}[]
+				}
+			).AnimalQuestionAnswers
+			if (animalAnswers) {
+				for (const answer of animalAnswers) {
+					const dateKey = this.formatAnswerDate(answer.created_at)
+					const amount = parseFloat(answer.answer || '0')
+					breedingMap.set(dateKey, (breedingMap.get(dateKey) || 0) + amount)
 				}
 			}
 		}
+		return breedingMap
+	}
 
-		// Build result
+	private static formatAnswerDate(date: Date | string): string {
+		return date instanceof Date
+			? date.toISOString().split('T')[0]
+			: String(date).split('T')[0]
+	}
+
+	private static buildProfitLossResults(
+		dates: string[],
+		incomeMap: Map<string, number>,
+		expenseMap: Map<string, number>,
+		breedingMap: Map<string, number>,
+	): ProfitLossRowWithBreedingExpense[] {
 		return dates.map((date) => {
 			const income = incomeMap.get(date) || 0
 			const expense = expenseMap.get(date) || 0
@@ -3499,6 +3592,28 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<ProfitLossReportResult> {
+		const data = await this.fetchProfitLossReportData(
+			user_id,
+			start_date,
+			end_date,
+		)
+		const calculations = this.calculateProfitLossTotals(data)
+		return this.buildProfitLossReportResult(calculations)
+	}
+
+	private static async fetchProfitLossReportData(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<{
+		incomeWithSellingPrice: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		income: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		breedingExpense: InstanceType<typeof db.AnimalQuestionAnswer>[]
+		expenseWithPurchasePrice: InstanceType<
+			typeof db.DailyRecordQuestionAnswer
+		>[]
+		expense: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+	}> {
 		const [
 			incomeWithSellingPrice,
 			income,
@@ -3506,189 +3621,266 @@ export class ReportService {
 			expenseWithPurchasePrice,
 			expense,
 		] = await Promise.all([
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: [28, 2] },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 2 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.AnimalQuestionAnswer.findAll({
-				where: {
-					user_id,
-					created_at: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.CommonQuestions,
-						as: 'CommonQuestion',
-						where: { question_tag: 36 },
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: { [Op.in]: [1, 22] } },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 1 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
+			this.fetchIncomeWithSellingPrice(user_id, start_date, end_date),
+			this.fetchIncome(user_id, start_date, end_date),
+			this.fetchBreedingExpense(user_id, start_date, end_date),
+			this.fetchExpenseWithPurchasePrice(user_id, start_date, end_date),
+			this.fetchExpense(user_id, start_date, end_date),
 		])
-		let totalIncome = 0,
-			totalExpense = 0,
-			profit = 0,
-			loss = 0,
-			totalIncomeWithoutSellingPrice = 0,
-			totalExpenseWithoutPurchasePrice = 0,
-			profitWithoutSellingAndPurchasePrice = 0,
-			lossWithoutSellingAndPurchasePrice = 0,
-			breedingTotal = 0
-		for (const value of income as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalIncomeWithoutSellingPrice += price
-			}
+
+		return {
+			incomeWithSellingPrice,
+			income,
+			breedingExpense,
+			expenseWithPurchasePrice,
+			expense,
 		}
-		for (const value of incomeWithSellingPrice as unknown as {
-			answer: string
-		}[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalIncome += price
-			}
-		}
-		for (const value of breedingExpense as unknown as { answer: string }[]) {
-			const val = parseFloat(value.answer)
-			if (!isNaN(val)) breedingTotal += val
-		}
-		for (const value of expense as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalExpenseWithoutPurchasePrice += price
-			}
-		}
-		for (const value of expenseWithPurchasePrice as unknown as {
-			answer: string
-		}[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalExpense += price
-			}
-		}
+	}
+
+	private static async fetchIncomeWithSellingPrice(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id: [28, 2] },
+						},
+					],
+				},
+			],
+			raw: true,
+		})
+	}
+
+	private static async fetchIncome(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id: 2 },
+						},
+					],
+				},
+			],
+			raw: true,
+		})
+	}
+
+	private static async fetchBreedingExpense(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.AnimalQuestionAnswer>[]> {
+		return await db.AnimalQuestionAnswer.findAll({
+			where: {
+				user_id,
+				created_at: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'CommonQuestion',
+					where: { question_tag: 36 },
+				},
+			],
+			raw: true,
+		})
+	}
+
+	private static async fetchExpenseWithPurchasePrice(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id: { [Op.in]: [1, 22] } },
+						},
+					],
+				},
+			],
+			raw: true,
+		})
+	}
+
+	private static async fetchExpense(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id: 1 },
+						},
+					],
+				},
+			],
+			raw: true,
+		})
+	}
+
+	private static calculateProfitLossTotals(data: {
+		incomeWithSellingPrice: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		income: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		breedingExpense: InstanceType<typeof db.AnimalQuestionAnswer>[]
+		expenseWithPurchasePrice: InstanceType<
+			typeof db.DailyRecordQuestionAnswer
+		>[]
+		expense: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+	}): {
+		totalIncome: number
+		totalExpense: number
+		profit: number
+		loss: number
+		totalIncomeWithoutSellingPrice: number
+		totalExpenseWithoutPurchasePrice: number
+		profitWithoutSellingAndPurchasePrice: number
+		lossWithoutSellingAndPurchasePrice: number
+		breedingTotal: number
+	} {
+		const totalIncomeWithoutSellingPrice = this.calculateTotalFromArray(
+			data.income as { answer: string }[],
+		)
+		const totalIncome = this.calculateTotalFromArray(
+			data.incomeWithSellingPrice as { answer: string }[],
+		)
+		const breedingTotal = this.calculateBreedingTotal(
+			data.breedingExpense as { answer: string }[],
+		)
+		const totalExpenseWithoutPurchasePrice = this.calculateTotalFromArray(
+			data.expense as { answer: string }[],
+		)
+		const totalExpense = this.calculateTotalFromArray(
+			data.expenseWithPurchasePrice as { answer: string }[],
+		)
+
 		const total = totalIncome - (totalExpense + breedingTotal)
 		const totalWithoutSellingAndPurchasePrice =
 			totalIncomeWithoutSellingPrice -
 			(totalExpenseWithoutPurchasePrice + breedingTotal)
-		if (totalWithoutSellingAndPurchasePrice > 0) {
-			profitWithoutSellingAndPurchasePrice = totalWithoutSellingAndPurchasePrice
-		} else {
-			lossWithoutSellingAndPurchasePrice = totalWithoutSellingAndPurchasePrice
-		}
-		if (total > 0) {
-			profit = total
-		} else {
-			loss = total
-		}
+
+		const profitWithoutSellingAndPurchasePrice =
+			totalWithoutSellingAndPurchasePrice > 0
+				? totalWithoutSellingAndPurchasePrice
+				: 0
+		const lossWithoutSellingAndPurchasePrice =
+			totalWithoutSellingAndPurchasePrice < 0
+				? Math.abs(totalWithoutSellingAndPurchasePrice)
+				: 0
+
+		const profit = total > 0 ? total : 0
+		const loss = total < 0 ? Math.abs(total) : 0
+
 		return {
-			totalIncomeWithSellingPrice: totalIncome.toFixed(2),
-			totalExpenseWithPurchasePrice: totalExpense.toFixed(2),
-			profitWithSellingAndPurchasePrice: profit.toFixed(2),
-			lossWithSellingAndPurchasePrice: loss.toFixed(2),
-			totalIncomeWithoutSellingPrice: totalIncomeWithoutSellingPrice.toFixed(2),
+			totalIncome,
+			totalExpense,
+			profit,
+			loss,
+			totalIncomeWithoutSellingPrice,
+			totalExpenseWithoutPurchasePrice,
+			profitWithoutSellingAndPurchasePrice,
+			lossWithoutSellingAndPurchasePrice,
+			breedingTotal,
+		}
+	}
+
+	private static calculateTotalFromArray(data: { answer: string }[]): number {
+		let total = 0
+		for (const value of data) {
+			const arr = JSON.parse(value.answer) as {
+				price: number
+				amount?: number
+			}[]
+			for (const v of arr) {
+				const amount = v.amount ?? 1
+				const price = v.price * amount
+				total += price
+			}
+		}
+		return total
+	}
+
+	private static calculateBreedingTotal(data: { answer: string }[]): number {
+		let total = 0
+		for (const value of data) {
+			const val = parseFloat(value.answer)
+			if (!isNaN(val)) total += val
+		}
+		return total
+	}
+
+	private static buildProfitLossReportResult(calculations: {
+		totalIncome: number
+		totalExpense: number
+		profit: number
+		loss: number
+		totalIncomeWithoutSellingPrice: number
+		totalExpenseWithoutPurchasePrice: number
+		profitWithoutSellingAndPurchasePrice: number
+		lossWithoutSellingAndPurchasePrice: number
+		breedingTotal: number
+	}): ProfitLossReportResult {
+		return {
+			totalIncomeWithSellingPrice: calculations.totalIncome.toFixed(2),
+			totalExpenseWithPurchasePrice: calculations.totalExpense.toFixed(2),
+			profitWithSellingAndPurchasePrice: calculations.profit.toFixed(2),
+			lossWithSellingAndPurchasePrice: calculations.loss.toFixed(2),
+			totalIncomeWithoutSellingPrice:
+				calculations.totalIncomeWithoutSellingPrice.toFixed(2),
 			totalExpenseWithoutPurchasePrice:
-				totalExpenseWithoutPurchasePrice.toFixed(2),
+				calculations.totalExpenseWithoutPurchasePrice.toFixed(2),
 			profitWithoutSellingAndPurchasePrice:
-				profitWithoutSellingAndPurchasePrice.toFixed(2),
+				calculations.profitWithoutSellingAndPurchasePrice.toFixed(2),
 			lossWithoutSellingAndPurchasePrice:
-				lossWithoutSellingAndPurchasePrice.toFixed(2),
-			totalbreedingExpense: breedingTotal,
+				calculations.lossWithoutSellingAndPurchasePrice.toFixed(2),
+			totalbreedingExpense: calculations.breedingTotal,
 		}
 	}
 
@@ -3697,6 +3889,28 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<SummaryReportResult> {
+		const data = await this.fetchSummaryReportData(
+			user_id,
+			start_date,
+			end_date,
+		)
+		const totals = this.calculateSummaryTotals(data)
+		return this.buildSummaryReportResult(totals)
+	}
+
+	private static async fetchSummaryReportData(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<{
+		expense: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		income: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		greenFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		cattleFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		dryFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		supplement: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		breedingExpense: InstanceType<typeof db.AnimalQuestionAnswer>[]
+	}> {
 		const [
 			expense,
 			income,
@@ -3706,238 +3920,146 @@ export class ReportService {
 			supplement,
 			breedingExpense,
 		] = await Promise.all([
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 1 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 2 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 30 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 31 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 32 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 33 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.AnimalQuestionAnswer.findAll({
-				where: {
-					user_id,
-					created_at: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.CommonQuestions,
-						as: 'CommonQuestion',
-						where: { question_tag: 36 },
-					},
-				],
-				raw: true,
-			}),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 1),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 2),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 30),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 31),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 32),
+			this.fetchSummaryDataByTag(user_id, start_date, end_date, 33),
+			this.fetchBreedingExpenseDataByDateRange(user_id, start_date, end_date),
 		])
-		let totalExpense = 0,
-			totalIncome = 0,
-			profit = 0,
-			totalGreenFeed = 0,
-			totalCattleFeed = 0,
-			totalDryFeed = 0,
-			otherExpense = 0,
-			totalSupplement = 0,
-			totalBreedingExpense = 0
-		for (const value of expense as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalExpense += price
-			}
+
+		return {
+			expense,
+			income,
+			greenFeed,
+			cattleFeed,
+			dryFeed,
+			supplement,
+			breedingExpense,
 		}
-		for (const value of income as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalIncome += price
-			}
-		}
-		profit = totalIncome - totalExpense
-		for (const value of greenFeed as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalGreenFeed += price
-			}
-		}
-		for (const value of cattleFeed as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalCattleFeed += price
-			}
-		}
-		for (const value of dryFeed as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalDryFeed += price
-			}
-		}
-		for (const value of supplement as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalSupplement += price
-			}
-		}
-		for (const value of breedingExpense as unknown as { answer: string }[]) {
-			const val = parseFloat(value.answer)
-			if (!isNaN(val)) totalBreedingExpense += val
-		}
-		otherExpense =
+	}
+
+	private static async fetchSummaryDataByTag(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+		question_tag_id: number,
+	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id },
+						},
+					],
+				},
+			],
+			raw: true,
+		})
+	}
+
+	private static async fetchBreedingExpenseDataByDateRange(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<InstanceType<typeof db.AnimalQuestionAnswer>[]> {
+		return await db.AnimalQuestionAnswer.findAll({
+			where: {
+				user_id,
+				created_at: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'CommonQuestion',
+					where: { question_tag: 36 },
+				},
+			],
+			raw: true,
+		})
+	}
+
+	private static calculateSummaryTotals(data: {
+		expense: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		income: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		greenFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		cattleFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		dryFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		supplement: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		breedingExpense: InstanceType<typeof db.AnimalQuestionAnswer>[]
+	}): {
+		totalExpense: number
+		totalIncome: number
+		profit: number
+		totalGreenFeed: number
+		totalCattleFeed: number
+		totalDryFeed: number
+		otherExpense: number
+		totalSupplement: number
+		totalBreedingExpense: number
+	} {
+		const totalExpense = this.calculateTotalFromArray(data.expense)
+		const totalIncome = this.calculateTotalFromArray(data.income)
+		const profit = totalIncome - totalExpense
+		const totalGreenFeed = this.calculateTotalFromArray(data.greenFeed)
+		const totalCattleFeed = this.calculateTotalFromArray(data.cattleFeed)
+		const totalDryFeed = this.calculateTotalFromArray(data.dryFeed)
+		const totalSupplement = this.calculateTotalFromArray(data.supplement)
+		const totalBreedingExpense = this.calculateBreedingTotal(
+			data.breedingExpense,
+		)
+		const otherExpense =
 			totalExpense -
 			(totalGreenFeed +
 				totalCattleFeed +
 				totalDryFeed +
 				totalSupplement +
 				totalBreedingExpense)
+
 		return {
-			Expense: totalExpense.toFixed(2),
-			Income: totalIncome.toFixed(2),
-			Profit: profit.toFixed(2),
-			GreenFeed: totalGreenFeed.toFixed(2),
-			CattleFeed: totalCattleFeed.toFixed(2),
-			DryFeed: totalDryFeed.toFixed(2),
-			OtherExpense: otherExpense.toFixed(2),
-			supplement: totalSupplement.toFixed(2),
-			breediingExpense: totalBreedingExpense.toFixed(2),
+			totalExpense,
+			totalIncome,
+			profit,
+			totalGreenFeed,
+			totalCattleFeed,
+			totalDryFeed,
+			otherExpense,
+			totalSupplement,
+			totalBreedingExpense,
+		}
+	}
+
+	private static buildSummaryReportResult(totals: {
+		totalExpense: number
+		totalIncome: number
+		profit: number
+		totalGreenFeed: number
+		totalCattleFeed: number
+		totalDryFeed: number
+		otherExpense: number
+		totalSupplement: number
+		totalBreedingExpense: number
+	}): SummaryReportResult {
+		return {
+			Expense: totals.totalExpense.toFixed(2),
+			Income: totals.totalIncome.toFixed(2),
+			Profit: totals.profit.toFixed(2),
+			GreenFeed: totals.totalGreenFeed.toFixed(2),
+			CattleFeed: totals.totalCattleFeed.toFixed(2),
+			DryFeed: totals.totalDryFeed.toFixed(2),
+			OtherExpense: totals.otherExpense.toFixed(2),
+			supplement: totals.totalSupplement.toFixed(2),
+			breediingExpense: totals.totalBreedingExpense.toFixed(2),
 		}
 	}
 
@@ -4214,6 +4336,26 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<TotalExpenseAggregateAverageResult> {
+		const data = await this.fetchTotalExpenseData(user_id, start_date, end_date)
+		const totals = this.calculateTotalExpenseTotals(data)
+		return this.buildTotalExpenseResult(totals, data.daysCount)
+	}
+
+	private static async fetchTotalExpenseData(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<{
+		expense: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		greenFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		cattleFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		dryFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		supplement: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		purchasePrice: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		medicalExpense: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		breedingExpense: InstanceType<typeof db.AnimalQuestionAnswer>[]
+		daysCount: number
+	}> {
 		const [
 			expense,
 			greenFeed,
@@ -4225,307 +4367,230 @@ export class ReportService {
 			breedingExpense,
 			daysCount,
 		] = await Promise.all([
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 1 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 30 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 31 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 32 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 33 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 22 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.findAll({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.DailyRecordQuestion,
-						as: 'DailyRecordQuestion',
-						include: [
-							{
-								model: db.QuestionTagMapping,
-								as: 'QuestionTagMappings',
-								where: { question_tag_id: 37 },
-							},
-						],
-					},
-				],
-				raw: true,
-			}),
-			db.AnimalQuestionAnswer.findAll({
-				where: {
-					user_id,
-					created_at: { [Op.between]: [start_date, end_date] },
-				},
-				include: [
-					{
-						model: db.CommonQuestions,
-						as: 'CommonQuestion',
-						where: { question_tag: 36 },
-					},
-				],
-				raw: true,
-			}),
-			db.DailyRecordQuestionAnswer.count({
-				where: {
-					user_id,
-					answer_date: { [Op.between]: [start_date, end_date] },
-				},
-				distinct: true,
-				col: 'answer_date',
-			}),
+			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 1),
+			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 30),
+			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 31),
+			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 32),
+			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 33),
+			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 22),
+			this.fetchTotalExpenseDataByTag(user_id, start_date, end_date, 37),
+			this.fetchBreedingExpenseDataByDateRange(user_id, start_date, end_date),
+			this.fetchDaysCount(user_id, start_date, end_date),
 		])
-		let totalExpense = 0,
-			totalGreenFeed = 0,
-			totalCattleFeed = 0,
-			totalDryFeed = 0,
-			totalSupplement = 0,
-			greenFeedQty = 0,
-			dryFeedQty = 0,
-			cattleFeedQty = 0,
-			supplementQty = 0,
-			totalpurchasePrice = 0,
-			totalcostOfTreatment = 0,
-			totalbreedingExpense = 0
-		for (const value of expense as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalExpense += price
-			}
+
+		return {
+			expense,
+			greenFeed,
+			cattleFeed,
+			dryFeed,
+			supplement,
+			purchasePrice,
+			medicalExpense,
+			breedingExpense,
+			daysCount,
 		}
-		for (const value of greenFeed as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalGreenFeed += price
-				greenFeedQty += amount
-			}
-		}
-		for (const value of cattleFeed as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalCattleFeed += price
-				cattleFeedQty += amount
-			}
-		}
-		for (const value of dryFeed as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalDryFeed += price
-				dryFeedQty += amount
-			}
-		}
-		for (const value of supplement as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalSupplement += price
-				supplementQty += amount
-			}
-		}
-		for (const value of purchasePrice as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalpurchasePrice += price
-			}
-		}
-		for (const value of medicalExpense as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as { price: number }[]
-			totalcostOfTreatment += arr[0]?.price ?? 0
-		}
-		for (const value of breedingExpense as unknown as { answer: string }[]) {
-			const val = parseFloat(value.answer)
-			if (!isNaN(val)) totalbreedingExpense += val
-		}
+	}
+
+	private static async fetchTotalExpenseDataByTag(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+		question_tag_id: number,
+	): Promise<InstanceType<typeof db.DailyRecordQuestionAnswer>[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			include: [
+				{
+					model: db.DailyRecordQuestion,
+					as: 'DailyRecordQuestion',
+					include: [
+						{
+							model: db.QuestionTagMapping,
+							as: 'QuestionTagMappings',
+							where: { question_tag_id },
+						},
+					],
+				},
+			],
+			raw: true,
+		})
+	}
+
+	private static async fetchDaysCount(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<number> {
+		return await db.DailyRecordQuestionAnswer.count({
+			where: {
+				user_id,
+				answer_date: { [Op.between]: [start_date, end_date] },
+			},
+			distinct: true,
+			col: 'answer_date',
+		})
+	}
+
+	private static calculateTotalExpenseTotals(data: {
+		expense: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		greenFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		cattleFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		dryFeed: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		supplement: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		purchasePrice: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		medicalExpense: InstanceType<typeof db.DailyRecordQuestionAnswer>[]
+		breedingExpense: InstanceType<typeof db.AnimalQuestionAnswer>[]
+	}): {
+		totalExpense: number
+		totalGreenFeed: number
+		totalCattleFeed: number
+		totalDryFeed: number
+		totalSupplement: number
+		greenFeedQty: number
+		dryFeedQty: number
+		cattleFeedQty: number
+		supplementQty: number
+		totalpurchasePrice: number
+		totalcostOfTreatment: number
+		totalbreedingExpense: number
+		otherExpense: number
+	} {
+		const totalExpense = this.calculateTotalFromArray(data.expense)
+		const totalGreenFeed = this.calculateTotalWithQuantity(data.greenFeed)
+		const totalCattleFeed = this.calculateTotalWithQuantity(data.cattleFeed)
+		const totalDryFeed = this.calculateTotalWithQuantity(data.dryFeed)
+		const totalSupplement = this.calculateTotalWithQuantity(data.supplement)
+		const totalpurchasePrice = this.calculateTotalFromArray(data.purchasePrice)
+		const totalcostOfTreatment = this.calculateMedicalExpense(
+			data.medicalExpense,
+		)
+		const totalbreedingExpense = this.calculateBreedingTotal(
+			data.breedingExpense,
+		)
+
 		const otherExpense =
 			totalExpense +
 			totalpurchasePrice +
 			totalbreedingExpense -
-			(totalGreenFeed +
-				totalCattleFeed +
-				totalDryFeed +
-				totalSupplement +
+			(totalGreenFeed.total +
+				totalCattleFeed.total +
+				totalDryFeed.total +
+				totalSupplement.total +
 				totalcostOfTreatment +
 				totalbreedingExpense +
 				totalpurchasePrice)
+
+		return {
+			totalExpense,
+			totalGreenFeed: totalGreenFeed.total,
+			totalCattleFeed: totalCattleFeed.total,
+			totalDryFeed: totalDryFeed.total,
+			totalSupplement: totalSupplement.total,
+			greenFeedQty: totalGreenFeed.quantity,
+			dryFeedQty: totalDryFeed.quantity,
+			cattleFeedQty: totalCattleFeed.quantity,
+			supplementQty: totalSupplement.quantity,
+			totalpurchasePrice,
+			totalcostOfTreatment,
+			totalbreedingExpense,
+			otherExpense,
+		}
+	}
+
+	private static calculateTotalWithQuantity(
+		data: InstanceType<typeof db.DailyRecordQuestionAnswer>[],
+	): {
+		total: number
+		quantity: number
+	} {
+		let total = 0
+		let quantity = 0
+		for (const value of data as unknown as { answer: string }[]) {
+			const arr = JSON.parse(value.answer) as {
+				price: number
+				amount?: number
+			}[]
+			for (const v of arr) {
+				const amount = v.amount ?? 1
+				const price = v.price * amount
+				total += price
+				quantity += amount
+			}
+		}
+		return { total, quantity }
+	}
+
+	private static calculateMedicalExpense(
+		data: InstanceType<typeof db.DailyRecordQuestionAnswer>[],
+	): number {
+		let total = 0
+		for (const value of data as unknown as { answer: string }[]) {
+			const arr = JSON.parse(value.answer) as { price: number }[]
+			total += arr[0]?.price ?? 0
+		}
+		return total
+	}
+
+	private static buildTotalExpenseResult(
+		totals: {
+			totalExpense: number
+			totalGreenFeed: number
+			totalCattleFeed: number
+			totalDryFeed: number
+			totalSupplement: number
+			greenFeedQty: number
+			dryFeedQty: number
+			cattleFeedQty: number
+			supplementQty: number
+			totalpurchasePrice: number
+			totalcostOfTreatment: number
+			totalbreedingExpense: number
+			otherExpense: number
+		},
+		daysCount: number,
+	): TotalExpenseAggregateAverageResult {
 		const noOfDays = daysCount || 1
 		const aggregate = {
-			greenFeedQty: greenFeedQty.toFixed(2),
-			dryFeedQty: dryFeedQty.toFixed(2),
-			cattleFeedQty: cattleFeedQty.toFixed(2),
-			supplementQty: supplementQty.toFixed(2),
-			greenFeedCost: totalGreenFeed.toFixed(2),
-			dryFeedCost: totalDryFeed.toFixed(2),
-			cattleFeedCost: totalCattleFeed.toFixed(2),
-			supplementCost: totalSupplement.toFixed(2),
+			greenFeedQty: totals.greenFeedQty.toFixed(2),
+			dryFeedQty: totals.dryFeedQty.toFixed(2),
+			cattleFeedQty: totals.cattleFeedQty.toFixed(2),
+			supplementQty: totals.supplementQty.toFixed(2),
+			greenFeedCost: totals.totalGreenFeed.toFixed(2),
+			dryFeedCost: totals.totalDryFeed.toFixed(2),
+			cattleFeedCost: totals.totalCattleFeed.toFixed(2),
+			supplementCost: totals.totalSupplement.toFixed(2),
 			totalExpense: (
-				totalExpense +
-				totalpurchasePrice +
-				totalbreedingExpense
+				totals.totalExpense +
+				totals.totalpurchasePrice +
+				totals.totalbreedingExpense
 			).toFixed(2),
-			purchaseExpense: totalpurchasePrice.toFixed(2),
-			medicalExpense: totalcostOfTreatment.toFixed(2),
-			breedingExpense: totalbreedingExpense.toFixed(2),
-			otherExpense: otherExpense.toFixed(2),
+			purchaseExpense: totals.totalpurchasePrice.toFixed(2),
+			medicalExpense: totals.totalcostOfTreatment.toFixed(2),
+			breedingExpense: totals.totalbreedingExpense.toFixed(2),
+			otherExpense: totals.otherExpense.toFixed(2),
 		}
 		const average = {
-			greenFeedQty: (greenFeedQty / noOfDays).toFixed(2),
-			dryFeedQty: (dryFeedQty / noOfDays).toFixed(2),
-			cattleFeedQty: (cattleFeedQty / noOfDays).toFixed(2),
-			supplementQty: (supplementQty / noOfDays).toFixed(2),
-			greenFeedCost: (totalGreenFeed / noOfDays).toFixed(2),
-			dryFeedCost: (totalDryFeed / noOfDays).toFixed(2),
-			cattleFeedCost: (totalCattleFeed / noOfDays).toFixed(2),
-			supplementCost: (totalSupplement / noOfDays).toFixed(2),
+			greenFeedQty: (totals.greenFeedQty / noOfDays).toFixed(2),
+			dryFeedQty: (totals.dryFeedQty / noOfDays).toFixed(2),
+			cattleFeedQty: (totals.cattleFeedQty / noOfDays).toFixed(2),
+			supplementQty: (totals.supplementQty / noOfDays).toFixed(2),
+			greenFeedCost: (totals.totalGreenFeed / noOfDays).toFixed(2),
+			dryFeedCost: (totals.totalDryFeed / noOfDays).toFixed(2),
+			cattleFeedCost: (totals.totalCattleFeed / noOfDays).toFixed(2),
+			supplementCost: (totals.totalSupplement / noOfDays).toFixed(2),
 			totalExpense: (
-				(totalExpense + totalpurchasePrice + totalbreedingExpense) /
+				(totals.totalExpense +
+					totals.totalpurchasePrice +
+					totals.totalbreedingExpense) /
 				noOfDays
 			).toFixed(2),
-			purchaseExpense: (totalpurchasePrice / noOfDays).toFixed(2),
-			medicalExpense: (totalcostOfTreatment / noOfDays).toFixed(2),
-			breedingExpense: (totalbreedingExpense / noOfDays).toFixed(2),
-			otherExpense: (otherExpense / noOfDays).toFixed(2),
+			purchaseExpense: (totals.totalpurchasePrice / noOfDays).toFixed(2),
+			medicalExpense: (totals.totalcostOfTreatment / noOfDays).toFixed(2),
+			breedingExpense: (totals.totalbreedingExpense / noOfDays).toFixed(2),
+			otherExpense: (totals.otherExpense / noOfDays).toFixed(2),
 		}
 		return { aggregate, average }
 	}
@@ -4535,16 +4600,56 @@ export class ReportService {
 		start_date: string,
 		end_date: string,
 	): Promise<HealthReportDetailsResult> {
-		// Get all animal numbers for the user
-		const userAnimals = (await db.AnimalQuestionAnswer.findAll({
+		const [userAnimals, dailyRecordQuestions, dates] =
+			await this.fetchHealthReportData(user_id, start_date, end_date)
+		const totalcostOfTreatment =
+			this.calculateTreatmentCostFromRecords(dailyRecordQuestions)
+		const resData = await this.processHealthReportDetails(
+			user_id,
+			userAnimals,
+			dates,
+		)
+		const animals = this.extractUniqueAnimals(resData)
+
+		return {
+			animal_count: animals.length,
+			total_cost_of_treatment: totalcostOfTreatment,
+			data: resData,
+		}
+	}
+
+	private static async fetchHealthReportData(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<[{ animal_number: string }[], { answer: string }[], string[]]> {
+		const [userAnimals, dailyRecordQuestions, dates] = await Promise.all([
+			this.fetchUserAnimals(user_id),
+			this.fetchDailyRecordQuestionsByDateRange(user_id, start_date, end_date),
+			this.generateDateRange(start_date, end_date),
+		])
+
+		return [userAnimals, dailyRecordQuestions, dates]
+	}
+
+	private static async fetchUserAnimals(
+		user_id: number,
+	): Promise<{ animal_number: string }[]> {
+		return (await db.AnimalQuestionAnswer.findAll({
 			where: { user_id },
 			attributes: [
 				[db.Sequelize.literal('DISTINCT animal_number'), 'animal_number'],
 			],
 			raw: true,
 		})) as { animal_number: string }[]
-		// Get all daily record questions for health (tag 37)
-		const dailyRecordQuestions = (await db.DailyRecordQuestionAnswer.findAll({
+	}
+
+	private static async fetchDailyRecordQuestionsByDateRange(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<{ answer: string }[]> {
+		return (await db.DailyRecordQuestionAnswer.findAll({
 			where: {
 				user_id,
 				answer_date: { [Op.between]: [start_date, end_date] },
@@ -4564,133 +4669,147 @@ export class ReportService {
 			],
 			raw: true,
 		})) as { answer: string }[]
+	}
+
+	private static calculateTreatmentCostFromRecords(
+		dailyRecordQuestions: { answer: string }[],
+	): number {
 		let totalcostOfTreatment = 0
 		for (const value of dailyRecordQuestions) {
 			const arr = JSON.parse(value.answer) as { price: number }[]
 			totalcostOfTreatment += arr[0]?.price ?? 0
 		}
-		// Build date range
-		const date_from = new Date(start_date)
-		const date_to = new Date(end_date)
-		const dates: string[] = []
-		for (
-			let d = new Date(date_from);
-			d <= date_to;
-			d.setDate(d.getDate() + 1)
-		) {
-			dates.push(d.toISOString().split('T')[0])
-		}
-		const animals: string[] = []
+		return totalcostOfTreatment
+	}
+
+	private static async processHealthReportDetails(
+		user_id: number,
+		userAnimals: { animal_number: string }[],
+		dates: string[],
+	): Promise<HealthReportDetailsEntry[]> {
 		const resData: HealthReportDetailsEntry[] = []
+
 		for (const animal of userAnimals) {
 			for (const date of dates) {
-				let answer1: string | null = null
-				let answer2: string | null = null
-				let answer3: string | null = null
-				let answer4: string | null = null
-				// Date (tag 38)
-				const answerDate = (await db.AnimalQuestionAnswer.findAll({
-					where: {
-						animal_number: animal.animal_number,
-						user_id,
-						created_at: {
-							[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
-						},
-					},
-					include: [
-						{
-							model: db.CommonQuestions,
-							as: 'CommonQuestion',
-							where: { question_tag: 38 },
-						},
-					],
-					raw: true,
-				})) as { answer: string }[]
-				if (answerDate.length > 0) answer1 = answerDate[0].answer
-				// Disease Name (tag 39)
-				const diseasName = (await db.AnimalQuestionAnswer.findAll({
-					where: {
-						animal_number: animal.animal_number,
-						user_id,
-						created_at: {
-							[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
-						},
-					},
-					include: [
-						{
-							model: db.CommonQuestions,
-							as: 'CommonQuestion',
-							where: { question_tag: 39 },
-						},
-					],
-					raw: true,
-				})) as { answer: string }[]
-				if (diseasName.length > 0) answer2 = diseasName[0].answer
-				// Treatment (tag 40)
-				const treatmentData = (await db.AnimalQuestionAnswer.findAll({
-					where: {
-						animal_number: animal.animal_number,
-						user_id,
-						created_at: {
-							[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
-						},
-					},
-					include: [
-						{
-							model: db.CommonQuestions,
-							as: 'CommonQuestion',
-							where: { question_tag: 40 },
-						},
-					],
-					raw: true,
-				})) as { answer: string }[]
-				if (treatmentData.length > 0) answer3 = treatmentData[0].answer || null
-				// Milk Loss (tag 41)
-				const milkLoss = (await db.AnimalQuestionAnswer.findAll({
-					where: {
-						animal_number: animal.animal_number,
-						user_id,
-						created_at: {
-							[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
-						},
-					},
-					include: [
-						{
-							model: db.CommonQuestions,
-							as: 'CommonQuestion',
-							where: { question_tag: 41 },
-						},
-					],
-					raw: true,
-				})) as { answer: string }[]
-				if (milkLoss.length > 0) answer4 = milkLoss[0].answer
-				const entry: HealthReportDetailsEntry = {
-					date: answer1,
-					diseasName: answer2,
-					details_of_treatment: answer3,
-					milk_loss_in_litres: answer4,
-					animal_number: animal.animal_number,
-				}
-				if (entry.date) {
-					resData.push(entry)
-					if (!animals.includes(entry.animal_number)) {
-						animals.push(entry.animal_number)
-					}
+				const healthData = await this.getHealthDataForAnimalDate(
+					user_id,
+					animal.animal_number,
+					date,
+				)
+				if (healthData && healthData.date) {
+					resData.push(healthData)
 				}
 			}
 		}
+
+		return resData
+	}
+
+	private static async getHealthDataForAnimalDate(
+		user_id: number,
+		animal_number: string,
+		date: string,
+	): Promise<HealthReportDetailsEntry | null> {
+		const [answer1, answer2, answer3, answer4] = await Promise.all([
+			this.getAnimalAnswerByTag(user_id, animal_number, date, 38),
+			this.getAnimalAnswerByTag(user_id, animal_number, date, 39),
+			this.getAnimalAnswerByTag(user_id, animal_number, date, 40),
+			this.getAnimalAnswerByTag(user_id, animal_number, date, 41),
+		])
+
 		return {
-			animal_count: animals.length,
-			total_cost_of_treatment: totalcostOfTreatment,
-			data: resData,
+			date: answer1,
+			diseasName: answer2,
+			details_of_treatment: answer3,
+			milk_loss_in_litres: answer4,
+			animal_number,
 		}
+	}
+
+	private static async getAnimalAnswerByTag(
+		user_id: number,
+		animal_number: string,
+		date: string,
+		question_tag: number,
+	): Promise<string | null> {
+		const result = (await db.AnimalQuestionAnswer.findAll({
+			where: {
+				animal_number,
+				user_id,
+				created_at: {
+					[Op.between]: [`${date} 00:00:00`, `${date} 23:59:59`],
+				},
+			},
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'CommonQuestion',
+					where: { question_tag },
+				},
+			],
+			raw: true,
+		})) as { answer: string }[]
+
+		return result.length > 0 ? result[0].answer : null
+	}
+
+	private static extractUniqueAnimals(
+		resData: HealthReportDetailsEntry[],
+	): string[] {
+		const animals: string[] = []
+		for (const entry of resData) {
+			if (entry.date && !animals.includes(entry.animal_number)) {
+				animals.push(entry.animal_number)
+			}
+		}
+		return animals
 	}
 
 	public static async latestProfitLossReport(
 		user_id: number,
 	): Promise<LatestProfitLossReportResult> {
-		// Get latest date from animal_question_answers (tag 36)
-		const date2 = (await db.AnimalQuestionAnswer.findOne({
+		const latestDate = await this.getLatestDate(user_id)
+		const date1 = latestDate.split('T')[0]
+		const [
+			totalIncomeWithoutSellingPrice,
+			breedingTotal,
+			totalExpenseWithoutPurchasePrice,
+		] = await this.fetchLatestProfitLossData(user_id, date1)
+		const totalWithoutSellingAndPurchasePrice =
+			totalIncomeWithoutSellingPrice -
+			(totalExpenseWithoutPurchasePrice + breedingTotal)
+		const key = this.determineProfitLossKey(totalWithoutSellingAndPurchasePrice)
+
+		return {
+			date: latestDate,
+			profit_loss: totalWithoutSellingAndPurchasePrice.toFixed(2),
+			key,
+		}
+	}
+
+	private static async getLatestDate(user_id: number): Promise<string> {
+		const [date2, date] = await Promise.all([
+			this.fetchLatestAnimalQuestionDate(user_id),
+			this.fetchLatestDailyRecordDate(user_id),
+		])
+
+		if (date?.answer_date && !date2?.created_at) {
+			return date.answer_date
+		} else if (!date?.answer_date && date2?.created_at) {
+			return date2.created_at
+		} else if (date?.answer_date && date2?.created_at) {
+			const latestDate1 = new Date(date.answer_date).getTime()
+			const latestDate2 = new Date(date2.created_at).getTime()
+			return latestDate1 > latestDate2 ? date.answer_date : date2.created_at
+		} else {
+			return new Date().toISOString().split('T')[0]
+		}
+	}
+
+	private static async fetchLatestAnimalQuestionDate(
+		user_id: number,
+	): Promise<{ created_at?: string } | null> {
+		return (await db.AnimalQuestionAnswer.findOne({
 			where: { user_id },
 			include: [
 				{
@@ -4702,8 +4821,12 @@ export class ReportService {
 			order: [['created_at', 'DESC']],
 			raw: true,
 		})) as { created_at?: string } | null
-		// Get latest date from daily_record_question_answer (tag 1,2)
-		const date = (await db.DailyRecordQuestionAnswer.findOne({
+	}
+
+	private static async fetchLatestDailyRecordDate(
+		user_id: number,
+	): Promise<{ answer_date?: string } | null> {
+		return (await db.DailyRecordQuestionAnswer.findOne({
 			where: { user_id },
 			include: [
 				{
@@ -4715,22 +4838,35 @@ export class ReportService {
 			order: [['answer_date', 'DESC']],
 			raw: true,
 		})) as { answer_date?: string } | null
-		let latestDate: string
-		if (date?.answer_date && !date2?.created_at) {
-			latestDate = date.answer_date
-		} else if (!date?.answer_date && date2?.created_at) {
-			latestDate = date2.created_at
-		} else if (date?.answer_date && date2?.created_at) {
-			const latestDate1 = new Date(date.answer_date).getTime()
-			const latestDate2 = new Date(date2.created_at).getTime()
-			latestDate =
-				latestDate1 > latestDate2 ? date.answer_date : date2.created_at
-		} else {
-			latestDate = new Date().toISOString().split('T')[0]
-		}
-		const date1 = latestDate.split('T')[0]
-		// Income
-		const income = await db.DailyRecordQuestionAnswer.findAll({
+	}
+
+	private static async fetchLatestProfitLossData(
+		user_id: number,
+		date1: string,
+	): Promise<[number, number, number]> {
+		const [income, breedingExpense, expense] = await Promise.all([
+			this.fetchIncomeData(user_id, date1),
+			this.fetchBreedingExpenseDataByDate(user_id, date1),
+			this.fetchExpenseData(user_id, date1),
+		])
+
+		const totalIncomeWithoutSellingPrice = this.calculateTotalFromArray(income)
+		const breedingTotal = this.calculateBreedingTotal(breedingExpense)
+		const totalExpenseWithoutPurchasePrice =
+			this.calculateTotalFromArray(expense)
+
+		return [
+			totalIncomeWithoutSellingPrice,
+			breedingTotal,
+			totalExpenseWithoutPurchasePrice,
+		]
+	}
+
+	private static async fetchIncomeData(
+		user_id: number,
+		date1: string,
+	): Promise<{ answer: string }[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
 			where: {
 				user_id,
 				answer_date: date1,
@@ -4750,20 +4886,13 @@ export class ReportService {
 			],
 			raw: true,
 		})
-		let totalIncomeWithoutSellingPrice = 0
-		for (const value of income as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalIncomeWithoutSellingPrice += price
-			}
-		}
-		// Breeding expense
-		const breedingExpense = await db.AnimalQuestionAnswer.findAll({
+	}
+
+	private static async fetchBreedingExpenseDataByDate(
+		user_id: number,
+		date1: string,
+	): Promise<{ answer: string }[]> {
+		return await db.AnimalQuestionAnswer.findAll({
 			where: {
 				user_id,
 				created_at: {
@@ -4779,13 +4908,13 @@ export class ReportService {
 			],
 			raw: true,
 		})
-		let breedingTotal = 0
-		for (const value of breedingExpense as unknown as { answer: string }[]) {
-			const val = parseFloat(value.answer)
-			if (!isNaN(val)) breedingTotal += val
-		}
-		// Expense
-		const expense = await db.DailyRecordQuestionAnswer.findAll({
+	}
+
+	private static async fetchExpenseData(
+		user_id: number,
+		date1: string,
+	): Promise<{ answer: string }[]> {
+		return await db.DailyRecordQuestionAnswer.findAll({
 			where: {
 				user_id,
 				answer_date: date1,
@@ -4805,32 +4934,17 @@ export class ReportService {
 			],
 			raw: true,
 		})
-		let totalExpenseWithoutPurchasePrice = 0
-		for (const value of expense as unknown as { answer: string }[]) {
-			const arr = JSON.parse(value.answer) as {
-				price: number
-				amount?: number
-			}[]
-			for (const v of arr) {
-				const amount = v.amount ?? 1
-				const price = v.price * amount
-				totalExpenseWithoutPurchasePrice += price
-			}
-		}
-		const totalWithoutSellingAndPurchasePrice =
-			totalIncomeWithoutSellingPrice -
-			(totalExpenseWithoutPurchasePrice + breedingTotal)
-		let key: 'profit' | 'loss' | null = null
+	}
+
+	private static determineProfitLossKey(
+		totalWithoutSellingAndPurchasePrice: number,
+	): 'profit' | 'loss' | null {
 		if (totalWithoutSellingAndPurchasePrice > 0) {
-			key = 'profit'
+			return 'profit'
 		} else if (totalWithoutSellingAndPurchasePrice < 0) {
-			key = 'loss'
+			return 'loss'
 		}
-		return {
-			date: latestDate,
-			profit_loss: totalWithoutSellingAndPurchasePrice.toFixed(2),
-			key,
-		}
+		return null
 	}
 
 	public static async animalMilkReportDetails(

@@ -1,7 +1,7 @@
 import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { ReportsService } from '@/services/reports.service'
-import type { User } from '@/types/index'
+import { User } from '@/models/user.model'
 
 export class ReportsController {
 	public static readonly pregnantNonPregnantAnimals: RequestHandler = async (
