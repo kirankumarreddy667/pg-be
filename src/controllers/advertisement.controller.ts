@@ -1,24 +1,16 @@
 import { RequestHandler } from 'express'
-import { Transaction } from 'sequelize'
-import {
-	Advertisement as AdvertisementModel,
-	AdvertisementImage,
-} from '@/models/index'
-import { saveBase64Image } from '@/utils/image'
+import { AdvertisementService } from '@/services/advertisement.service'
 import RESPONSE from '@/utils/response'
+import { NotFoundError } from '@/utils/errors'
 import db from '@/config/database'
 
-const { sequelize } = db
-
-const BASE_URL = process.env.BASE_URL || 'http://localhost:7777'
-
 interface AdvertisementPayload {
-	id: number
 	name: string
 	description: string
 	cost: number
 	phone_number: string
 	term_conditions: string
+	website_link?: string | null
 	status: boolean
 	photos: string[]
 }
@@ -29,55 +21,14 @@ export class AdvertisementController {
 		res,
 		next,
 	): Promise<void> => {
-		const {
-			name,
-			description,
-			cost,
-			phone_number,
-			term_conditions,
-			status,
-			photos = [],
-		} = req.body as AdvertisementPayload
-
-		const t: Transaction = await sequelize.transaction()
 		try {
-			// Create advertisement within transaction
-			const ad = await AdvertisementModel.create(
-				{
-					name,
-					description,
-					cost,
-					phone_number,
-					term_conditions,
-					status: status === undefined ? true : Boolean(status),
-				},
-				{ transaction: t },
-			)
-
-			// Handle images (max 5)
-			if (Array.isArray(photos) && photos.length > 0) {
-				const filesToProcess = photos.slice(0, 5)
-				await Promise.all(
-					filesToProcess.map(async (photo) => {
-						const fileName = await saveBase64Image(photo)
-						await AdvertisementImage.create(
-							{
-								advertisement_id: ad.id,
-								image: fileName,
-							},
-							{ transaction: t },
-						)
-					}),
-				)
-			}
-
-			await t.commit()
+			const payload = req.body as AdvertisementPayload
+			const result = await AdvertisementService.create(payload)
 			RESPONSE.SuccessResponse(res, 201, {
-				message: 'Advertisement created successfully',
+				message: result.message,
 				data: [],
 			})
 		} catch (error) {
-			await t.rollback()
 			next(error)
 		}
 	}
@@ -85,181 +36,79 @@ export class AdvertisementController {
 	public static readonly index: RequestHandler = async (
 		req,
 		res,
+		next,
 	): Promise<void> => {
-		const ads = await AdvertisementModel.findAll({
-			include: [{ model: AdvertisementImage, as: 'images' }],
-			order: [['created_at', 'DESC']],
-		})
-		const data = ads.map((ad) => {
-			const plainAd = ad.get({ plain: true }) as {
-				id: number
-				name: string
-				description: string
-				cost: number
-				phone_number: string
-				term_conditions: string
-				status: boolean
-				images?: { image: string }[]
-			}
-			return {
-				id: plainAd.id,
-				name: plainAd.name,
-				description: plainAd.description,
-				cost: plainAd.cost,
-				phone_number: plainAd.phone_number,
-				term_conditions: plainAd.term_conditions,
-				status: plainAd.status,
-				images: Array.isArray(plainAd.images)
-					? plainAd.images.map((img) => `${BASE_URL}/ad_images/${img.image}`)
-					: [],
-			}
-		})
-		RESPONSE.SuccessResponse(res, 200, {
-			message: 'Success',
-			data,
-		})
+		try {
+			const data = await AdvertisementService.findAll()
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data,
+			})
+		} catch (error) {
+			next(error)
+		}
 	}
 
 	public static readonly show: RequestHandler = async (
 		req,
 		res,
+		next,
 	): Promise<void> => {
-		const { id } = req.params
-		const ad = await AdvertisementModel.findByPk(id, {
-			include: [{ model: AdvertisementImage, as: 'images' }],
-		})
-		if (!ad) {
-			RESPONSE.FailureResponse(res, 404, { message: 'Advertisement not found' })
-			return
+		try {
+			const { id } = req.params
+			const data = await AdvertisementService.findById(Number(id))
+
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: data || [],
+			})
+		} catch (error) {
+			next(error)
 		}
-		const plainAd = ad.get({ plain: true }) as {
-			id: number
-			name: string
-			description: string
-			cost: number
-			phone_number: string
-			term_conditions: string
-			status: boolean
-			images?: { image: string }[]
-		}
-		const data = {
-			id: plainAd.id,
-			name: plainAd.name,
-			description: plainAd.description,
-			cost: plainAd.cost,
-			phone_number: plainAd.phone_number,
-			term_conditions: plainAd.term_conditions,
-			status: plainAd.status,
-			images: Array.isArray(plainAd.images)
-				? plainAd.images.map((img) => `${BASE_URL}/ad_images/${img.image}`)
-				: [],
-		}
-		RESPONSE.SuccessResponse(res, 200, {
-			message: 'Success',
-			data,
-		})
 	}
 
 	public static readonly update: RequestHandler = async (
 		req,
 		res,
+		next,
 	): Promise<void> => {
-		const { id } = req.params
-		const t = await sequelize.transaction()
 		try {
-			const ad = await AdvertisementModel.findByPk(id, { transaction: t })
+			const { id } = req.params
+			const payload = req.body as AdvertisementPayload
+			const ad = await db.Advertisement.findByPk(Number(id))
 			if (!ad) {
-				await t.rollback()
-				RESPONSE.FailureResponse(res, 404, {
-					message: 'Advertisement not found',
-				})
-				return
+				throw new NotFoundError('Advertisement not found')
 			}
-			const {
-				name,
-				description,
-				cost,
-				phone_number,
-				term_conditions,
-				status,
-				photos = [],
-			} = req.body as AdvertisementPayload
-			await ad.update(
-				{
-					name: name ?? ad.get('name'),
-					description: description ?? ad.get('description'),
-					cost: cost ?? ad.get('cost'),
-					phone_number: phone_number ?? ad.get('phone_number'),
-					term_conditions: term_conditions ?? ad.get('term_conditions'),
-					status: status === undefined ? ad.get('status') : Boolean(status),
-				},
-				{ transaction: t },
-			)
-			// If photos provided, replace images
-			if (Array.isArray(photos) && photos.length > 0) {
-				await AdvertisementImage.destroy({
-					where: { advertisement_id: ad.get('id') },
-					transaction: t,
-				})
-				await Promise.all(
-					photos.slice(0, 5).map(async (photo: string) => {
-						const fileName = await saveBase64Image(photo)
-						await AdvertisementImage.create(
-							{
-								advertisement_id: ad.get('id'),
-								image: fileName,
-							},
-							{ transaction: t },
-						)
-					}),
-				)
-			}
-			await t.commit()
+			const result = await AdvertisementService.update(Number(id), payload)
 
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'Advertisement updated successfully',
+				message: result.message,
 				data: [],
 			})
 		} catch (error) {
-			await t.rollback()
-			RESPONSE.FailureResponse(res, 500, {
-				message: 'Failed to update advertisement or save images',
-				errors: [error instanceof Error ? error.message : String(error)],
-			})
+			next(error)
 		}
 	}
 
 	public static readonly destroy: RequestHandler = async (
 		req,
 		res,
+		next,
 	): Promise<void> => {
-		const { id } = req.params
-		const t = await sequelize.transaction()
 		try {
-			const ad = await AdvertisementModel.findByPk(id, { transaction: t })
+			const { id } = req.params
+			const ad = await db.Advertisement.findByPk(Number(id))
 			if (!ad) {
-				await t.rollback()
-				RESPONSE.FailureResponse(res, 404, {
-					message: 'Advertisement not found',
-				})
-				return
+				throw new NotFoundError('Advertisement not found')
 			}
-			await AdvertisementImage.destroy({
-				where: { advertisement_id: ad.get('id') },
-				transaction: t,
-			})
-			await ad.destroy({ transaction: t })
-			await t.commit()
+			const result = await AdvertisementService.delete(Number(id))
+
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'Advertisement deleted',
+				message: result.message,
 				data: [],
 			})
 		} catch (error) {
-			await t.rollback()
-			RESPONSE.FailureResponse(res, 500, {
-				message: 'Failed to delete advertisement',
-				errors: [error instanceof Error ? error.message : String(error)],
-			})
+			next(error)
 		}
 	}
 }

@@ -86,7 +86,7 @@ export const authorize = (roles: string[]) => {
 			const userRoleNames = userRoles.map((role) => role.get('name'))
 
 			if (!userRoleNames.some((r) => roles.includes(r))) {
-				RESPONSE.FailureResponse(res, 403, {
+				RESPONSE.FailureResponse(res, 401, {
 					message: 'Unauthorized action.',
 				})
 				return

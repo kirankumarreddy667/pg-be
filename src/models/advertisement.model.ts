@@ -8,9 +8,10 @@ export interface AdvertisementAttributes {
 	phone_number: string
 	term_conditions: string
 	website_link?: string | null
-	status?: boolean
-	created_at?: Date
-	updated_at?: Date
+	status?: number
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class Advertisement
@@ -18,7 +19,12 @@ export class Advertisement
 		AdvertisementAttributes,
 		Optional<
 			AdvertisementAttributes,
-			'id' | 'website_link' | 'status' | 'created_at' | 'updated_at'
+			| 'id'
+			| 'website_link'
+			| 'status'
+			| 'created_at'
+			| 'updated_at'
+			| 'deleted_at'
 		>
 	>
 	implements AdvertisementAttributes
@@ -30,21 +36,22 @@ export class Advertisement
 	public phone_number!: string
 	public term_conditions!: string
 	public website_link!: string | null
-	public status!: boolean
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public status!: number
+	public readonly created_at!: Date | null
+	public readonly updated_at!: Date | null
+	public deleted_at!: Date | null
 }
 
 export default (sequelize: Sequelize): typeof Advertisement => {
 	Advertisement.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
 			name: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			description: {
@@ -64,21 +71,25 @@ export default (sequelize: Sequelize): typeof Advertisement => {
 				allowNull: false,
 			},
 			website_link: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			status: {
-				type: DataTypes.BOOLEAN,
+				type: DataTypes.TINYINT,
 				allowNull: false,
-				defaultValue: true,
+				defaultValue: 1,
 			},
 			created_at: {
 				type: DataTypes.DATE,
-				allowNull: false,
+				allowNull: true,
 			},
 			updated_at: {
 				type: DataTypes.DATE,
-				allowNull: false,
+				allowNull: true,
+			},
+			deleted_at: {
+				type: DataTypes.DATE,
+				allowNull: true,
 			},
 		},
 		{
@@ -87,6 +98,8 @@ export default (sequelize: Sequelize): typeof Advertisement => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
+			paranoid: true,
 		},
 	)
 	return Advertisement

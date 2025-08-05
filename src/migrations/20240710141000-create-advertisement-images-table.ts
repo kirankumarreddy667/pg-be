@@ -10,10 +10,10 @@ module.exports = {
 				allowNull: false,
 				autoIncrement: true,
 				primaryKey: true,
-				type: Sequelize.INTEGER,
+				type: Sequelize.INTEGER.UNSIGNED,
 			},
 			advertisement_id: {
-				type: Sequelize.INTEGER,
+				type: Sequelize.INTEGER.UNSIGNED,
 				allowNull: false,
 				references: {
 					model: 'advertisements',
@@ -23,18 +23,18 @@ module.exports = {
 				onDelete: 'CASCADE',
 			},
 			image: {
-				type: Sequelize.STRING,
+				type: Sequelize.STRING(191),
 				allowNull: false,
 			},
 			created_at: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.DATE,
-				defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+				defaultValue: null,
 			},
 			updated_at: {
-				allowNull: false,
+				allowNull: true,
 				type: Sequelize.DATE,
-				defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+				defaultValue: null,
 			},
 		})
 	},

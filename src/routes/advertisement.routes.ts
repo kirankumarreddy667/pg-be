@@ -3,7 +3,7 @@ import { AdvertisementController } from '@/controllers/advertisement.controller'
 import { wrapAsync } from '@/utils/asyncHandler'
 import { validateRequest } from '@/middlewares/validateRequest'
 import { advertisementSchema } from '@/validations/advertisement.validation'
-import { authenticate } from '@/middlewares/auth.middleware'
+import { authenticate, authorize } from '@/middlewares/auth.middleware'
 
 /**
  * @swagger
@@ -25,31 +25,7 @@ import { authenticate } from '@/middlewares/auth.middleware'
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               cost:
- *                 type: number
- *               phone_number:
- *                 type: string
- *               term_conditions:
- *                 type: string
- *               status:
- *                 type: boolean
- *               photos:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: base64
- *             required:
- *               - name
- *               - description
- *               - cost
- *               - phone_number
- *               - term_conditions
+ *             $ref: '#/components/schemas/AdvertisementCreate'
  *     responses:
  *       201:
  *         description: Advertisement created successfully
@@ -57,8 +33,32 @@ import { authenticate } from '@/middlewares/auth.middleware'
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
  *       422:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       500:
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -82,6 +82,18 @@ import { authenticate } from '@/middlewares/auth.middleware'
  *               $ref: '#/components/schemas/SuccessResponse'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       500:
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -110,8 +122,26 @@ import { authenticate } from '@/middlewares/auth.middleware'
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
  *       404:
  *         description: Advertisement not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       500:
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -138,25 +168,7 @@ import { authenticate } from '@/middlewares/auth.middleware'
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               cost:
- *                 type: number
- *               phone_number:
- *                 type: string
- *               term_conditions:
- *                 type: string
- *               status:
- *                 type: boolean
- *               photos:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: base64
+ *             $ref: '#/components/schemas/AdvertisementUpdate'
  *     responses:
  *       200:
  *         description: Advertisement updated successfully
@@ -164,62 +176,38 @@ import { authenticate } from '@/middlewares/auth.middleware'
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
  *       404:
  *         description: Advertisement not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/FailureResponse'
- */
-
-/**
- * @swagger
- * /advertisement/{id}:
- *   patch:
- *     summary: Partially update an advertisement by ID
- *     tags: [Advertisement]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Advertisement ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               cost:
- *                 type: number
- *               phone_number:
- *                 type: string
- *               term_conditions:
- *                 type: string
- *               status:
- *                 type: boolean
- *               photos:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: base64
- *     responses:
- *       200:
- *         description: Advertisement updated successfully
+ *       422:
+ *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       404:
- *         description: Advertisement not found
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       500:
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -248,8 +236,26 @@ import { authenticate } from '@/middlewares/auth.middleware'
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
  *       404:
  *         description: Advertisement not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FailureResponse'
+ *       500:
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -261,6 +267,7 @@ const router: Router = Router()
 router.post(
 	'/advertisement',
 	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(advertisementSchema),
 	wrapAsync(AdvertisementController.create),
 )
@@ -273,20 +280,22 @@ router.get(
 router.get(
 	'/advertisement/:id',
 	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
 	wrapAsync(AdvertisementController.show),
 )
 router.put(
 	'/advertisement/:id',
 	authenticate,
+	wrapAsync(authorize(['SuperAdmin'])),
 	validateRequest(advertisementSchema),
 	wrapAsync(AdvertisementController.update),
 )
-router.patch(
+
+router.delete(
 	'/advertisement/:id',
 	authenticate,
-	validateRequest(advertisementSchema),
-	wrapAsync(AdvertisementController.update),
+	wrapAsync(authorize(['SuperAdmin'])),
+	wrapAsync(AdvertisementController.destroy),
 )
-router.delete('/advertisement/:id', wrapAsync(AdvertisementController.destroy))
 
 export default router
