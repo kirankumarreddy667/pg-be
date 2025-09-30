@@ -580,7 +580,7 @@ export class ReportService {
 			// Save file
 			const reportDir = path.resolve(__dirname, '../../storage/reports')
 			await fs.mkdir(reportDir, { recursive: true })
-			const filename = `${config.emailSubject.replaceAll(/ /g, '_')}-${user_id}-${Date.now()}.pdf`
+			const filename = `${config.emailSubject.replaceAll(' ', '_')}-${user_id}-${Date.now()}.pdf`
 			const filePath = path.join(reportDir, filename)
 			await fs.writeFile(filePath, pdfBuffer)
 
@@ -1338,8 +1338,8 @@ export class ReportService {
 		decPoint: string,
 		thousandsSep: string,
 	): string {
-		const n = isFinite(+number) ? +number : 0
-		const prec = isFinite(+decimals) ? Math.abs(decimals) : 0
+		const n = Number.isFinite(+number) ? +number : 0
+		const prec = Number.isFinite(+decimals) ? Math.abs(decimals) : 0
 		const sep = thousandsSep === undefined ? ',' : thousandsSep
 		const dec = decPoint === undefined ? '.' : decPoint
 
@@ -2857,7 +2857,6 @@ export class ReportService {
 					historyData[i].lactating_status !== historyData[k].lactating_status
 				) {
 					result.push(historyData[i], historyData[k])
-					i = k
 				}
 			}
 		}
@@ -4208,7 +4207,7 @@ export class ReportService {
 							typeof rawPrice === 'number'
 								? rawPrice
 								: typeof rawPrice === 'string'
-									? parseFloat(rawPrice) || 0
+									? Number.parseFloat(rawPrice) || 0
 									: 0
 						totalDryFeed += price * amount
 						dryFeedQty += amount
@@ -4232,7 +4231,7 @@ export class ReportService {
 							typeof rawAmount === 'number'
 								? rawAmount
 								: typeof rawAmount === 'string'
-									? parseFloat(rawAmount) || 1
+									? Number.parseFloat(rawAmount) || 1
 									: 1
 						const price =
 							typeof rawPrice === 'number'

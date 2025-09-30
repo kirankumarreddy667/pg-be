@@ -25,9 +25,9 @@ export class VaccinationController {
 					deleted_at: null,
 				},
 			})
-			const foundTypeIds = foundTypes.map((type) => type.get('id'))
+			const foundTypeIds = new Set(foundTypes.map((type) => type.get('id')))
 			const missingTypeIds = vaccination.vaccination_type_ids.filter(
-				(id: number) => !foundTypeIds.includes(id),
+				(id: number) => !foundTypeIds.has(id),
 			)
 			if (missingTypeIds.length > 0) {
 				throw new ValidationRequestError({
@@ -45,11 +45,11 @@ export class VaccinationController {
 				},
 				attributes: ['animal_number'],
 			})
-			const foundAnimalNumbers = foundAnimals.map((animal) =>
-				animal.get('animal_number'),
+			const foundAnimalNumbers = new Set(
+				foundAnimals.map((animal) => animal.get('animal_number')),
 			)
 			const missingAnimalNumbers = vaccination.animal_numbers.filter(
-				(num: string) => !foundAnimalNumbers.includes(num),
+				(num: string) => !foundAnimalNumbers.has(num),
 			)
 			if (missingAnimalNumbers.length > 0) {
 				throw new ValidationRequestError({

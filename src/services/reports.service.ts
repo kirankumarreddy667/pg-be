@@ -2666,8 +2666,8 @@ export class ReportsService {
 		}
 		for (const row of result) {
 			resData[row.animal_name] = {
-				lactating_animal: parseInt(row.lactating_animal),
-				non_lactating_Animal: parseInt(row.non_lactating_animal),
+				lactating_animal: Number.parseInt(row.lactating_animal),
+				non_lactating_Animal: Number.parseInt(row.non_lactating_animal),
 			}
 		}
 		return resData

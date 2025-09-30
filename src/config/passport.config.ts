@@ -97,3 +97,5 @@ passport.deserializeUser((id: number, done) => {
 		.then((user: User | null) => done(null, user))
 		.catch((err: unknown) => done(err as Error, null))
 })
+
+export default passport

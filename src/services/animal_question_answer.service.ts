@@ -1965,7 +1965,7 @@ export class AnimalQuestionAnswerService {
 
 		for (const value of languageQuestions) {
 			const categoryName = value.category_language_name || ''
-			const categoryKey = categoryName.toLowerCase().replaceAll(/ /g, '_')
+			const categoryKey = categoryName.toLowerCase().replaceAll(' ', '_')
 
 			if (!resData[categoryKey]) {
 				resData[categoryKey] = []

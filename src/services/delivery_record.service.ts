@@ -428,7 +428,7 @@ export class DeliveryRecordService {
 
 		// 6. Otherwise, return grouped object
 		const key = category_language_name
-			? category_language_name.toLowerCase().replaceAll(/ /g, '_')
+			? category_language_name.toLowerCase().replaceAll(' ', '_')
 			: 'unknown'
 
 		return { [key]: attachedCalfWithDates }

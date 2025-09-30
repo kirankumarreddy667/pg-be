@@ -606,7 +606,7 @@ async function aggregateHealthInfo(
 				value.animal_number,
 				41,
 			)
-			if (milkLoss?.answer && !isNaN(Number(milkLoss.answer))) {
+			if (milkLoss?.answer && !Number.isNaN(Number(milkLoss.answer))) {
 				totalMilkLossAnimal = Number(milkLoss.answer)
 				totalMilkLoss += totalMilkLossAnimal
 			}

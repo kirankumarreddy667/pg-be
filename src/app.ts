@@ -6,7 +6,7 @@ import express, {
 	Response,
 } from 'express'
 import cors from 'cors'
-import path from 'path'
+import path from 'node:path'
 import helmet from 'helmet'
 import swaggerjsdoc from 'swagger-jsdoc'
 import swaggerui from 'swagger-ui-express'

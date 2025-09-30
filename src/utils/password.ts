@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto'
+import { randomBytes } from 'node:crypto'
 
 export function generateRandomPassword(length: number): string {
 	return randomBytes(length * 2)

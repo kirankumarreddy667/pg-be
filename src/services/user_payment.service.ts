@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 import { PaymentData, PaymentVerify } from '@/types/payment'
 import razorpay from '@/utils/razorpay'
 import { UserPaymentHistory } from '@/models/userPaymentHistory.model'
@@ -754,8 +754,8 @@ export class UserPaymentService {
 		offer_id: number | null
 		coupon_id: number | null
 	}): Promise<{ emailData: EmailData; adminEmailData: AdminEmailData }> {
-		let quantity,
-			monthYear = 'Year'
+		let quantity
+		let monthYear = 'Year'
 
 		const [offerData, couponData] = await Promise.all([
 			data.offer_id
@@ -775,11 +775,12 @@ export class UserPaymentService {
 		if (offerData) {
 			if (offerData.additional_months && offerData.additional_months > 0) {
 				quantity = offerData.additional_months
+				monthYear = 'Months'
 			}
 			if (offerData.additional_years && offerData.additional_years > 0) {
 				quantity = offerData.additional_years
+				monthYear = 'Months'
 			}
-			monthYear = 'Months'
 		} else {
 			quantity = data.quantity || 1
 			monthYear = 'Year'

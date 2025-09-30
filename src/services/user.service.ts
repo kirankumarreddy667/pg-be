@@ -704,7 +704,7 @@ export class UserService {
 				COUNT(DISTINCT DATE(dra.answer_date)) as answer_count
 			FROM daily_record_question_answer dra
 			INNER JOIN users u2 ON u2.id = dra.user_id
-			WHERE 1=1 ${answerDateCondition.replaceAll(/u\./g, 'u2.')}
+			WHERE 1=1 ${answerDateCondition.replaceAll('u.', 'u2.')}
 			AND deleted_at IS NULL
 			GROUP BY dra.user_id
 		) filtered_answers ON filtered_answers.user_id = u.id
@@ -806,7 +806,7 @@ export class UserService {
 				COUNT(DISTINCT DATE(dra.answer_date)) as answer_count
 			FROM daily_record_question_answer dra
 			INNER JOIN users u2 ON u2.id = dra.user_id
-			WHERE 1=1 ${answerDateCondition.replaceAll(/u\./g, 'u2.')}
+			WHERE 1=1 ${answerDateCondition.replaceAll('u.', 'u2.')}
 			AND deleted_at IS NULL
 			GROUP BY dra.user_id
 		) filtered_answers ON filtered_answers.user_id = u.id
@@ -859,17 +859,6 @@ export class UserService {
 
 			const answer = Number.parseInt(user.answer_days_count.toString()) || 0
 
-			const calcTotalDaysAllTime = (
-				created_at: Date | string,
-				now: Date | string,
-			): number => {
-				const start = moment.tz(created_at, 'Asia/Kolkata')
-				const end = moment.tz(now, 'Asia/Kolkata')
-
-				const diff = end.diff(start, 'days')
-				return diff === 0 ? 1 : diff + 1
-			}
-
 			let total_days = 0
 
 			if (type === 'all_time') {
@@ -893,8 +882,6 @@ export class UserService {
 					} else {
 						total_days = diff + 1
 					}
-				} else {
-					total_days = 0
 				}
 			} else {
 				total_days = calcTotalDaysAllTime(user.created_at, now)
@@ -957,17 +944,6 @@ export class UserService {
 
 		return users.map((user): UserSortResult => {
 			const answer = Number.parseInt(user.answer_days_count.toString()) || 0
-
-			const calcTotalDaysAllTime = (
-				created_at: Date | string,
-				now: Date | string,
-			): number => {
-				const start = moment.tz(created_at, 'Asia/Kolkata')
-				const end = moment.tz(now, 'Asia/Kolkata')
-
-				const diff = end.diff(start, 'days')
-				return diff === 0 ? 1 : diff + 1
-			}
 
 			let total_days = 0
 
@@ -1095,10 +1071,7 @@ export class UserService {
 			total_days: number
 		}[]
 
-		const calcTotalDaysAllTime = (
-			created_at: Date | string,
-			now: Date,
-		): number => {
+		const calcTotalDays = (created_at: Date | string, now: Date): number => {
 			if (!created_at) return 1
 			const createdDate = new Date(created_at)
 			const currentDate = new Date(
@@ -1141,7 +1114,7 @@ export class UserService {
 			const answer_days_count = Number.parseInt(user.answer_days_count) || 0
 
 			if (type === 'all_time') {
-				total_days = calcTotalDaysAllTime(user.registration_date, now)
+				total_days = calcTotalDays(user.registration_date, now)
 			} else if (start_date && end_date) {
 				total_days = calcTotalDaysRange(start_date, end_date)
 			}
@@ -1336,4 +1309,14 @@ export class UserService {
 		}
 		return resData
 	}
+}
+const calcTotalDaysAllTime = (
+	created_at: Date | string,
+	now: Date | string,
+): number => {
+	const start = moment.tz(created_at, 'Asia/Kolkata')
+	const end = moment.tz(now, 'Asia/Kolkata')
+
+	const diff = end.diff(start, 'days')
+	return diff === 0 ? 1 : diff + 1
 }
