@@ -1,6 +1,7 @@
 import axios, { isAxiosError } from 'axios'
 import { logger } from '@/config/logger'
 import { msg91Config } from '@/config/msg91.config'
+import https from 'https'
 
 // Define the shape of the MSG91 API response for type safety
 interface Msg91Response {
@@ -25,6 +26,12 @@ export interface SmsRequestData {
 	template_id: string
 	short_url?: string
 	recipients: SmsRecipient[]
+}
+
+interface SendHttpResponse {
+	type: 'success' | 'error'
+	message: string
+	requestId?: string
 }
 
 export class SmsService {
@@ -96,11 +103,68 @@ export class SmsService {
 
 		const recipients: SmsRecipient[] = [
 			{
-				mobiles: phoneNumber,
+				mobiles: `91${phoneNumber}`,
 				otp: otp,
 			},
 		]
 
 		return this.sendSms(otpTemplate, recipients)
+	}
+
+	static async sendNotificationSMS(
+		phone: string,
+		message: string,
+		DLT_Template_ID: string,
+	): Promise<SendHttpResponse> {
+		const params = new URLSearchParams({
+			country: '91',
+			sender: msg91Config.senderId,
+			route: '4',
+			mobiles: `91${phone}`,
+			authkey: msg91Config.authKey,
+			encrypt: '',
+			message: message,
+			response: 'json',
+			DLT_TE_ID: DLT_Template_ID,
+		})
+
+		const url = `http://api.msg91.com/api/sendhttp.php?unicode=1&&${params.toString()}`
+
+		try {
+			const response = await axios.get<SendHttpResponse>(url, {
+				timeout: 30000,
+				httpsAgent: new https.Agent({
+					rejectUnauthorized: false,
+				}),
+			})
+
+			logger.info('Direct SMS sent successfully', {
+				phone,
+				template_id: DLT_Template_ID,
+			})
+
+			// Check if the response indicates success
+			if (response.data?.type !== 'success') {
+				throw new Error(
+					response.data?.message || 'MSG91 returned a non-success status.',
+				)
+			}
+
+			return response.data
+		} catch (error) {
+			if (isAxiosError<SendHttpResponse>(error)) {
+				const errorMessage =
+					error.response?.data?.message || 'No specific error message from API.'
+				logger.error(`Failed to send direct SMS. Error: ${errorMessage}`, {
+					status: error.response?.status,
+					data: error.response?.data,
+					template_id: DLT_Template_ID,
+					phone,
+				})
+			} else {
+				logger.error('Failed to send direct SMS. Unexpected Error:', error)
+			}
+			throw new Error('Direct SMS service failed.')
+		}
 	}
 }

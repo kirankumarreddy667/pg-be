@@ -6,6 +6,7 @@ import {
 	farmersListSchema,
 	businessOutletFarmerMappingSchema,
 	businessOutletFarmersAnimalSchema,
+	businessOutletUpdateSchema,
 } from '@/validations/business_outlet.validation'
 import { wrapAsync } from '@/utils/asyncHandler'
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
@@ -36,14 +37,21 @@ const router: Router = Router()
  *             properties:
  *               business_name:
  *                 type: string
+ *                 example: "Dairy Express"
  *               owner_name:
  *                 type: string
+ *                 example: "John Doe"
  *               email:
  *                 type: string
+ *                 format: email
+ *                 example: "john@dairyexpress.com"
  *               mobile:
  *                 type: string
+ *                 pattern: ^\d+$
+ *                 example: "9876543210"
  *               business_address:
  *                 type: string
+ *                 example: "123 Main Street, City"
  *             required:
  *               - business_name
  *               - owner_name
@@ -51,24 +59,82 @@ const router: Router = Router()
  *               - mobile
  *               - business_address
  *     responses:
- *       201:
+ *       200:
  *         description: Business outlet created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Business outlet created successfully"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/business_outlet',
 	authenticate,
-	validateRequest(businessOutletSchema),
 	wrapAsync(authorize(['SuperAdmin'])),
+	validateRequest(businessOutletSchema),
 	wrapAsync(BusinessOutletController.store),
 )
 
@@ -86,13 +152,71 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       business_name:
+ *                         type: string
+ *                         example: "Dairy Express"
+ *                       business_address:
+ *                         type: string
+ *                         example: "123 Main Street, City"
+ *                       owner_name:
+ *                         type: string
+ *                         example: "John Doe"
+ *                       owner_email:
+ *                         type: string
+ *                         example: "john@dairyexpress.com"
+ *                       owner_mobile_no:
+ *                         type: string
+ *                         example: "9876543210"
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.get(
 	'/business_outlet',
@@ -116,6 +240,7 @@ router.get(
  *           type: integer
  *         required: true
  *         description: Business outlet ID
+ *         example: 1
  *     requestBody:
  *       required: true
  *       content:
@@ -125,39 +250,111 @@ router.get(
  *             properties:
  *               business_name:
  *                 type: string
+ *                 example: "Updated Dairy Express"
  *               owner_name:
  *                 type: string
+ *                 example: "John Smith"
  *               email:
  *                 type: string
- *               mobile:
- *                 type: string
+ *                 format: email
+ *                 example: "johnsmith@dairyexpress.com"
  *               business_address:
  *                 type: string
- *             required:
- *               - business_name
- *               - owner_name
- *               - email
- *               - mobile
- *               - business_address
+ *                 example: "456 New Street, City"
  *     responses:
  *       200:
  *         description: Business outlet updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
  *         description: Business outlet not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Business outlet not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.put(
 	'/business_outlet/:id',
 	authenticate,
-	validateRequest(businessOutletSchema),
 	wrapAsync(authorize(['SuperAdmin'])),
+	validateRequest(businessOutletUpdateSchema),
 	wrapAsync(BusinessOutletController.update),
 )
 
@@ -176,19 +373,76 @@ router.put(
  *           type: integer
  *         required: true
  *         description: Business outlet ID
+ *         example: 1
  *     responses:
  *       200:
  *         description: Business outlet deleted successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Business Outlet Deleted Successfully"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
  *         description: Business outlet not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Business outlet not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.delete(
 	'/business_outlet/:id',
@@ -201,7 +455,7 @@ router.delete(
  * @swagger
  * /business_outlet_farmer_mapping:
  *   post:
- *     summary: Map a farmer (user) to a business outlet
+ *     summary: Map farmers (users) to a business outlet
  *     tags: [BusinessOutlet]
  *     security:
  *       - bearerAuth: []
@@ -213,37 +467,95 @@ router.delete(
  *             type: object
  *             properties:
  *               user_id:
- *                 type: integer
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 example: [1, 2, 3]
+ *                 description: Array of user IDs to map to the business outlet
  *               business_outlet_id:
  *                 type: integer
+ *                 example: 1
+ *                 description: Business outlet ID
  *             required:
  *               - user_id
  *               - business_outlet_id
  *     responses:
- *       201:
- *         description: Mapping created
+ *       200:
+ *         description: Mapping created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/business_outlet_farmer_mapping',
 	authenticate,
-	validateRequest(businessOutletFarmerMappingSchema),
 	wrapAsync(authorize(['SuperAdmin'])),
+	validateRequest(businessOutletFarmerMappingSchema),
 	wrapAsync(BusinessOutletController.mapUserWithBusinessOutlet),
 )
 
@@ -262,25 +574,92 @@ router.post(
  *           type: integer
  *         required: true
  *         description: Business outlet ID
+ *         example: 1
  *     responses:
  *       200:
  *         description: List of mapped farmers
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       business_outlet_name:
+ *                         type: string
+ *                         example: "Dairy Express"
+ *                       user_id:
+ *                         type: integer
+ *                         example: 1
+ *                       user_name:
+ *                         type: string
+ *                         example: "Farmer John"
+ *                       phone_number:
+ *                         type: string
+ *                         example: "9876543210"
+ *                       farm_name:
+ *                         type: string
+ *                         example: "Green Valley Farm"
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
- *         description: Not found
+ *         description: Business outlet not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Business outlet not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.get(
 	'/business_outlet_farmer/:id',
@@ -304,20 +683,23 @@ router.get(
  *           schema:
  *             type: object
  *             properties:
- *               business_outlet_id:
- *                 type: integer
  *               start_date:
  *                 type: string
  *                 format: date
- *                 description: 'YYYY-MM-DD'
+ *                 pattern: ^\d{4}-\d{2}-\d{2}$
+ *                 example: "2024-01-01"
+ *                 description: Start date in YYYY-MM-DD format
  *               end_date:
  *                 type: string
  *                 format: date
- *                 description: 'YYYY-MM-DD'
+ *                 pattern: ^\d{4}-\d{2}-\d{2}$
+ *                 example: "2024-12-31"
+ *                 description: End date in YYYY-MM-DD format
  *               search:
  *                 type: string
+ *                 example: "all_users"
+ *                 description: Search by phone number, name, or use 'all_users' for all farmers
  *             required:
- *               - business_outlet_id
  *               - search
  *     responses:
  *       200:
@@ -325,25 +707,114 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       user_id:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "Farmer John"
+ *                       phone_number:
+ *                         type: string
+ *                         example: "9876543210"
+ *                       address:
+ *                         type: string
+ *                         example: "Farm Address"
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:30:00.000Z"
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/business/list_of_users',
 	authenticate,
+	wrapAsync(authorize(['Business'])),
 	validateRequest(farmersListSchema),
-	wrapAsync(authorize(['SuperAdmin'])),
 	wrapAsync(BusinessOutletController.farmersList),
 )
 
@@ -362,31 +833,83 @@ router.post(
  *           type: integer
  *         required: true
  *         description: Farmer user ID
+ *         example: 1
  *       - in: path
  *         name: business_outlet_id
  *         schema:
  *           type: integer
  *         required: true
  *         description: Business outlet ID
+ *         example: 1
  *     responses:
  *       200:
  *         description: Mapping deleted successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
- *         description: Mapping not found
+ *         description: User or mapping not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.delete(
 	'/business_outlet/delete_farmer/:farmer_id/:business_outlet_id',

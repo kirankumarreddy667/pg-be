@@ -1,42 +1,56 @@
-import db from '@/config/database';
-import { Unit } from '@/models/unit.model';
-import { UniqueConstraintError } from 'sequelize';
+import db from '@/config/database'
+import { Unit } from '@/models/unit.model'
+import { ValidationRequestError } from '@/utils/errors'
 
-// Optional: Create an interface for Unit input
 interface UnitInput {
-  name: string;
-  display_name: string;
+	name: string
+	display_name: string
 }
 
 export class UnitService {
-  static async getAllUnits(): Promise<Unit[]> {
-    return await db.Unit.findAll();
-  }
+	static async getAllUnits(): Promise<Unit[]> {
+		return await db.Unit.findAll({ where: { deleted_at: null } })
+	}
 
-  static async getUnitById(id: number): Promise<Unit | null> {
-    return await db.Unit.findByPk(id);
-  }
+	static async getUnitById(id: number): Promise<Unit | null> {
+		return await db.Unit.findOne({ where: { id, deleted_at: null } })
+	}
 
-  static async createUnit(data: UnitInput): Promise<Unit> {
-    try {
-      return await db.Unit.create(data);
-    } catch (error: unknown) {
-      if (error instanceof UniqueConstraintError) {
-        throw new Error('Unit with this name already exists');
-      }
-      throw error;
-    }
-  }
+	static async createUnit(data: UnitInput): Promise<Unit> {
+		const unit = await db.Unit.findOne({
+			where: {
+				name: data.name,
+				deleted_at: null,
+			},
+		})
+		if (unit) {
+			throw new ValidationRequestError({
+				name: ['The name has already been taken.'],
+			})
+		}
+		return await db.Unit.create(data)
+	}
 
-  static async updateUnit(id: number, data: Partial<UnitInput>): Promise<Unit | null> {
-    const unit = await db.Unit.findByPk(id);
-    if (!unit) return null;
-    await unit.update(data);
-    return unit;
-  }
+	static async updateUnit(
+		id: number,
+		data: Partial<UnitInput>,
+	): Promise<Unit | null> {
+		const getUnit = await db.Unit.findOne({
+			where: { name: data.name, deleted_at: null },
+		})
+		if (getUnit && getUnit.get('id') !== id)
+			throw new ValidationRequestError({
+				name: ['The name has already been taken.'],
+			})
 
-  static async deleteUnit(id: number): Promise<boolean> {
-    const deleted = await db.Unit.destroy({ where: { id } });
-    return deleted > 0;
-  }
+		const unit = await db.Unit.findByPk(id)
+		if (!unit) return null
+		await unit.update(data)
+		return unit
+	}
+
+	static async deleteUnit(id: number): Promise<boolean> {
+		const deleted = await db.Unit.destroy({ where: { id } })
+		return deleted > 0
+	}
 }

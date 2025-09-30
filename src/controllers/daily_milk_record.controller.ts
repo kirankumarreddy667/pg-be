@@ -5,52 +5,45 @@ import {
 } from '@/services/daily_milk_record.service'
 import RESPONSE from '@/utils/response'
 import { User } from '@/models/user.model'
+import db from '@/config/database'
+import { Transaction } from 'sequelize'
 
 export class DailyMilkRecordController {
 	public static readonly save: RequestHandler = async (req, res, next) => {
 		try {
 			const user = req.user as User
-			const result = await DailyMilkRecordService.saveDailyMilkRecord(
+			await DailyMilkRecordService.saveDailyMilkRecord(
 				user,
 				req.body as SaveDailyMilkRecordInput,
 			)
-			if (result.success) {
-				RESPONSE.SuccessResponse(res, 200, {
-					message: result.message,
-					data: [],
-				})
-			} else {
-				RESPONSE.FailureResponse(res, 422, {
-					message: 'The given data was invalid.',
-					errors: [result.message],
-				})
-			}
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Added successfully.',
+				data: [],
+			})
 		} catch (error) {
 			next(error)
 		}
 	}
 
 	public static readonly update: RequestHandler = async (req, res, next) => {
+		const transaction: Transaction = await db.sequelize.transaction()
 		try {
 			const user = req.user as User
 			const date = req.params.date
-			const result = await DailyMilkRecordService.updateDailyMilkRecord(
+			await DailyMilkRecordService.updateDailyMilkRecord(
 				user,
 				date,
 				req.body as SaveDailyMilkRecordInput,
+				transaction,
 			)
-			if (result.success) {
-				RESPONSE.SuccessResponse(res, 200, {
-					message: result.message,
-					data: [],
-				})
-			} else {
-				RESPONSE.FailureResponse(res, 422, {
-					message: 'The given data was invalid.',
-					errors: [result.message],
-				})
-			}
+
+			await transaction.commit()
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Updated successfully.',
+				data: [],
+			})
 		} catch (error) {
+			await transaction.rollback()
 			next(error)
 		}
 	}

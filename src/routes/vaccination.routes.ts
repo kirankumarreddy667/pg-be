@@ -35,7 +35,7 @@ const router: Router = Router()
  *               record_date:
  *                 type: string
  *                 format: date
- *                 example: '2024-07-15'
+ *                 example: '2025-08-19'
  *               animal_numbers:
  *                 type: array
  *                 items:
@@ -52,24 +52,61 @@ const router: Router = Router()
  *               - animal_numbers
  *               - vaccination_type_ids
  *     responses:
- *       201:
+ *       200:
  *         description: Vaccination detail added successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   example: []
+ *                 message:
+ *                   type: string
+ *                   example: Vaccination detail added successfully
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Validation error
+ *                 errors:
+ *                   type: object
+ *                   example: { expense: ["Expense is required"] }
+ *       500:
+ *           description: Internal server error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     example: Internal server error
+ *                   status:
+ *                     type: integer
+ *                     example: 500
  */
 
 router.post(
@@ -93,15 +130,52 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "Rabies"
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
-
 router.get(
 	'/vaccination_all_type',
 	authenticate,

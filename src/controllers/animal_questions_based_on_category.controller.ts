@@ -1,7 +1,6 @@
 import { RequestHandler } from 'express'
 import { AnimalQuestionsBasedOnCategoryService } from '@/services/animal_questions_based_on_category.service'
 import RESPONSE from '@/utils/response'
-import { AnimalService } from '@/services/animal.service'
 
 export class AnimalQuestionsBasedOnCategoryController {
 	public static readonly animalQuestionBasedOnBasicDetailsCategory: RequestHandler =
@@ -129,6 +128,13 @@ export class AnimalQuestionsBasedOnCategoryController {
 						language_id,
 						option,
 					)
+
+				if (!result.success) {
+					return RESPONSE.FailureResponse(res, 400, {
+						message: result.message,
+						data: [],
+					})
+				}
 				RESPONSE.SuccessResponse(res, 200, {
 					message: result.message,
 					data: result.data,
@@ -147,11 +153,12 @@ export class AnimalQuestionsBasedOnCategoryController {
 			const user = req.user as { id: number } | undefined
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
-			const result = await AnimalService.farmAnimalCount(user.id)
+			const result =
+				await AnimalQuestionsBasedOnCategoryService.farmAnimalCount(user.id)
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success',
 				data: result,

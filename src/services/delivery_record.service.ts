@@ -21,10 +21,12 @@ interface SubCategoryLanguage {
 }
 
 interface QuestionUnit {
+	id?: number | null
 	name?: string | null
 }
 
 interface QuestionTag {
+	id?: number | null
 	name?: string | null
 }
 
@@ -44,6 +46,7 @@ interface CommonQuestion {
 	QuestionUnit?: QuestionUnit
 	QuestionTag?: QuestionTag
 	FormType?: FormType
+	Answers?: AnimalQuestionAnswer[]
 }
 
 interface AnimalQuestionAnswer {
@@ -51,11 +54,11 @@ interface AnimalQuestionAnswer {
 	created_at?: Date | null
 }
 
-interface AnimalQuestionWithAssociations {
-	animal_id: number
-	CommonQuestion?: CommonQuestion
-	Answers?: AnimalQuestionAnswer[]
-}
+// interface AnimalQuestionWithAssociations {
+// 	animal_id: number
+// 	CommonQuestion?: CommonQuestion
+// 	Answers?: AnimalQuestionAnswer[]
+// }
 
 interface DeliveryRecordAnswer {
 	question_id: number
@@ -73,6 +76,13 @@ interface DeliveryRecordGrouped {
 	calf_number?: string
 }
 
+interface ApiResponse {
+	status: number
+	message: string
+	data: [] | Record<string, unknown>
+	errors?: Record<string, string[]>
+}
+type ResponseData = Record<string, Record<string, object[]>>
 export class DeliveryRecordService {
 	static async saveRecordDeliveryOfAnimal(
 		data: {
@@ -82,7 +92,20 @@ export class DeliveryRecordService {
 			animal_id: number
 		},
 		userId: number,
-	): Promise<{ status: number; message: string; data: [] }> {
+	): Promise<ApiResponse> {
+		const animal = await db.Animal.findOne({
+			where: { id: data.animal_id, deleted_at: null },
+		})
+		if (!animal) {
+			return {
+				status: 422,
+				message: 'The given data was invalid.',
+				data: [],
+				errors: {
+					animal_id: ['The selected animal id is invalid.'],
+				},
+			}
+		}
 		const animal_number = data.animal_number ?? ''
 		const date = data.date ?? new Date()
 		const answers = data.answers.map((value) => ({
@@ -93,11 +116,11 @@ export class DeliveryRecordService {
 			created_at: date,
 			animal_number,
 			logic_value: null,
+			status: false,
 		}))
 		await db.AnimalQuestionAnswer.bulkCreate(answers)
-		return { status: 201, message: 'Success', data: [] }
+		return { data: [], message: 'Success', status: 200 }
 	}
-
 	static async updateRecordDeliveryOfAnimal(
 		animal_number: string,
 		data: {
@@ -105,7 +128,53 @@ export class DeliveryRecordService {
 			animal_id: number
 		},
 		userId: number,
-	): Promise<{ status: number; message: string; data: [] }> {
+	): Promise<ApiResponse> {
+		const animal = await db.Animal.findOne({
+			where: { id: data.animal_id, deleted_at: null },
+		})
+		if (!animal) {
+			return {
+				status: 422,
+				message: 'The given data was invalid.',
+				data: [],
+				errors: {
+					animal_id: ['The selected animal id is invalid.'],
+				},
+			}
+		}
+
+		for (const ans of data.answers) {
+			const qExists = await db.CommonQuestions.findOne({
+				where: { id: ans.question_id, deleted_at: null },
+			})
+			if (!qExists) {
+				return {
+					status: 422,
+					message: 'The given data was invalid.',
+					data: [],
+					errors: {
+						question_id: ['The selected question id is invalid.'],
+					},
+				}
+			}
+		}
+
+		for (const ans of data.answers) {
+			const qExists = await db.CommonQuestions.findOne({
+				where: { id: ans.question_id, deleted_at: null },
+			})
+			if (!qExists) {
+				return {
+					status: 422,
+					message: 'The given data was invalid.',
+					data: [],
+					errors: {
+						question_id: ['The selected question id is invalid.'],
+					},
+				}
+			}
+		}
+
 		let date_of_delivery = ''
 		const now = new Date()
 		const answers = data.answers.map((value) => {
@@ -121,6 +190,7 @@ export class DeliveryRecordService {
 				updated_at: now,
 				animal_number,
 				logic_value: null,
+				status: false,
 			}
 		})
 		// Add milking state
@@ -133,6 +203,7 @@ export class DeliveryRecordService {
 			updated_at: now,
 			animal_number,
 			logic_value: null,
+			status: false,
 		})
 		// Add pregnancy state
 		answers.push({
@@ -144,6 +215,7 @@ export class DeliveryRecordService {
 			updated_at: now,
 			animal_number,
 			logic_value: null,
+			status: false,
 		})
 		await db.AnimalQuestionAnswer.bulkCreate(answers)
 		// Insert lactation yield
@@ -156,134 +228,118 @@ export class DeliveryRecordService {
 			lactating_status: 'Yes',
 			created_at: now,
 		})
-		return { status: 201, message: 'Success', data: [] }
+		return { data: [], message: 'Success', status: 200 }
 	}
 
 	static async userAnimalQuestionAnswerRecordDelivery(
 		user_id: number,
 		animal_id: number,
 		language_id: number,
-		animal_number: string,
-	): Promise<Record<string, Record<string, object[]>>> {
-		const latest = await db.AnimalQuestionAnswer.findOne({
-			where: {
-				animal_id: Number(animal_id),
-				user_id,
-				animal_number,
-				status: { [Op.ne]: 1 },
-			},
+		animal_number?: string,
+	): Promise<ResponseData> {
+		const questionModels = await db.CommonQuestions.findAll({
+			where: { category_id: 100 },
 			include: [
 				{
-					model: db.CommonQuestions,
-					as: 'CommonQuestion',
-					where: { category_id: 100 },
+					model: db.QuestionLanguage,
+					as: 'QuestionLanguage',
+					where: { language_id, deleted_at: null },
+					required: false,
 				},
-			],
-			order: [['created_at', 'DESC']],
-			attributes: ['created_at'],
-		})
-		const answerDate = latest?.created_at
-		const questions = (await db.AnimalQuestions.findAll({
-			where: { animal_id: Number(animal_id) },
-			include: [
 				{
-					model: db.CommonQuestions,
-					as: 'CommonQuestion',
-					where: { category_id: 100 },
-					include: [
-						{
-							model: db.QuestionLanguage,
-							as: 'QuestionLanguages',
-							where: { language_id: Number(language_id) },
-							required: true,
-						},
-						{
-							model: db.FormType,
-							as: 'FormType',
-							attributes: ['id', 'name'],
-							required: false,
-						},
-						{
-							model: db.ValidationRule,
-							as: 'ValidationRule',
-							attributes: ['id', 'name', 'constant_value'],
-						},
-						{
-							model: db.CategoryLanguage,
-							as: 'CategoryLanguage',
-							where: { language_id: Number(language_id), category_id: 100 },
-							attributes: ['category_language_name'],
-							required: true,
-						},
-						{
-							model: db.SubCategoryLanguage,
-							as: 'SubCategoryLanguage',
-							where: { language_id: Number(language_id) },
-							attributes: ['sub_category_language_name'],
-							required: false,
-						},
-						{
-							model: db.QuestionUnit,
-							as: 'QuestionUnit',
-							attributes: ['id', 'name'],
-							required: false,
-						},
-						{
-							model: db.QuestionTag,
-							as: 'QuestionTag',
-							attributes: ['id', 'name'],
-							required: false,
-						},
-					],
+					model: db.FormType,
+					as: 'FormType',
+					where: { deleted_at: null },
+					attributes: ['id', 'name'],
+					required: false,
+				},
+				{
+					model: db.ValidationRule,
+					as: 'ValidationRule',
+					where: { deleted_at: null },
+					attributes: ['id', 'name', 'constant_value'],
+					required: false,
+				},
+				{
+					model: db.CategoryLanguage,
+					as: 'CategoryLanguage',
+					where: { language_id, category_id: 100, deleted_at: null },
+					attributes: ['category_language_name'],
+					required: false,
+				},
+				{
+					model: db.SubCategoryLanguage,
+					as: 'SubCategoryLanguage',
+					where: { language_id, deleted_at: null },
+					attributes: ['sub_category_language_name'],
+					required: false,
+				},
+				{
+					model: db.QuestionUnit,
+					as: 'QuestionUnit',
+					where: { deleted_at: null },
+					attributes: ['id', 'name'],
+					required: false,
+				},
+				{
+					model: db.QuestionTag,
+					as: 'QuestionTag',
+					where: { deleted_at: null },
+					attributes: ['id', 'name'],
+					required: false,
 				},
 				{
 					model: db.AnimalQuestionAnswer,
 					as: 'Answers',
 					where: {
 						user_id,
-						animal_id: Number(animal_id),
+						animal_id,
 						animal_number,
 						status: { [Op.ne]: 1 },
-						...(answerDate ? { created_at: answerDate } : {}),
+						deleted_at: null,
 					},
 					required: false,
 				},
 			],
-		})) as AnimalQuestionWithAssociations[]
-		const resData: Record<string, Record<string, object[]>> = {}
-		for (const aq of questions) {
-			const cq = aq.CommonQuestion
-			if (!cq) continue
-			const ql = cq.QuestionLanguages?.[0]
-			const answerObj = aq.Answers?.[0]
-			const answer = answerObj?.answer ?? null
-			const answer_date = answerObj?.created_at ?? null
-			const categoryName =
-				cq.CategoryLanguage?.category_language_name || 'Uncategorized'
-			const subCategoryName =
-				cq.SubCategoryLanguage?.sub_category_language_name || 'Uncategorized'
-			if (!resData[categoryName]) resData[categoryName] = {}
-			if (!resData[categoryName][subCategoryName])
-				resData[categoryName][subCategoryName] = []
+			order: [['id', 'ASC']],
+		})
+
+		const questions = questionModels.map((q) => {
+			const plain = q.get({ plain: true }) as unknown
+			return plain as CommonQuestion
+		})
+
+		const resData: ResponseData = {}
+		const categoryName = 'Details Info'
+		const subCategoryName = ''
+
+		resData[categoryName] = { [subCategoryName]: [] }
+
+		for (const cq of questions) {
+			const qLang = cq.QuestionLanguages?.[0]
+			const answerObj = cq.Answers?.[0]
+
 			resData[categoryName][subCategoryName].push({
-				animal_id: aq.animal_id,
-				validation_rule: cq.ValidationRule?.name ?? null,
-				master_question: cq.question,
-				language_question: ql?.question ?? null,
+				animal_id,
+				validation_rule: cq.ValidationRule?.name ?? 'TYPE_CLASS_TEXT',
+				master_question: cq.question ?? 'No Question',
+				language_question: qLang?.question ?? cq.question ?? null,
 				question_id: cq.id,
-				form_type: cq.FormType?.name ?? null,
-				date: cq.date,
-				answer,
-				form_type_value: cq.form_type_value ?? null,
-				language_form_type_value: ql?.form_type_value ?? null,
-				constant_value: cq.ValidationRule?.constant_value ?? null,
-				question_tag: cq.QuestionTag?.name ?? null,
-				question_unit: cq.QuestionUnit?.name ?? null,
-				answer_date,
-				animal_number,
-				hint: ql?.hint ?? null,
+				form_type: cq.FormType?.name ?? 'Text',
+				date: cq.date ?? 0,
+				answer: answerObj?.answer ?? null,
+				form_type_value: cq.form_type_value ?? qLang?.form_type_value ?? null,
+				language_form_type_value:
+					qLang?.form_type_value ?? cq.form_type_value ?? null,
+				constant_value: cq.ValidationRule?.constant_value ?? 1,
+				question_tag: cq.QuestionTag?.id ?? 0,
+				question_unit: cq.QuestionUnit?.id ?? 0,
+				answer_date: answerObj?.created_at ?? null,
+				animal_number: animal_number ?? null,
+				hint: qLang?.hint ?? null,
 			})
 		}
+
 		return resData
 	}
 
@@ -292,33 +348,42 @@ export class DeliveryRecordService {
 		animal_id: number,
 		language_id: number,
 		animal_number: string,
-	): Promise<Record<string, DeliveryRecordGrouped[]>> {
+	): Promise<
+		DeliveryRecordGrouped[] | Record<string, DeliveryRecordGrouped[]>
+	> {
 		// 1. Fetch answers for question_tag 65,66 and category_id=100
 		const answers = await db.sequelize.query<DeliveryRecordAnswer>(
 			`SELECT aqa.question_id, cq.category_id, cl.category_language_name, aqa.answer, cq.question_tag, aqa.created_at, aqa.animal_number
-     FROM common_questions cq
-     JOIN question_language ql ON cq.id = ql.question_id
-     LEFT JOIN animal_question_answers aqa ON cq.id = aqa.question_id
-       AND aqa.user_id = :user_id
-       AND aqa.animal_id = :animal_id
-       AND aqa.animal_number = :animal_number
-     JOIN category_language cl ON cl.category_id = cq.category_id AND cl.language_id = :language_id AND cl.category_id = 100
-     WHERE ql.language_id = :language_id
-       AND aqa.animal_id = :animal_id
-       AND cq.question_tag IN (65,66)
-     ORDER BY aqa.created_at DESC`,
+			FROM common_questions cq
+			JOIN question_language ql ON cq.id = ql.question_id
+			LEFT JOIN animal_question_answers aqa ON cq.id = aqa.question_id
+				AND aqa.user_id = :user_id
+				AND aqa.animal_id = :animal_id
+				AND aqa.animal_number = :animal_number
+				AND aqa.deleted_at IS NULL
+			JOIN category_language cl ON cl.category_id = cq.category_id 
+			    AND cl.language_id = :language_id 
+			    AND cl.category_id = 100 
+			    AND cl.deleted_at IS NULL
+			WHERE ql.language_id = :language_id
+				AND ql.deleted_at IS NULL
+				AND aqa.animal_id = :animal_id
+				AND cq.question_tag IN (65,66)
+				AND cq.deleted_at IS NULL
+			ORDER BY aqa.created_at DESC`,
 			{
 				replacements: { user_id, animal_id, animal_number, language_id },
 				type: QueryTypes.SELECT,
 			},
 		)
 
-		// 2. Fetch delivery dates from animal_mother_calfs
+		// 2. Fetch delivery dates
 		const calfRows = (await db.AnimalMotherCalf.findAll({
-			where: { user_id, animal_id },
+			where: { user_id, animal_id, deleted_at: null },
 			attributes: ['delivery_date', 'calf_animal_number'],
 			raw: true,
 		})) as { delivery_date: Date | string; calf_animal_number: string }[]
+
 		const deliveryDates: Record<string, string> = {}
 		for (const row of calfRows) {
 			const dateStr =
@@ -358,10 +423,14 @@ export class DeliveryRecordService {
 			return item
 		})
 
-		// 5. Group by category_language_name
+		// 5. Return empty array if no records
+		if (attachedCalfWithDates.length === 0) return []
+
+		// 6. Otherwise, return grouped object
 		const key = category_language_name
 			? category_language_name.toLowerCase().replace(/ /g, '_')
 			: 'unknown'
+
 		return { [key]: attachedCalfWithDates }
 	}
 
@@ -375,14 +444,16 @@ export class DeliveryRecordService {
 			count: number
 		}>(
 			`SELECT COUNT(*) as count
-     FROM animal_question_answers aqa
-     JOIN common_questions cq ON cq.id = aqa.question_id
-     WHERE cq.question_tag = 69
-       AND aqa.user_id = :user_id
-       AND aqa.animal_id = :animal_id
-       AND aqa.animal_number = :animal_number
-       AND aqa.status <> 1
-       AND LOWER(aqa.answer) = 'yes'`,
+			FROM animal_question_answers aqa
+			JOIN common_questions cq ON cq.id = aqa.question_id
+			WHERE cq.question_tag = 69
+			AND cq.deleted_at IS NULL
+			AND aqa.user_id = :user_id
+			AND aqa.animal_id = :animal_id
+			AND aqa.animal_number = :animal_number
+			AND aqa.status <> 1
+			AND aqa.deleted_at IS NULL
+			AND LOWER(aqa.answer) = 'yes'`,
 			{
 				replacements: { user_id, animal_id, animal_number },
 				type: QueryTypes.SELECT,
@@ -392,13 +463,15 @@ export class DeliveryRecordService {
 		// Delivery count (question_tag=66)
 		const deliveryCntArr = await db.sequelize.query<{ count: number }>(
 			`SELECT COUNT(*) as count
-     FROM animal_question_answers aqa
-     JOIN common_questions cq ON cq.id = aqa.question_id
-     WHERE cq.question_tag = 66
-       AND aqa.user_id = :user_id
-       AND aqa.animal_id = :animal_id
-       AND aqa.animal_number = :animal_number
-       AND aqa.status <> 1`,
+			FROM animal_question_answers aqa
+			JOIN common_questions cq ON cq.id = aqa.question_id
+			WHERE cq.question_tag = 66
+			AND cq.deleted_at IS NULL
+			AND aqa.user_id = :user_id
+			AND aqa.animal_id = :animal_id
+			AND aqa.animal_number = :animal_number
+			AND aqa.status <> 1
+			AND aqa.deleted_at IS NULL`,
 			{
 				replacements: { user_id, animal_id, animal_number },
 				type: QueryTypes.SELECT,

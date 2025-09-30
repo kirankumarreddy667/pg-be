@@ -9,7 +9,7 @@ export class EnquireUsController {
 		next,
 	) => {
 		try {
-			const enquiry = await EnquireUsService.create(
+			await EnquireUsService.create(
 				req.body as {
 					first_name: string
 					last_name?: string
@@ -19,9 +19,9 @@ export class EnquireUsController {
 				},
 			)
 
-			RESPONSE.SuccessResponse(res, 201, {
-				message: 'Enquiry submitted successfully',
-				data: enquiry,
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: [],
 			})
 		} catch (error) {
 			next(error)
@@ -32,7 +32,7 @@ export class EnquireUsController {
 		try {
 			const enquiries = await EnquireUsService.listAll()
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'All enquiries fetched successfully',
+				message: 'Success',
 				data: enquiries,
 			})
 		} catch (error) {

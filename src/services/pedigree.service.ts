@@ -17,7 +17,12 @@ export class PedigreeService {
 		}
 	}> {
 		const motherNo = await db.AnimalMotherCalf.findOne({
-			where: { user_id: user.id, animal_id, calf_animal_number: animal_number },
+			where: {
+				user_id: user.id,
+				animal_id,
+				calf_animal_number: animal_number,
+				deleted_at: null,
+			},
 			attributes: ['mother_animal_number', 'delivery_date'],
 			raw: true,
 		})
@@ -32,6 +37,7 @@ export class PedigreeService {
 						user_id: user.id,
 						animal_id,
 						animal_number: motherNo.mother_animal_number,
+						deleted_at: null,
 					},
 				})) ?? 0) +
 				((await db.DailyMilkRecord.sum('evening_milk_in_litres', {
@@ -39,6 +45,7 @@ export class PedigreeService {
 						user_id: user.id,
 						animal_id,
 						animal_number: motherNo.mother_animal_number,
+						deleted_at: null,
 					},
 				})) ?? 0)
 			const dateOfAI = await db.AnimalQuestionAnswer.findOne({
@@ -47,12 +54,13 @@ export class PedigreeService {
 					animal_id,
 					animal_number: motherNo.mother_animal_number,
 					status: { [Op.ne]: 1 },
+					deleted_at: null,
 				},
 				include: [
 					{
 						model: db.CommonQuestions,
 						as: 'CommonQuestion',
-						where: { question_tag: 23 },
+						where: { question_tag: 23, deleted_at: null },
 						attributes: [],
 					},
 				],
@@ -70,12 +78,13 @@ export class PedigreeService {
 								animal_number: motherNo.mother_animal_number,
 								status: { [Op.ne]: 1 },
 								created_at: dateOfAI.created_at,
+								deleted_at: null,
 							},
 							include: [
 								{
 									model: db.CommonQuestions,
 									as: 'CommonQuestion',
-									where: { question_tag: 35 },
+									where: { question_tag: 35, deleted_at: null },
 									attributes: [],
 								},
 							],
@@ -89,12 +98,13 @@ export class PedigreeService {
 								animal_number: motherNo.mother_animal_number,
 								status: { [Op.ne]: 1 },
 								created_at: dateOfAI.created_at,
+								deleted_at: null,
 							},
 							include: [
 								{
 									model: db.CommonQuestions,
 									as: 'CommonQuestion',
-									where: { question_tag: 42 },
+									where: { question_tag: 42, deleted_at: null },
 									attributes: [],
 								},
 							],
@@ -108,12 +118,13 @@ export class PedigreeService {
 								animal_number: motherNo.mother_animal_number,
 								status: { [Op.ne]: 1 },
 								created_at: dateOfAI.created_at,
+								deleted_at: null,
 							},
 							include: [
 								{
 									model: db.CommonQuestions,
 									as: 'CommonQuestion',
-									where: { question_tag: 14 },
+									where: { question_tag: 14, deleted_at: null },
 									attributes: [],
 								},
 							],
@@ -156,6 +167,7 @@ export class PedigreeService {
 				user_id: user.id,
 				animal_id,
 				calf_animal_number: animal_number,
+				deleted_at: null,
 			},
 			attributes: ['mother_animal_number', 'delivery_date'],
 			raw: true,
@@ -168,12 +180,13 @@ export class PedigreeService {
 					animal_number: motherNo.mother_animal_number,
 					status: { [Op.ne]: 1 },
 					answer: { [Op.lte]: motherNo.delivery_date },
+					deleted_at: null,
 				},
 				include: [
 					{
 						model: db.CommonQuestions,
 						as: 'CommonQuestion',
-						where: { question_tag: 23 },
+						where: { question_tag: 23, deleted_at: null },
 						attributes: [],
 					},
 				],
@@ -189,12 +202,13 @@ export class PedigreeService {
 						animal_number: motherNo.mother_animal_number,
 						created_at: dateOfAI.created_at,
 						status: { [Op.ne]: 1 },
+						deleted_at: null,
 					},
 					include: [
 						{
 							model: db.CommonQuestions,
 							as: 'CommonQuestion',
-							where: { question_tag: 35 },
+							where: { question_tag: 35, deleted_at: null },
 							attributes: [],
 						},
 					],
@@ -209,6 +223,7 @@ export class PedigreeService {
 				user_id: user.id,
 				animal_id,
 				mother_animal_number: animal_number,
+				deleted_at: null,
 			},
 			attributes: [['calf_animal_number', 'calf_number']],
 			raw: true,

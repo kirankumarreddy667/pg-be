@@ -10,7 +10,7 @@ export class TypeController {
 					type: string
 				},
 			)
-			RESPONSE.SuccessResponse(res, 201, {
+			RESPONSE.SuccessResponse(res, 200, {
 				message: result.message,
 				data: [],
 			})
@@ -26,6 +26,9 @@ export class TypeController {
 	) => {
 		try {
 			const id = Number(req.params.id)
+			const type = await TypeService.findById(id)
+			if (!type)
+				return RESPONSE.FailureResponse(res, 404, { message: 'Not found' })
 			const result = await TypeService.update(
 				id,
 				req.body as {
@@ -82,8 +85,12 @@ export class TypeController {
 		try {
 			const id = Number(req.params.id)
 			const result = await TypeService.delete(id)
+			if (!result)
+				return RESPONSE.FailureResponse(res, 400, {
+					message: 'Something went wrong. Please try again',
+				})
 			RESPONSE.SuccessResponse(res, 200, {
-				message: result.message,
+				message: 'Success',
 				data: [],
 			})
 		} catch (error) {

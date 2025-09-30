@@ -1,34 +1,38 @@
-import { DataTypes, Model, Sequelize } from 'sequelize'
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize'
 
-export class VaccinationType extends Model {
+export interface VaccinationTypeAttributes {
+	id?: number
+	type: string
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
+}
+
+export class VaccinationType extends Model<
+	VaccinationTypeAttributes,
+	Optional<
+		VaccinationTypeAttributes,
+		'id' | 'created_at' | 'updated_at' | 'deleted_at'
+	>
+> {
 	public id!: number
 	public type!: string
-	public created_at!: Date
-	public updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof VaccinationType => {
 	VaccinationType.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
 			type: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
-				unique: true,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
 			},
 		},
 		{
@@ -37,6 +41,10 @@ export default (sequelize: Sequelize): typeof VaccinationType => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return VaccinationType

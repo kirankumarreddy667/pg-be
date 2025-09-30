@@ -5,14 +5,18 @@ export interface AppAboutContentAttributes {
 	type: string
 	language_id: number
 	content: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class AppAboutContent
 	extends Model<
 		AppAboutContentAttributes,
-		Optional<AppAboutContentAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			AppAboutContentAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
 	>
 	implements AppAboutContentAttributes
 {
@@ -20,21 +24,22 @@ export class AppAboutContent
 	public type!: string
 	public language_id!: number
 	public content!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof AppAboutContent => {
 	AppAboutContent.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 				allowNull: false,
 			},
 			type: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			language_id: {
@@ -58,12 +63,14 @@ export default (sequelize: Sequelize): typeof AppAboutContent => {
 		},
 		{
 			sequelize,
-			modelName: 'AppAboutContent',
 			tableName: 'app_about_contents',
-			underscored: true,
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return AppAboutContent

@@ -1,15 +1,10 @@
-import {
-	BusinessOutlet,
-	User,
-	Role,
-	RoleUser,
-	UserBusinessOutlet,
-} from '@/models/index'
+import { BusinessOutlet, User, Role, RoleUser } from '@/models/index'
 import { generateRandomPassword } from '@/utils/password'
 import { addToEmailQueue } from '@/queues/email.queue'
 import db from '@/config/database'
-import { Transaction, Op, QueryTypes } from 'sequelize'
+import { Transaction, Op, QueryTypes, col } from 'sequelize'
 import { AnimalService, AnimalAnswerRecord } from './animal.service'
+import { ValidationError, ValidationRequestError } from '@/utils/errors'
 
 interface CreateBusinessOutletInput {
 	business_name: string
@@ -64,7 +59,6 @@ interface AnimalCountResult {
 	}
 }
 
-// Add this interface for the farmer result rows
 interface FarmerAnimalRow {
 	animal_number: string
 	user_id: number
@@ -72,73 +66,7 @@ interface FarmerAnimalRow {
 	animal_name: string
 }
 
-// Add this type for userID query results
 type UserIdRow = { id: number }
-
-async function createOutletAndSendEmail({
-	userId,
-	name,
-	email,
-	phone_number,
-	business_name,
-	business_address,
-	password,
-	roleName,
-	transaction,
-}: {
-	userId: number
-	name: string
-	email: string
-	phone_number: string
-	business_name: string
-	business_address: string
-	password: string
-	roleName: string
-	transaction: Transaction
-}): Promise<OutletResult> {
-	const role = await Role.findOne({ where: { name: roleName }, transaction })
-	if (role) {
-		await RoleUser.create(
-			{
-				user_id: userId,
-				role_id: role.get('id'),
-			},
-			{ transaction },
-		)
-	}
-	const outlet = await BusinessOutlet.create(
-		{
-			assign_to: userId,
-			business_name,
-			business_address,
-		},
-		{ transaction },
-	)
-	addToEmailQueue({
-		to: email,
-		subject: 'Login Details',
-		template: 'businessCredentials',
-		data: {
-			name,
-			phone: phone_number,
-			password,
-		},
-	})
-
-	return {
-		id: outlet.get('id'),
-		business_name: outlet.business_name,
-		business_address: outlet.business_address,
-		owner: {
-			id: userId,
-			name,
-			email,
-			phone_number,
-		},
-	}
-}
-
-// --- Helper interfaces and functions for milk info aggregation ---
 
 interface DailyRecordData {
 	question_tag: number
@@ -173,103 +101,6 @@ interface MilkInfoResult {
 	eveningSNFPercentage: number
 }
 
-async function getDailyRecordData(
-	tag: number,
-	user_id: number,
-	startDate: string,
-	endDate: string,
-): Promise<DailyRecordData[]> {
-	const records = await db.DailyRecordQuestion.findAll({
-		where: { question_tag: tag },
-		include: [
-			{
-				model: db.AnimalQuestionAnswer,
-				as: 'Answers',
-				where: {
-					user_id,
-					created_at: { [Op.between]: [startDate, endDate] },
-					status: { [Op.ne]: 1 },
-				},
-				required: true,
-			},
-		],
-		// raw: true, // REMOVED
-	})
-	return records.map((r) => r.toJSON() as unknown as DailyRecordData)
-}
-
-function sumMilkFromAnswers(records: DailyRecordData[]): number {
-	let total = 0
-	for (const rec of records) {
-		if (Array.isArray(rec.Answers)) {
-			for (const answerObj of rec.Answers) {
-				try {
-					type ParsedAnswer = { amount?: unknown }
-					const answer = JSON.parse(answerObj.answer) as ParsedAnswer[]
-					if (
-						Array.isArray(answer) &&
-						answer[0] &&
-						typeof answer[0].amount === 'number'
-					) {
-						total += answer[0].amount
-					}
-				} catch {
-					// ignore parse errors
-				}
-			}
-		}
-	}
-	return total
-}
-
-function sumFatSnfFromAnswers(records: DailyRecordData[]): number {
-	let total = 0
-	for (const rec of records) {
-		if (Array.isArray(rec.Answers)) {
-			for (const answerObj of rec.Answers) {
-				try {
-					type ParsedAnswer = { name?: unknown }
-					const answer = JSON.parse(answerObj.answer) as ParsedAnswer[]
-					if (
-						Array.isArray(answer) &&
-						answer[0] &&
-						typeof answer[0].name === 'number'
-					) {
-						total += answer[0].name
-					}
-				} catch {
-					// ignore parse errors
-				}
-			}
-		}
-	}
-	return total
-}
-
-function countRecords(records: DailyRecordData[]): number {
-	return records.length > 0 ? records.length : 1
-}
-
-// Helper: default MilkInfoResult
-const defaultMilkInfoResult: MilkInfoResult = {
-	morningMilk: 0,
-	eveningMilk: 0,
-	morningFat: 0,
-	eveningFat: 0,
-	morningSNF: 0,
-	eveningSNF: 0,
-	totalMilk: 0,
-	eveningSNFCount: 0,
-	eveningFatCount: 0,
-	morningSNFCount: 0,
-	morningFatCount: 0,
-	morningFatPercentage: 0,
-	eveningFatPercentage: 0,
-	morningSNFPercentage: 0,
-	eveningSNFPercentage: 0,
-}
-
-// Add interfaces for health and breeding info
 interface HealthInfoAnimalRow {
 	animal_number: string
 	user_id: number
@@ -334,7 +165,183 @@ interface BreedingInfoResponse {
 	breeding_data: BreedingData[]
 }
 
-// Helper to build farmers array
+interface BreedingStats {
+	pregnantAnimal: number
+	nonPregnant: number
+	lactating: number
+	nonLactating: number
+	breeding_data: BreedingData[]
+}
+
+interface HealthAggregation {
+	resData: HealthInfoDetailed[]
+	diseasesArray: string[]
+	medicinesArray: string[]
+	totalMilkLoss: number
+}
+
+export interface BusinessList {
+	id: number
+	business_name: string
+	business_address: string
+	owner_name: string
+	owner_mobile_no: string
+	owner_email: string
+}
+
+async function createOutletAndSendEmail({
+	userId,
+	name,
+	email,
+	phone_number,
+	business_name,
+	business_address,
+	password,
+	roleName,
+	transaction,
+}: {
+	userId: number
+	name: string
+	email: string
+	phone_number: string
+	business_name: string
+	business_address: string
+	password: string
+	roleName: string
+	transaction: Transaction
+}): Promise<OutletResult> {
+	const role = await Role.findOne({
+		where: { name: roleName, deleted_at: null },
+		transaction,
+	})
+	if (role) {
+		await RoleUser.create(
+			{
+				user_id: userId,
+				role_id: role.get('id'),
+			},
+			{ transaction },
+		)
+	}
+	const outlet = await BusinessOutlet.create(
+		{
+			assign_to: userId,
+			business_name,
+			business_address,
+		},
+		{ transaction },
+	)
+	addToEmailQueue({
+		to: email,
+		subject: 'Login Details',
+		template: 'businessCredentials',
+		data: {
+			name,
+			phone: phone_number,
+			password,
+		},
+	})
+
+	return {
+		id: outlet.get('id'),
+		business_name: outlet.business_name,
+		business_address: outlet.business_address,
+		owner: {
+			id: userId,
+			name,
+			email,
+			phone_number,
+		},
+	}
+}
+
+async function getDailyRecordData(
+	tag: number,
+	user_id: number,
+	startDate: string,
+	endDate: string,
+): Promise<DailyRecordData[]> {
+	const records = await db.DailyRecordQuestion.findAll({
+		where: { question_tag: tag, delete_status: 0 },
+		include: [
+			{
+				model: db.AnimalQuestionAnswer,
+				as: 'Answers',
+				where: {
+					user_id,
+					created_at: { [Op.between]: [startDate, endDate] },
+					status: { [Op.ne]: 1 },
+					deleted_at: null,
+				},
+				required: true,
+			},
+		],
+	})
+	return records.map((r) => r.toJSON() as unknown as DailyRecordData)
+}
+
+function sumMilkFromAnswers(records: DailyRecordData[]): number {
+	let total = 0
+	for (const rec of records) {
+		if (Array.isArray(rec.Answers)) {
+			for (const answerObj of rec.Answers) {
+				type ParsedAnswer = { amount?: unknown }
+				const answer = JSON.parse(answerObj.answer) as ParsedAnswer[]
+				if (
+					Array.isArray(answer) &&
+					answer[0] &&
+					typeof answer[0].amount === 'number'
+				) {
+					total += answer[0].amount
+				}
+			}
+		}
+	}
+	return total
+}
+
+function sumFatSnfFromAnswers(records: DailyRecordData[]): number {
+	let total = 0
+	for (const rec of records) {
+		if (Array.isArray(rec.Answers)) {
+			for (const answerObj of rec.Answers) {
+				type ParsedAnswer = { name?: unknown }
+				const answer = JSON.parse(answerObj.answer) as ParsedAnswer[]
+				if (
+					Array.isArray(answer) &&
+					answer[0] &&
+					typeof answer[0].name === 'number'
+				) {
+					total += answer[0].name
+				}
+			}
+		}
+	}
+	return total
+}
+
+function countRecords(records: DailyRecordData[]): number {
+	return records.length > 0 ? records.length : 1
+}
+
+const defaultMilkInfoResult: MilkInfoResult = {
+	morningMilk: 0,
+	eveningMilk: 0,
+	morningFat: 0,
+	eveningFat: 0,
+	morningSNF: 0,
+	eveningSNF: 0,
+	totalMilk: 0,
+	eveningSNFCount: 0,
+	eveningFatCount: 0,
+	morningSNFCount: 0,
+	morningFatCount: 0,
+	morningFatPercentage: 0,
+	eveningFatPercentage: 0,
+	morningSNFPercentage: 0,
+	eveningSNFPercentage: 0,
+}
+
 async function getFarmers(
 	data: {
 		search: string
@@ -346,7 +353,7 @@ async function getFarmers(
 	outlet: BusinessOutlet | null,
 ): Promise<BreedingInfoAnimalRow[]> {
 	if (!outlet) return []
-	let userWhere: Record<string, unknown> = {}
+	let userWhere: Record<string, unknown> = { deleted_at: null }
 	if (data.search && data.search !== 'all_users') {
 		userWhere = {
 			[Op.or as unknown as string]: [
@@ -376,6 +383,7 @@ async function getFarmers(
 				model: db.UserBusinessOutlet,
 				as: 'UserBusinessOutlet',
 				attributes: ['user_id'],
+				where: { deleted_at: null },
 				required: true,
 			},
 		],
@@ -396,14 +404,6 @@ async function getFarmers(
 	)
 }
 
-interface BreedingStats {
-	pregnantAnimal: number
-	nonPregnant: number
-	lactating: number
-	nonLactating: number
-	breeding_data: BreedingData[]
-}
-
 async function getBreedingStats(
 	farmers: BreedingInfoAnimalRow[],
 ): Promise<BreedingStats> {
@@ -413,7 +413,7 @@ async function getBreedingStats(
 			value.user_id,
 			value.animal_id,
 			value.animal_number,
-			40, // Tag for breeding info
+			40,
 		)
 		if (breeding?.answer) {
 			const breedingInfo = JSON.parse(breeding.answer) as BreedingData
@@ -448,7 +448,6 @@ async function getBreedingStats(
 	}
 }
 
-// Helper to build health farmers array
 async function getHealthFarmers(
 	data: {
 		search: string
@@ -473,7 +472,12 @@ async function getHealthFarmers(
 			 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
 			 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
 			 JOIN users u ON u.id = ubo.user_id
-			 WHERE bo.assign_to = :userId AND aqa.status != 1`,
+			 WHERE bo.assign_to = :userId 
+			 AND aqa.status != 1
+			 AND bo.deleted_at IS NULL
+			 AND ubo.deleted_at IS NULL
+			 AND u.deleted_at IS NULL
+			 AND aqa.deleted_at IS NULL`,
 			{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
 		)
 	} else if (start_date && end_date && !type && search === 'all_users') {
@@ -483,8 +487,13 @@ async function getHealthFarmers(
 			 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
 			 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
 			 JOIN users u ON u.id = ubo.user_id
-			 WHERE bo.assign_to = :userId AND aqa.status != 1
-			   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
+			 WHERE bo.assign_to = :userId 
+			 AND aqa.status != 1
+			 AND bo.deleted_at IS NULL
+			 AND ubo.deleted_at IS NULL
+			 AND u.deleted_at IS NULL
+			 AND aqa.deleted_at IS NULL
+			 AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
 			{
 				replacements: {
 					userId: user_id,
@@ -502,6 +511,9 @@ async function getHealthFarmers(
 			 JOIN user_business_outlet ubo ON ubo.user_id = u.id
 			 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
 			   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+			   AND u.deleted_at IS NULL
+			   AND ru.deleted_at IS NULL
+			   AND ubo.deleted_at IS NULL
 			 LIMIT 1`,
 			{
 				replacements: { search: `%${search}%`, outletId: outlet.id },
@@ -515,7 +527,13 @@ async function getHealthFarmers(
 			 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
 			 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
 			 JOIN users u ON u.id = ubo.user_id
-			 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1`,
+			 WHERE bo.assign_to = :userId 
+			 AND aqa.user_id = :searchUserId 
+			 AND aqa.status != 1
+			 AND bo.deleted_at IS NULL
+			 AND ubo.deleted_at IS NULL
+			 AND u.deleted_at IS NULL
+			 AND aqa.deleted_at IS NULL`,
 			{
 				replacements: { userId: user_id, searchUserId: userID[0].id },
 				type: QueryTypes.SELECT,
@@ -529,6 +547,9 @@ async function getHealthFarmers(
 			 JOIN user_business_outlet ubo ON ubo.user_id = u.id
 			 WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
 			   AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+			   AND u.deleted_at IS NULL
+			   AND ru.deleted_at IS NULL
+			   AND ubo.deleted_at IS NULL
 			 LIMIT 1`,
 			{
 				replacements: { search: `%${search}%`, outletId: outlet.id },
@@ -542,8 +563,14 @@ async function getHealthFarmers(
 			 JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
 			 JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
 			 JOIN users u ON u.id = ubo.user_id
-			 WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1
-			   AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
+			 WHERE bo.assign_to = :userId 
+			 AND aqa.user_id = :searchUserId 
+			 AND aqa.status != 1
+			 AND bo.deleted_at IS NULL
+			 AND ubo.deleted_at IS NULL
+			 AND u.deleted_at IS NULL
+			 AND aqa.deleted_at IS NULL
+			 AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
 			{
 				replacements: {
 					userId: user_id,
@@ -556,13 +583,6 @@ async function getHealthFarmers(
 		)
 	}
 	return []
-}
-
-interface HealthAggregation {
-	resData: HealthInfoDetailed[]
-	diseasesArray: string[]
-	medicinesArray: string[]
-	totalMilkLoss: number
 }
 
 async function aggregateHealthInfo(
@@ -648,7 +668,6 @@ async function aggregateHealthInfo(
 	return { resData, diseasesArray, medicinesArray, totalMilkLoss }
 }
 
-// Helper to get users for milk info
 async function getMilkUsers(
 	data: {
 		search: string
@@ -663,20 +682,25 @@ async function getMilkUsers(
 	if (!outlet) return []
 	if (search === 'all_users') {
 		return db.sequelize.query(
-			`SELECT ubo.user_id, u.created_at FROM user_business_outlet ubo
-       JOIN business_outlet bo ON bo.id = ubo.business_outlet_id
-       JOIN users u ON u.id = ubo.user_id
-       WHERE bo.assign_to = :userId`,
+			`SELECT ubo.user_id, u.created_at 
+			FROM user_business_outlet ubo
+			JOIN business_outlet bo ON bo.id = ubo.business_outlet_id
+			JOIN users u ON u.id = ubo.user_id
+			WHERE bo.assign_to = :userId
+			AND bo.deleted_at IS NULL
+			AND ubo.deleted_at IS NULL
+			AND u.deleted_at IS NULL`,
 			{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
 		)
 	} else {
 		const userID: UserIdRow[] = await db.sequelize.query(
 			`SELECT u.id as id FROM users u
-       JOIN role_user ru ON ru.user_id = u.id
-       JOIN user_business_outlet ubo ON ubo.user_id = u.id
-       WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-         AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-       LIMIT 1`,
+			JOIN role_user ru ON ru.user_id = u.id
+			JOIN user_business_outlet ubo ON ubo.user_id = u.id AND ubo.deleted_at IS NULL
+			WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
+				AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+				AND u.deleted_at IS NULL
+			LIMIT 1`,
 			{
 				replacements: { search: `%${search}%`, outletId: outlet.id },
 				type: QueryTypes.SELECT,
@@ -696,7 +720,6 @@ async function getMilkUsers(
 	}
 }
 
-// Helper to aggregate milk info
 async function aggregateMilkInfo(
 	users: UserWithCreatedAt[],
 	data: {
@@ -743,11 +766,11 @@ async function aggregateMilkInfo(
 			eveningFatCount: countRecords(eveningFat),
 			morningSNFCount: countRecords(morningSNF),
 			morningFatCount: countRecords(morningFat),
-			totalMilk: 0, // will be set below
-			morningFatPercentage: 0, // will be set below
-			eveningFatPercentage: 0, // will be set below
-			morningSNFPercentage: 0, // will be set below
-			eveningSNFPercentage: 0, // will be set below
+			totalMilk: 0,
+			morningFatPercentage: 0,
+			eveningFatPercentage: 0,
+			morningSNFPercentage: 0,
+			eveningSNFPercentage: 0,
 		}
 	}
 	// Aggregate
@@ -947,7 +970,6 @@ async function aggregateAnimalCounts(
 			nonLactating: stats.nonLactating,
 		})
 	}
-	// Aggregate by animal name
 	const responseData: AnimalCountResult = {}
 	for (const [key, value1] of Object.entries(resData)) {
 		const agg = value1.reduce(
@@ -980,7 +1002,6 @@ async function aggregateAnimalCounts(
 	return responseData
 }
 
-// Helper to get farmers for animal count
 async function getAnimalCountFarmers(
 	data: AnimalCountBody,
 	outlet: BusinessOutlet | null,
@@ -995,23 +1016,33 @@ async function getAnimalCountFarmers(
 	) {
 		return db.sequelize.query(
 			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
-       FROM business_outlet bo
-       JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-       JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-       JOIN animals a ON a.id = aqa.animal_id
-       WHERE bo.assign_to = :userId AND aqa.status != 1`,
+			FROM business_outlet bo
+			JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+			JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+			JOIN animals a ON a.id = aqa.animal_id
+			WHERE bo.assign_to = :userId 
+			AND aqa.status != 1
+			AND bo.deleted_at IS NULL
+			AND ubo.deleted_at IS NULL
+			AND aqa.deleted_at IS NULL
+			AND a.deleted_at IS NULL`,
 			{ replacements: { userId: user_id }, type: QueryTypes.SELECT },
 		)
 	} else if (start_date && end_date && !type && search === 'all_users') {
 		return db.sequelize.query(
 			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
-       FROM business_outlet bo
-       JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-       JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-       JOIN users u ON u.id = ubo.user_id
-       JOIN animals a ON a.id = aqa.animal_id
-       WHERE bo.assign_to = :userId AND aqa.status != 1
-         AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
+			FROM business_outlet bo
+			JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+			JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+			JOIN users u ON u.id = ubo.user_id
+			JOIN animals a ON a.id = aqa.animal_id
+			WHERE bo.assign_to = :userId 
+			AND aqa.status != 1
+			AND bo.deleted_at IS NULL
+			AND ubo.deleted_at IS NULL
+			AND aqa.deleted_at IS NULL
+			AND a.deleted_at IS NULL
+			AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
 			{
 				replacements: {
 					userId: user_id,
@@ -1024,12 +1055,13 @@ async function getAnimalCountFarmers(
 	} else if (type === 'all_time' && !start_date && !end_date) {
 		const userID: UserIdRow[] = await db.sequelize.query(
 			`SELECT u.id as id
-       FROM users u
-       JOIN role_user ru ON ru.user_id = u.id
-       JOIN user_business_outlet ubo ON ubo.user_id = u.id
-       WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-         AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-       LIMIT 1`,
+			FROM users u
+			JOIN role_user ru ON ru.user_id = u.id
+			JOIN user_business_outlet ubo ON ubo.user_id = u.id AND ubo.deleted_at IS NULL
+			WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
+				AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+				AND u.deleted_at IS NULL
+			LIMIT 1`,
 			{
 				replacements: { search: `%${search}%`, outletId: outlet.id },
 				type: QueryTypes.SELECT,
@@ -1038,11 +1070,17 @@ async function getAnimalCountFarmers(
 		if (!userID[0]) return []
 		return db.sequelize.query(
 			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
-       FROM business_outlet bo
-       JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-       JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-       JOIN animals a ON a.id = aqa.animal_id
-       WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1`,
+			FROM business_outlet bo
+			JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+			JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+			JOIN animals a ON a.id = aqa.animal_id
+			WHERE bo.assign_to = :userId 
+			AND aqa.user_id = :searchUserId 
+			AND aqa.status != 1
+			AND bo.deleted_at IS NULL
+			AND ubo.deleted_at IS NULL
+			AND aqa.deleted_at IS NULL
+			AND a.deleted_at IS NULL`,
 			{
 				replacements: { userId: user_id, searchUserId: userID[0].id },
 				type: QueryTypes.SELECT,
@@ -1051,12 +1089,13 @@ async function getAnimalCountFarmers(
 	} else if (start_date && end_date && !type) {
 		const userID: UserIdRow[] = await db.sequelize.query(
 			`SELECT u.id as id
-       FROM users u
-       JOIN role_user ru ON ru.user_id = u.id
-       JOIN user_business_outlet ubo ON ubo.user_id = u.id
-       WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
-         AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
-       LIMIT 1`,
+			FROM users u
+			JOIN role_user ru ON ru.user_id = u.id
+			JOIN user_business_outlet ubo ON ubo.user_id = u.id AND ubo.deleted_at IS NULL
+			WHERE (u.phone_number LIKE :search OR u.name LIKE :search)
+				AND ru.role_id = 2 AND ubo.business_outlet_id = :outletId
+				AND u.deleted_at IS NULL
+			LIMIT 1`,
 			{
 				replacements: { search: `%${search}%`, outletId: outlet.id },
 				type: QueryTypes.SELECT,
@@ -1065,13 +1104,19 @@ async function getAnimalCountFarmers(
 		if (!userID[0]) return []
 		return db.sequelize.query(
 			`SELECT DISTINCT aqa.animal_number, aqa.user_id, aqa.animal_id, a.name as animal_name
-       FROM business_outlet bo
-       JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
-       JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
-       JOIN users u ON u.id = ubo.user_id
-       JOIN animals a ON a.id = aqa.animal_id
-       WHERE bo.assign_to = :userId AND aqa.user_id = :searchUserId AND aqa.status != 1
-         AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
+			FROM business_outlet bo
+			JOIN user_business_outlet ubo ON ubo.business_outlet_id = bo.id
+			JOIN animal_question_answers aqa ON aqa.user_id = ubo.user_id
+			JOIN users u ON u.id = ubo.user_id
+			JOIN animals a ON a.id = aqa.animal_id
+			WHERE bo.assign_to = :userId 
+			AND aqa.user_id = :searchUserId 
+			AND aqa.status != 1
+			AND bo.deleted_at IS NULL
+			AND ubo.deleted_at IS NULL
+			AND aqa.deleted_at IS NULL
+			AND a.deleted_at IS NULL
+			AND DATE(u.created_at) >= :startDate AND DATE(u.created_at) <= :endDate`,
 			{
 				replacements: {
 					userId: user_id,
@@ -1096,34 +1141,32 @@ export class BusinessOutletService {
 	}: CreateBusinessOutletInput): Promise<OutletResult> {
 		const transaction = await db.sequelize.transaction()
 		try {
+			const existingOutlet = await BusinessOutlet.findOne({
+				where: { business_name, deleted_at: null },
+				transaction,
+			})
+
+			if (existingOutlet) {
+				throw new ValidationRequestError({
+					business_name: ['The business name has already been taken.'],
+				})
+			}
 			const existingUser = await User.findOne({
-				where: { phone_number: mobile },
+				where: { phone_number: mobile, deleted_at: null },
+				include: [
+					{
+						model: RoleUser,
+						as: 'role_users',
+						where: { role_id: 3 },
+						required: true,
+					},
+				],
 				transaction,
 			})
 			if (existingUser) {
-				const existingOutlet = await BusinessOutlet.findOne({
-					where: { assign_to: existingUser.get('id') },
-					transaction,
+				throw new ValidationRequestError({
+					mobile: ['The mobile number has already been taken.'],
 				})
-				if (existingOutlet) {
-					await transaction.rollback()
-					throw new Error('Mobile already taken as a business outlet owner.')
-				}
-				const password = generateRandomPassword(8)
-				await existingUser.update({ password: password }, { transaction })
-				const result = await createOutletAndSendEmail({
-					userId: existingUser.get('id'),
-					name: owner_name,
-					email,
-					phone_number: mobile,
-					business_name,
-					business_address,
-					password,
-					roleName: 'Business',
-					transaction,
-				})
-				await transaction.commit()
-				return result
 			}
 
 			const password = generateRandomPassword(8)
@@ -1133,6 +1176,7 @@ export class BusinessOutletService {
 					email,
 					phone_number: mobile,
 					password,
+					otp_status: false,
 				},
 				{ transaction },
 			)
@@ -1155,8 +1199,47 @@ export class BusinessOutletService {
 		}
 	}
 
-	public static async list(): Promise<BusinessOutlet[]> {
-		return BusinessOutlet.findAll()
+	public static async list(): Promise<BusinessList[]> {
+		const outlets = (await BusinessOutlet.findAll({
+			where: { deleted_at: null },
+			attributes: [
+				'id',
+				'business_name',
+				'business_address',
+				[col('BusinessUser.name'), 'name'],
+				[col('BusinessUser.email'), 'email'],
+				[col('BusinessUser.phone_number'), 'phone_number'],
+			],
+			include: [
+				{
+					model: db.User,
+					as: 'BusinessUser',
+					attributes: [],
+					where: { deleted_at: null },
+					required: true,
+				},
+			],
+			raw: true, // flatten result
+		})) as unknown as {
+			id: number
+			business_name: string
+			business_address: string
+			name: string
+			email: string
+			phone_number: string
+		}[]
+
+		if (!outlets) return []
+		return outlets.map((outlet) => {
+			return {
+				id: outlet.id,
+				business_name: outlet.business_name,
+				business_address: outlet.business_address,
+				owner_name: outlet.name,
+				owner_email: outlet.email,
+				owner_mobile_no: outlet.phone_number,
+			}
+		})
 	}
 
 	public static async update(
@@ -1170,17 +1253,46 @@ export class BusinessOutletService {
 	): Promise<BusinessOutlet> {
 		const transaction = await db.sequelize.transaction()
 		try {
-			const outlet = await BusinessOutlet.findByPk(id, { transaction })
-			if (!outlet) throw new Error('Business outlet not found')
-			if (data.business_name) outlet.business_name = data.business_name
-			if (data.business_address) outlet.business_address = data.business_address
-			await outlet.save({ transaction })
+			const outlet = await BusinessOutlet.findOne({
+				where: { id, deleted_at: null },
+				transaction,
+			})
+			if (!outlet) throw new ValidationError('Business outlet not found')
+			if (data.business_name) {
+				outlet.business_name = data.business_name
+				await BusinessOutlet.update(
+					{ business_name: data.business_name },
+					{ where: { id }, transaction },
+				)
+			}
+
+			if (data.business_address) {
+				outlet.business_address = data.business_address
+				await BusinessOutlet.update(
+					{ business_address: data.business_address },
+					{ where: { id }, transaction },
+				)
+			}
 			if (data.owner_name || data.email) {
-				const user = await User.findByPk(outlet.assign_to, { transaction })
+				const user = await User.findOne({
+					where: { id: outlet.get('assign_to'), deleted_at: null },
+					transaction,
+				})
 				if (user) {
-					if (data.owner_name) user.name = data.owner_name
-					if (data.email) user.email = data.email
-					await user.save({ transaction })
+					if (data.owner_name) {
+						user.name = data.owner_name
+						await User.update(
+							{ name: data.owner_name },
+							{ where: { id: outlet.get('assign_to') }, transaction },
+						)
+					}
+					if (data.email) {
+						user.email = data.email
+						await User.update(
+							{ email: data.email },
+							{ where: { id: outlet.get('assign_to') }, transaction },
+						)
+					}
 				}
 			}
 			await transaction.commit()
@@ -1194,9 +1306,17 @@ export class BusinessOutletService {
 	public static async delete(id: number): Promise<boolean> {
 		const transaction = await db.sequelize.transaction()
 		try {
-			const outlet = await BusinessOutlet.findByPk(id, { transaction })
-			if (!outlet) throw new Error('Business outlet not found')
-			await outlet.destroy({ transaction })
+			const outlet = await BusinessOutlet.findOne({
+				where: { id, deleted_at: null },
+				transaction,
+			})
+			if (!outlet) throw new ValidationError('Business outlet not found')
+			if (outlet && outlet.get('assign_to'))
+				await db.User.destroy({
+					where: { id: outlet.get('assign_to') },
+					transaction,
+				})
+			await db.BusinessOutlet.destroy({ where: { id }, transaction })
 			await transaction.commit()
 			return true
 		} catch (err) {
@@ -1209,31 +1329,86 @@ export class BusinessOutletService {
 		user_id,
 		business_outlet_id,
 	}: {
-		user_id: number
+		user_id: number[]
 		business_outlet_id: number
-	}): Promise<UserBusinessOutlet> {
-		const exists = await db.UserBusinessOutlet.findOne({
-			where: { user_id, business_outlet_id },
-		})
-		if (exists) {
-			throw new Error('Mapping already exists')
-		}
-		const mapping = await UserBusinessOutlet.create({
-			user_id,
+	}): Promise<void> {
+		const mappingData = user_id.map((uid) => ({
+			user_id: uid,
 			business_outlet_id,
+		}))
+
+		const outletExists = await db.BusinessOutlet.findOne({
+			where: { id: business_outlet_id, deleted_at: null },
 		})
-		return mapping
+		if (!outletExists) {
+			throw new ValidationRequestError({
+				business_outlet_id: ['The selected business outlet id is invalid.'],
+			})
+		}
+
+		const users = await db.User.findAll({
+			where: { id: user_id, deleted_at: null },
+			attributes: ['id'],
+		})
+
+		if (users.length !== user_id.length) {
+			throw new ValidationRequestError({
+				user_id: ['The selected user id is invalid.'],
+			})
+		}
+		await db.UserBusinessOutlet.destroy({
+			where: { business_outlet_id },
+		})
+
+		await db.UserBusinessOutlet.bulkCreate(mappingData)
+
+		return
 	}
 
 	public static async businessOutletFarmers(
 		business_outlet_id: number,
-	): Promise<User[]> {
-		const mappings = await db.UserBusinessOutlet.findAll({
-			where: { business_outlet_id },
-		})
-		const userIds = mappings.map((m) => m.get('user_id'))
-		const users = await User.findAll({ where: { id: userIds } })
-		return users
+	): Promise<
+		{
+			business_outlet_name: string | null
+			user_id: number
+			user_name: string | null
+			phone_number: string | null
+			farm_name: string | null
+		}[]
+	> {
+		const farmers = (await db.sequelize.query(
+			`
+		SELECT 
+			ubo.user_id,
+			u.name,
+			u.phone_number,
+			u.farm_name,
+			bo.business_name
+		FROM business_outlet bo
+		JOIN users u ON u.id = bo.assign_to AND u.deleted_at IS NULL
+		JOIN user_business_outlet ubo ON bo.id = ubo.business_outlet_id AND ubo.deleted_at IS NULL
+		WHERE ubo.business_outlet_id = :business_outlet_id
+		  AND bo.deleted_at IS NULL
+		`,
+			{
+				replacements: { business_outlet_id },
+				type: QueryTypes.SELECT,
+			},
+		)) as unknown as {
+			user_id: number
+			name: string | null
+			phone_number: string | null
+			farm_name: string | null
+			business_name: string | null
+		}[]
+
+		return farmers.map((farmer) => ({
+			business_outlet_name: farmer.business_name,
+			user_id: farmer.user_id,
+			user_name: farmer.name ?? null,
+			phone_number: farmer.phone_number,
+			farm_name: farmer.farm_name ?? null,
+		}))
 	}
 
 	public static async farmersList({
@@ -1245,7 +1420,7 @@ export class BusinessOutletService {
 		end_date?: string
 		search: string
 	}): Promise<FarmerListResult[]> {
-		let userWhere: Record<string, unknown> = {}
+		let userWhere: Record<string, unknown> = { deleted_at: null }
 		if (search && search !== 'all_users') {
 			userWhere = {
 				[Op.or as unknown as string]: [
@@ -1272,6 +1447,7 @@ export class BusinessOutletService {
 				{
 					model: db.UserBusinessOutlet,
 					as: 'UserBusinessOutlet',
+					where: { deleted_at: null },
 					attributes: ['user_id'],
 					required: true,
 				},
@@ -1296,15 +1472,29 @@ export class BusinessOutletService {
 	public static async deleteMappedFarmerToBusinessOutlet(
 		farmer_id: number,
 		business_outlet_id: number,
+		user_id: number,
 	): Promise<boolean> {
-		const mapping = await db.UserBusinessOutlet.findOne({
-			where: { user_id: farmer_id, business_outlet_id },
+		const businessOutlet = await db.BusinessOutlet.findOne({
+			where: {
+				id: business_outlet_id,
+				assign_to: user_id,
+				deleted_at: null,
+			},
 		})
-		if (!mapping) {
-			throw new Error('Mapping not found')
+
+		if (!businessOutlet) {
+			return false
 		}
-		await mapping.destroy()
-		return true
+
+		const deletedCount = await db.UserBusinessOutlet.destroy({
+			where: {
+				user_id: farmer_id,
+				business_outlet_id: business_outlet_id,
+				deleted_at: null,
+			},
+		})
+
+		return deletedCount > 0
 	}
 
 	public static async businessOutletFarmersAnimalCount(
@@ -1312,7 +1502,7 @@ export class BusinessOutletService {
 	): Promise<{ message: string; data: AnimalCountResult }> {
 		const { user_id } = data
 		const outlet = await db.BusinessOutlet.findOne({
-			where: { assign_to: user_id },
+			where: { assign_to: user_id, deleted_at: null },
 			raw: true,
 		})
 		if (!outlet) {
@@ -1329,7 +1519,6 @@ export class BusinessOutletService {
 		return { message: 'Success', data: responseData }
 	}
 
-	// Refactored Milk Info
 	public static async businessOutletFarmersAnimalMilkInfo(data: {
 		search: string
 		type?: string
@@ -1339,7 +1528,7 @@ export class BusinessOutletService {
 	}): Promise<{ message: string; data: MilkInfoResult }> {
 		const { user_id } = data
 		const outlet = await db.BusinessOutlet.findOne({
-			where: { assign_to: user_id },
+			where: { assign_to: user_id, deleted_at: null },
 			raw: true,
 		})
 		if (!outlet)
@@ -1364,7 +1553,6 @@ export class BusinessOutletService {
 		return { message: 'Success', data: responseData }
 	}
 
-	// Main service method
 	public static async businessOutletFarmersAnimalHealthInfo(data: {
 		search: string
 		type?: string
@@ -1374,7 +1562,7 @@ export class BusinessOutletService {
 	}): Promise<{ message: string; data: HealthInfoResponse | object }> {
 		const { user_id } = data
 		const outlet = await db.BusinessOutlet.findOne({
-			where: { assign_to: user_id },
+			where: { assign_to: user_id, deleted_at: null },
 			raw: true,
 		})
 		if (!outlet) return { message: 'No outlet assigned to user', data: {} }
@@ -1403,7 +1591,6 @@ export class BusinessOutletService {
 		return { message: 'Success', data: responseData }
 	}
 
-	// NEW: Breeding Info
 	public static async businessOutletFarmersAnimalBreedingInfo(data: {
 		search: string
 		type?: string
@@ -1413,7 +1600,7 @@ export class BusinessOutletService {
 	}): Promise<{ message: string; data: BreedingInfoResponse | object }> {
 		const { user_id } = data
 		const outlet = await db.BusinessOutlet.findOne({
-			where: { assign_to: user_id },
+			where: { assign_to: user_id, deleted_at: null },
 			raw: true,
 		})
 		if (!outlet) return { message: 'No outlet assigned to user', data: {} }

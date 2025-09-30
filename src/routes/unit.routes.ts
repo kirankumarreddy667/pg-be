@@ -3,10 +3,7 @@ import { UnitController } from '@/controllers/unit.controller'
 import { wrapAsync } from '@/utils/asyncHandler'
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
 import { validateRequest } from '@/middlewares/validateRequest'
-import {
-	createUnitSchema,
-	updateUnitSchema,
-} from '@/validations/unit.validation'
+import { createUnitSchema } from '@/validations/unit.validation'
 
 const unitRouter: ExpressRouter = Router()
 
@@ -31,13 +28,70 @@ const unitRouter: ExpressRouter = Router()
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "kg"
+ *                       display_name:
+ *                         type: string
+ *                         example: "Kilogram"
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2023-06-15 10:00:00.00"
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2023-06-15 10:00:00.00"
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 
 unitRouter.get('/unit', authenticate, wrapAsync(UnitController.getAllUnits))
@@ -63,19 +117,85 @@ unitRouter.get('/unit', authenticate, wrapAsync(UnitController.getAllUnits))
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "kg"
+ *                     display_name:
+ *                       type: string
+ *                       example: "Kilogram"
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2023-08-08 00:00:00.00"
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2023-08-08 00:00:00.00"
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
  *         description: Unit not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unit not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 unitRouter.get('/unit/:id', authenticate, wrapAsync(UnitController.getUnitById))
 
@@ -92,26 +212,88 @@ unitRouter.get('/unit/:id', authenticate, wrapAsync(UnitController.getUnitById))
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Unit'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "kg"
+ *               display_name:
+ *                 type: string
+ *                 example: "Kilogram"
+ *             required:
+ *               - name
+ *               - display_name
  *     responses:
- *       201:
+ *       200:
  *         description: Unit created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 unitRouter.post(
 	'/unit',
@@ -141,38 +323,111 @@ unitRouter.post(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Unit'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "kg"
+ *               display_name:
+ *                 type: string
+ *                 example: "Kilogram"
+ *             required:
+ *               - name
+ *               - display_name
  *     responses:
  *       200:
  *         description: Unit updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
  *         description: Unit not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unit not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 unitRouter.put(
 	'/unit/:id',
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
-	validateRequest(updateUnitSchema),
+	validateRequest(createUnitSchema),
 	wrapAsync(UnitController.updateUnit),
 )
 
@@ -197,19 +452,69 @@ unitRouter.put(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
  *         description: Unit not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unit not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 unitRouter.delete(
 	'/unit/:id',

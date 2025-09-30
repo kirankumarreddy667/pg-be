@@ -9,6 +9,110 @@ const categoryRouter: ExpressRouter = Router()
 
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     Category:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: Unique identifier for the category
+ *         name:
+ *           type: string
+ *           description: Name of the category
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Creation timestamp
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: Last update timestamp
+ *         deleted_at:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Soft delete timestamp
+ *       required:
+ *         - name
+ *
+ *     CategoryCreateRequest:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Name of the category
+ *           example: "Dairy Products"
+ *       required:
+ *         - name
+ *
+ *     CategoryUpdateRequest:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Updated name of the category
+ *           example: "Updated Dairy Products"
+ *       required:
+ *         - name
+ *
+ *     SuccessResponse:
+ *       type: object
+ *       properties:
+
+ *         data:
+ *           type: object
+ *           description: Response data
+ *         message:
+ *           type: string
+ *           example: "Success"
+ *         status:
+ *           type: integer
+ *           example: 200
+ *
+ *     ErrorResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: false
+ *         message:
+ *           type: string
+ *           example: "Error message"
+ *         errors:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               field:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *
+ *     ValidationError:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: false
+ *         message:
+ *           type: string
+ *           example: "Validation failed"
+ *         errors:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               field:
+ *                 type: string
+ *                 example: "name"
+ *               message:
+ *                 type: string
+ *                 example: "Name is required"
+ */
+
+/**
+ * @swagger
  * tags:
  *   name: Category
  *   description: Category management endpoints
@@ -19,6 +123,7 @@ const categoryRouter: ExpressRouter = Router()
  * /category:
  *   post:
  *     summary: Create a new category
+ *     description: Creates a new category with the provided name
  *     tags: [Category]
  *     security:
  *       - bearerAuth: []
@@ -26,26 +131,65 @@ const categoryRouter: ExpressRouter = Router()
  *       required: true
  *       content:
  *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *             required:
- *               - name
+ *           example:
+ *             name: "Dairy Products"
  *     responses:
- *       201:
+ *       200:
  *         description: Category created successfully
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               data: []
+ *               message: "Success"
+ *               status: 200
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Bad request"
+ *               status: 400
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Unauthorized"
+ *               status: 401
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Access denied"
+ *               status: 403
+ *       409:
+ *         description: Conflict
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Category name already exists"
+ *               status: 409
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               data: []
+ *               message: "Validation failed"
+ *               status: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Internal server error"
+ *               status: 500
  */
 categoryRouter.post(
 	'/category',
@@ -60,6 +204,7 @@ categoryRouter.post(
  * /category:
  *   get:
  *     summary: Get all categories
+ *     description: Retrieves all active categories
  *     tags: [Category]
  *     security:
  *       - bearerAuth: []
@@ -68,15 +213,40 @@ categoryRouter.post(
  *         description: List of categories
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               data:
+ *                 - id: 1
+ *                   name: "Dairy Products"
+ *                   sequence_number: 1
+ *                   created_at: "2024-01-15T10:30:00.000Z"
+ *                   updated_at: "2024-01-15T10:30:00.000Z"
+ *                   deleted_at: null
+ *                 - id: 2
+ *                   name: "Meat Products"
+ *                   sequence_number: 2
+ *                   created_at: "2024-01-15T11:00:00.000Z"
+ *                   updated_at: "2024-01-15T11:00:00.000Z"
+ *                   deleted_at: null
+ *               message: "Success"
+ *               status: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               data: []
+ *               message: "Unauthorized"
+ *               status: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Internal server error"
+ *               status: 500
  */
+
 categoryRouter.get(
 	'/category',
 	authenticate,
@@ -88,6 +258,7 @@ categoryRouter.get(
  * /category/{id}:
  *   get:
  *     summary: Get category by ID
+ *     description: Retrieves a category by its ID
  *     tags: [Category]
  *     security:
  *       - bearerAuth: []
@@ -97,21 +268,56 @@ categoryRouter.get(
  *         schema:
  *           type: integer
  *         required: true
- *         description: Category ID
+ *         example: 107
  *     responses:
  *       200:
  *         description: Category details
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       404:
- *         description: Category not found
+ *             example:
+ *               data:
+ *                 id: 1
+ *                 name: "Dairy Products"
+ *                 sequence_number: 1
+ *                 created_at: "2024-01-15T10:30:00.000Z"
+ *                 updated_at: "2024-01-15T10:30:00.000Z"
+ *                 deleted_at: null
+ *               message: "Success"
+ *               status: 200
+ *       400:
+ *         description: Invalid ID
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               data: []
+ *               message: "Invalid category ID"
+ *               status: 400
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Unauthorized"
+ *               status: 401
+ *       404:
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Category not found"
+ *               status: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Internal server error"
+ *               status: 500
  */
+
 categoryRouter.get(
 	'/category/:id',
 	authenticate,
@@ -122,7 +328,8 @@ categoryRouter.get(
  * @swagger
  * /category/{id}:
  *   put:
- *     summary: Update a category by ID
+ *     summary: Update category by ID
+ *     description: Updates an existing category
  *     tags: [Category]
  *     security:
  *       - bearerAuth: []
@@ -132,31 +339,78 @@ categoryRouter.get(
  *         schema:
  *           type: integer
  *         required: true
- *         description: Category ID
+ *         example: 106
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *             required:
- *               - name
+ *           example:
+ *             name: "Milk Collection Record"
  *     responses:
  *       200:
- *         description: Category updated successfully
+ *         description: Category updated
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               data: []
+ *               message: "Success"
+ *               status: 200
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Bad request"
+ *               status: 400
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Unauthorized"
+ *               status: 401
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Access denied"
+ *               status: 403
  *       404:
- *         description: Category not found
+ *         description: Not found
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               data: []
+ *               message: "Category not found"
+ *               status: 404
+ *       409:
+ *         description: Conflict
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Category name already exists"
+ *               status: 409
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Validation failed"
+ *               status: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Internal server error"
+ *               status: 500
  */
 categoryRouter.put(
 	'/category/:id',
@@ -165,12 +419,12 @@ categoryRouter.put(
 	validateRequest(categorySchema),
 	wrapAsync(CategoryController.update),
 )
-
 /**
  * @swagger
  * /category/{id}:
  *   delete:
- *     summary: Delete a category by ID
+ *     summary: Delete category by ID
+ *     description: Soft deletes a category
  *     tags: [Category]
  *     security:
  *       - bearerAuth: []
@@ -180,20 +434,56 @@ categoryRouter.put(
  *         schema:
  *           type: integer
  *         required: true
- *         description: Category ID
+ *         example: 1
  *     responses:
  *       200:
- *         description: Category deleted successfully
+ *         description: Category deleted
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               data: []
+ *               message: "Success"
+ *               status: 200
+ *       400:
+ *         description: Invalid ID
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Invalid category ID"
+ *               status: 400
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Unauthorized"
+ *               status: 401
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Access denied"
+ *               status: 403
  *       404:
- *         description: Category not found
+ *         description: Not found
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               data: []
+ *               message: "Category not found"
+ *               status: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Internal server error"
+ *               status: 500
  */
 categoryRouter.delete(
 	'/category/:id',

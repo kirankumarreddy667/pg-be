@@ -365,29 +365,22 @@ router.get('/resend_otp/:phone', wrapAsync(AuthController.resendOtp))
  *                     email:
  *                       type: string
  *                       nullable: true
- *                       description: User email
  *                     name:
  *                       type: string
- *                       description: User name
  *                     phone:
  *                       type: string
- *                       description: Phone number
  *                     farm_name:
  *                       type: string
  *                       nullable: true
- *                       description: Farm name
  *                     payment_status:
  *                       type: string
  *                       enum: [free, premium]
- *                       description: Payment status
  *                     plan_expires_on:
  *                       type: string
  *                       format: date-time
  *                       nullable: true
- *                       description: Plan expiry date
  *                     otp_status:
  *                       type: boolean
- *                       description: OTP verification status
  *                 status:
  *                   type: integer
  *                   example: 200
@@ -424,7 +417,7 @@ router.get('/resend_otp/:phone', wrapAsync(AuthController.resendOtp))
  *                   type: integer
  *                   example: 401
  *       500:
- *         description: Internal server error
+ *         description: Database error
  *         content:
  *           application/json:
  *             schema:
@@ -589,30 +582,95 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     token:
+ *                       type: string
+ *                       description: JWT access token
+ *                     user_id:
+ *                       type: integer
+ *                       description: User ID
+ *                     email:
+ *                       type: string
+ *                       nullable: true
+ *                     name:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     farm_name:
+ *                       type: string
+ *                       nullable: true
+ *                     payment_status:
+ *                       type: string
+ *                       enum: [free, premium]
+ *                     plan_expires_on:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                     otp_status:
+ *                       type: boolean
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       400:
  *         description: Bad request
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The mobile number is not registered yet"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Invalid credentials
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid credentials!!"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       500:
  *         description: Database error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Login failed. Please try again."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/business/login',
 	validateRequest(businessLoginSchema),
-	AuthController.businessUserLogin,
+	wrapAsync(AuthController.businessUserLogin),
 )
 
 /**
@@ -638,30 +696,73 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       400:
  *         description: Bad request
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Bad request"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
  *       500:
  *         description: Database error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Database error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/business/forgot_password',
 	validateRequest(businessForgotPasswordSchema),
-	AuthController.businessForgotPassword,
+	wrapAsync(AuthController.businessForgotPassword),
 )
 
 /**
@@ -695,31 +796,84 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password changed successfully"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       400:
  *         description: Bad request
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Bad request"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
  *       500:
  *         description: Database error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Database error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/change_password',
@@ -759,13 +913,33 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: OAuth failed
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "OAuth failed"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  */
 // Google OAuth callback
 router.get(
@@ -809,13 +983,33 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: OAuth failed
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "OAuth failed"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  */
 // Facebook OAuth callback
 router.get(
@@ -828,6 +1022,109 @@ router.get(
 	wrapAsync(AuthController.facebookOAuthCallback),
 )
 
-// router.post('/logout', wrapAsync(AuthController.logout))
+
+/**
+ * @swagger
+ * /refresh-token:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refresh_token:
+ *                 type: string
+ *                 example: "your_refresh_token_here"
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Token refreshed successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       access_token:
+ *                         type: string
+ *                         example: "new_access_token_here"
+ *                       refresh_token:
+ *                         type: string
+ *                         example: "new_refresh_token_here"
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       401:
+ *         description: Invalid or missing refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No refresh token provided"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ */
+
+router.post('/refresh-token', wrapAsync(AuthController.refreshToken))
+
+/**
+ * @swagger
+ * /logout:
+ *   post:
+ *     summary: Logout user and clear refresh token cookie
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Logged out successfully"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       401:
+ *         description: Unauthorized (if user not logged in or invalid session)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ */
+
+router.post('/logout', authenticate, wrapAsync(AuthController.logout))
 
 export default router

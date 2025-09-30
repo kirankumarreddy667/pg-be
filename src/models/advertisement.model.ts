@@ -49,6 +49,7 @@ export default (sequelize: Sequelize): typeof Advertisement => {
 				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
+				allowNull: false,
 			},
 			name: {
 				type: DataTypes.STRING(191),
@@ -79,18 +80,6 @@ export default (sequelize: Sequelize): typeof Advertisement => {
 				allowNull: false,
 				defaultValue: 1,
 			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: true,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: true,
-			},
-			deleted_at: {
-				type: DataTypes.DATE,
-				allowNull: true,
-			},
 		},
 		{
 			sequelize,
@@ -100,6 +89,8 @@ export default (sequelize: Sequelize): typeof Advertisement => {
 			updatedAt: 'updated_at',
 			deletedAt: 'deleted_at',
 			paranoid: true,
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return Advertisement

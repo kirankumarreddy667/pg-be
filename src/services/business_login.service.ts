@@ -19,15 +19,15 @@ export class BusinessLoginService {
 		password: string,
 	): Promise<{
 		token: string
+		refresh_token: string
 		user_id: number
-		email: string | undefined
+		email: string | null
 		name: string
 		phone: string
 		business_account_name?: string
 		business_address?: string
 		business_outlet_id?: number
 	}> {
-		// Check if user exists and has business role (role_id = 3)
 		const user = await User.findOne({
 			include: [
 				{
@@ -37,30 +37,19 @@ export class BusinessLoginService {
 						{
 							model: Role,
 							as: 'Role',
-							where: { id: 3 }, // Business role
+							where: { id: 3, deleted_at: null }, // Business role
 						},
 					],
 				},
 			],
 			where: {
 				phone_number,
+				deleted_at: null,
 			},
 		})
 
 		if (!user) {
 			throw new AuthorizationError("Account doesn't exist.")
-		}
-
-		// Check if user has business role
-		const hasBusinessRole = await RoleUser.findOne({
-			where: {
-				user_id: user.get('id'),
-				role_id: 3, // Business role
-			},
-		})
-
-		if (!hasBusinessRole) {
-			throw new AuthenticationError("Account doesn't exist.")
 		}
 
 		if (!user.get('password')) {
@@ -76,14 +65,13 @@ export class BusinessLoginService {
 			throw new AuthorizationError('Invalid credentials!!')
 		}
 
-		// Get business outlet information
 		const businessOutlet = await BusinessOutlet.findOne({
 			where: {
 				assign_to: user.get('id'),
+				deleted_at: null,
 			},
 		})
 
-		// Generate JWT token
 		let token: string
 		try {
 			token = await TokenService.generateAccessToken(
@@ -97,10 +85,22 @@ export class BusinessLoginService {
 			throw error
 		}
 
+		// --- New refresh token generation ---
+		const refresh_token = await TokenService.generateRefreshToken({
+			id: user.get('id'),
+		})
+
+		// Save refresh token in DB
+		await User.update(
+			{ remember_token: refresh_token },
+			{ where: { id: user.get('id') } },
+		)
+
 		return {
 			token,
+			refresh_token,
 			user_id: user.get('id'),
-			email: user.get('email'),
+			email: user.get('email') || null,
 			name: user.get('name'),
 			phone: user.get('phone_number'),
 			business_account_name: businessOutlet?.get('business_name'),
@@ -119,13 +119,14 @@ export class BusinessLoginService {
 						{
 							model: Role,
 							as: 'Role',
-							where: { id: 3 }, // Business role
+							where: { id: 3, deleted_at: null },
 						},
 					],
 				},
 			],
 			where: {
 				email,
+				deleted_at: null,
 			},
 		})
 
@@ -133,20 +134,8 @@ export class BusinessLoginService {
 			throw new AppError('Please enter your registered email address.', 400)
 		}
 
-		// Check if user has business role
-		const hasBusinessRole = await RoleUser.findOne({
-			where: {
-				user_id: user.get('id'),
-				role_id: 3, // Business role
-			},
-		})
-
-		if (!hasBusinessRole) {
-			throw new AuthenticationError("Account doesn't exist.")
-		}
-
 		const password = generateRandomPassword(8)
-		await user.update({ password: password })
+		await User.update({ password }, { where: { id: user.get('id') } })
 		addToEmailQueue({
 			to: email,
 			subject: 'Login Details',
@@ -164,7 +153,9 @@ export class BusinessLoginService {
 		old_password: string,
 		new_password: string,
 	): Promise<void> {
-		const user = await User.findByPk(userId)
+		const user = await User.findOne({
+			where: { id: userId, deleted_at: null },
+		})
 		if (!user) throw new AppError('User not found', 400)
 
 		const isMatch = await UserService.comparePassword(

@@ -8,15 +8,19 @@ export interface SummernoteAttributes {
 	article_thumb: string
 	article_header: string
 	article_summary: string
-	article_images: string // JSON string
-	created_at?: Date
-	updated_at?: Date
+	article_images: string
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class Summernote
 	extends Model<
 		SummernoteAttributes,
-		Optional<SummernoteAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			SummernoteAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
 	>
 	implements SummernoteAttributes
 {
@@ -28,15 +32,16 @@ export class Summernote
 	public article_header!: string
 	public article_summary!: string
 	public article_images!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof Summernote => {
 	Summernote.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -53,11 +58,11 @@ export default (sequelize: Sequelize): typeof Summernote => {
 				allowNull: false,
 			},
 			article_thumb: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			article_header: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			article_summary: {
@@ -67,17 +72,6 @@ export default (sequelize: Sequelize): typeof Summernote => {
 			article_images: {
 				type: DataTypes.TEXT,
 				allowNull: false,
-				comment: 'JSON string: [{"img":"filename.jpg","name":"desc"}]',
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
 			},
 		},
 		{
@@ -86,6 +80,10 @@ export default (sequelize: Sequelize): typeof Summernote => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return Summernote

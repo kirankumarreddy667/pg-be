@@ -21,7 +21,7 @@ export class SliderArticleController {
 
 			await SliderArticleService.addArticles(data)
 
-			RESPONSE.SuccessResponse(res, 201, { message: 'Success', data: [] })
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
 			next(error)
 		}

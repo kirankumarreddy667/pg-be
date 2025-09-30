@@ -4,8 +4,9 @@ export interface QuestionTagAttributes {
 	id?: number
 	name: string
 	description?: string | null
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class QuestionTag
@@ -13,42 +14,34 @@ export class QuestionTag
 		QuestionTagAttributes,
 		Optional<
 			QuestionTagAttributes,
-			'id' | 'description' | 'created_at' | 'updated_at'
+			'id' | 'description' | 'created_at' | 'updated_at' | 'deleted_at'
 		>
 	>
 	implements QuestionTagAttributes
 {
 	public id!: number
 	public name!: string
-	public description!: string | null
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public description?: string | null
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof QuestionTag => {
 	QuestionTag.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
 			name: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
-				unique: true,
 			},
 			description: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
 			},
 		},
 		{
@@ -57,6 +50,10 @@ export default (sequelize: Sequelize): typeof QuestionTag => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return QuestionTag

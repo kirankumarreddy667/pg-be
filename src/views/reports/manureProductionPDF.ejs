@@ -1,48 +1,49 @@
 <!DOCTYPE html>
-
 <html>
-
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-<meta charset="UTF-8">
-<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-<style>
-table,
-table th,
-table td{
-	text-align: center;
-}
-
-</style>
-</style>
-<center><h1>Manure Production Report</h1></center> <br>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+        table,
+        table th,
+        table td {
+            text-align: center;
+        }
+    </style>
+    <title>Manure Production Report</title>
 </head>
-
 <body>
-
-<div class="container">
-	<table class="table table-bordered">
-		<thead>
-			<tr>
-				<th>Date</th>
-				<th>Total Manure Production in KG</th>
-				<th>Rate Per KG</th>
-				<th>TOtal in Rupees</th>
-			</tr>
-		</thead>
-		<tbody>
-			@foreach ($manureProductionData as $value)
-			<tr>
-				<td>{{ $value['answer_date'] }}</td>
-				<td>{{ $value['total_manure_production_in_KG'] }}</td>
-				<td>{{ $value['rate_per_kg'] }}</td>
-				<td>{{ $value['total_in_rupees'] }}</td>
-			</tr>
-			@endforeach
-		</tbody>
-	</table>
-</div>
-
+    <div class="container">
+        <center><h1>Manure Production Report</h1></center>
+        <br>
+        
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Total Manure Production in KG</th>
+                    <th>Rate Per KG</th>
+                    <th>Total in Rupees</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (manureProductionData && manureProductionData.length > 0) { %>
+                    <% manureProductionData.forEach(function(value) { %>
+                        <tr>
+                            <td><%= value.answer_date %></td>
+                            <td><%= value.total_manure_production_in_KG %></td>
+                            <td><%= value.rate_per_kg %></td>
+                            <td><%= value.total_in_rupees %></td>
+                        </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="4">No data available</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
 </body>
-
 </html>

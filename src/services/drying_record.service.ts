@@ -223,14 +223,15 @@ export class DryingRecordService {
 	): Promise<{ answer: string | null } | undefined> {
 		const result = await db.sequelize.query(
 			`SELECT aqa.answer FROM common_questions cq
-       JOIN animal_question_answers aqa ON aqa.question_id = cq.id
-       WHERE cq.question_tag = 15
-         AND aqa.user_id = :user_id
-         AND aqa.animal_id = :animal_id
-         AND aqa.animal_number = :animal_number
-         AND aqa.status <> 1
-       ORDER BY aqa.created_at DESC
-       LIMIT 1`,
+			JOIN animal_question_answers aqa ON aqa.question_id = cq.id AND aqa.deleted_at IS NULL
+			WHERE cq.question_tag = 15
+				AND aqa.user_id = :user_id
+				AND aqa.animal_id = :animal_id
+				AND aqa.animal_number = :animal_number
+				AND aqa.status <> 1
+				AND cq.deleted_at IS NULL
+			ORDER BY aqa.created_at DESC
+			LIMIT 1`,
 			{
 				replacements: { user_id, animal_id, animal_number },
 				type: QueryTypes.SELECT,
@@ -246,14 +247,15 @@ export class DryingRecordService {
 	): Promise<string | null> {
 		const result = await db.sequelize.query(
 			`SELECT aqa.created_at FROM animal_question_answers aqa
-       JOIN common_questions cq ON cq.id = aqa.question_id
-       WHERE cq.category_id = 1
-         AND aqa.user_id = :user_id
-         AND aqa.animal_id = :animal_id
-         AND aqa.animal_number = :animal_num
-         AND aqa.status <> 1
-       ORDER BY aqa.created_at DESC
-       LIMIT 1`,
+			JOIN common_questions cq ON cq.id = aqa.question_id AND cq.deleted_at IS NULL
+			WHERE cq.category_id = 1
+				AND aqa.user_id = :user_id
+				AND aqa.animal_id = :animal_id
+				AND aqa.animal_number = :animal_num
+				AND aqa.status <> 1
+				AND aqa.deleted_at IS NULL
+			ORDER BY aqa.created_at DESC
+			LIMIT 1`,
 			{
 				replacements: { user_id, animal_id, animal_num },
 				type: QueryTypes.SELECT,
@@ -272,14 +274,15 @@ export class DryingRecordService {
 	): Promise<void> {
 		await db.sequelize.query(
 			`UPDATE animal_question_answers aqa
-       JOIN common_questions cq ON cq.id = aqa.question_id
-       SET aqa.created_at = :now
-       WHERE aqa.animal_number = :animal_num
-         AND aqa.user_id = :user_id
-         AND aqa.animal_id = :animal_id
-         AND cq.category_id = 1
-         AND cq.question_tag NOT IN (15,16)
-         AND aqa.created_at = :created_at`,
+			JOIN common_questions cq ON cq.id = aqa.question_id AND cq.deleted_at IS NULL
+			SET aqa.created_at = :now
+			WHERE aqa.animal_number = :animal_num
+				AND aqa.user_id = :user_id
+				AND aqa.animal_id = :animal_id
+				AND cq.category_id = 1
+				AND cq.question_tag NOT IN (15,16)
+				AND aqa.created_at = :created_at
+				AND aqa.deleted_at IS NULL`,
 			{
 				replacements: {
 					animal_num,
@@ -301,10 +304,11 @@ export class DryingRecordService {
 	): Promise<unknown[]> {
 		return await db.sequelize.query(
 			`SELECT aqa.* FROM animal_question_answers aqa
-       WHERE aqa.animal_id = :animal_id
-         AND aqa.animal_number = :animal_num
-         AND aqa.user_id = :user_id
-         AND aqa.created_at = :currentDate`,
+			WHERE aqa.animal_id = :animal_id
+				AND aqa.animal_number = :animal_num
+				AND aqa.user_id = :user_id
+				AND aqa.created_at = :currentDate
+				AND aqa.deleted_at IS NULL`,
 			{
 				replacements: { animal_id, animal_num, user_id, currentDate },
 				type: QueryTypes.SELECT,
@@ -319,15 +323,17 @@ export class DryingRecordService {
 		user_id: number,
 	): Promise<{ answer: string | null; created_at: string } | undefined> {
 		const result = await db.sequelize.query(
-			`SELECT aqa.answer, aqa.created_at FROM animal_question_answers aqa
-       JOIN common_questions cq ON cq.id = aqa.question_id
-       WHERE cq.question_tag = :questionTag
-         AND aqa.user_id = :user_id
-         AND aqa.animal_id = :animal_id
-         AND aqa.animal_number = :animal_num
-         AND aqa.status <> 1
-       ORDER BY aqa.created_at DESC
-       LIMIT 1`,
+			`SELECT aqa.answer, aqa.created_at 
+			FROM animal_question_answers aqa
+			JOIN common_questions cq ON cq.id = aqa.question_id AND cq.deleted_at IS NULL
+			WHERE cq.question_tag = :questionTag
+				AND aqa.user_id = :user_id
+				AND aqa.animal_id = :animal_id
+				AND aqa.animal_number = :animal_num
+				AND aqa.status <> 1
+				AND aqa.deleted_at IS NULL
+			ORDER BY aqa.created_at DESC
+			LIMIT 1`,
 			{
 				replacements: { questionTag, user_id, animal_id, animal_num },
 				type: QueryTypes.SELECT,
@@ -364,15 +370,17 @@ export class DryingRecordService {
 		// Get latest drying record date
 		const [latest] = await db.sequelize.query<{ created_at: string }>(
 			`SELECT aqa.created_at
-         FROM animal_question_answers aqa
-         JOIN common_questions cq ON cq.id = aqa.question_id
-        WHERE aqa.animal_id = :animal_id
-          AND aqa.user_id = :user_id
-          AND aqa.animal_number = :animal_num
-          AND aqa.status != 1
-          AND cq.category_id = 101
-        ORDER BY aqa.created_at DESC
-        LIMIT 1`,
+			FROM animal_question_answers aqa
+			JOIN common_questions cq ON cq.id = aqa.question_id
+			WHERE aqa.animal_id = :animal_id
+			AND aqa.user_id = :user_id
+			AND aqa.animal_number = :animal_num
+			AND aqa.status != 1
+			AND aqa.deleted_at IS NULL
+			AND cq.deleted_at IS NULL
+			AND cq.category_id = 101
+			ORDER BY aqa.created_at DESC
+			LIMIT 1`,
 			{
 				replacements: { animal_id, user_id, animal_num },
 				type: QueryTypes.SELECT,
@@ -387,21 +395,23 @@ export class DryingRecordService {
               scl.sub_category_language_name, ql.hint as language_hint, cq.form_type_id, cq.date, cq.question as master_question,
               aq.animal_id, vr.name as validation_rule, ft.name as form_type, aqa.answer, cq.form_type_value, ql.form_type_value as language_form_type_value,
               vr.constant_value, cq.question_tag, aqa.created_at, cq.question_unit, aqa.animal_number
-         FROM common_questions cq
-         JOIN animal_questions aq ON cq.id = aq.question_id
-         JOIN question_language ql ON cq.id = ql.question_id
-         LEFT JOIN animal_question_answers aqa ON cq.id = aqa.question_id
-           AND aqa.user_id = :user_id
-           AND aqa.animal_id = :animal_id
-           AND aqa.animal_number = :animal_num
-           ${createdAtCondition}
-         LEFT JOIN form_type ft ON ft.id = cq.form_type_id
-         JOIN validation_rules vr ON vr.id = cq.validation_rule_id
-         JOIN category_language cl ON cl.category_id = cq.category_id AND cl.language_id = 2 AND cl.category_id = 101
-         LEFT JOIN sub_category_language scl ON scl.sub_category_id = cq.sub_category_id AND scl.language_id = :language_id
-        WHERE ql.language_id = :language_id
-          AND aq.animal_id = :animal_id
-        `,
+			FROM common_questions cq
+			JOIN animal_questions aq ON cq.id = aq.question_id AND aq.deleted_at IS NULL
+			JOIN question_language ql ON cq.id = ql.question_id AND ql.deleted_at IS NULL
+			LEFT JOIN animal_question_answers aqa ON cq.id = aqa.question_id
+			AND aqa.user_id = :user_id
+			AND aqa.animal_id = :animal_id
+			AND aqa.animal_number = :animal_num
+			AND aqa.deleted_at IS NULL
+			${createdAtCondition}
+			LEFT JOIN form_type ft ON ft.id = cq.form_type_id AND ft.deleted_at IS NULL
+			JOIN validation_rules vr ON vr.id = cq.validation_rule_id AND vr.deleted_at IS NULL
+			JOIN category_language cl ON cl.category_id = cq.category_id AND cl.language_id = 2 AND cl.category_id = 101 AND cl.deleted_at IS NULL
+			LEFT JOIN sub_category_language scl ON scl.sub_category_id = cq.sub_category_id AND scl.language_id = :language_id AND scl.deleted_at IS NULL
+			WHERE ql.language_id = :language_id
+			AND aq.animal_id = :animal_id
+			AND cq.deleted_at IS NULL
+			`,
 			{
 				replacements: {
 					user_id,
@@ -459,17 +469,19 @@ export class DryingRecordService {
 			animal_number: string
 		}>(
 			`SELECT aqa.question_id, cq.category_id, cl.category_language_name, aqa.answer, cq.question_tag, aqa.created_at, aqa.animal_number
-         FROM common_questions cq
-         JOIN question_language ql ON cq.id = ql.question_id
-         LEFT JOIN animal_question_answers aqa ON cq.id = aqa.question_id
-           AND aqa.user_id = :user_id
-           AND aqa.animal_id = :animal_id
-           AND aqa.animal_number = :animal_num
-         JOIN category_language cl ON cl.category_id = cq.category_id AND cl.language_id = 2 AND cl.category_id = 101
-        WHERE ql.language_id = :language_id
-          AND aqa.animal_id = :animal_id
-          AND cq.question_tag IN (67, 68)
-        ORDER BY aqa.created_at DESC`,
+			FROM common_questions cq
+			JOIN question_language ql ON cq.id = ql.question_id AND ql.deleted_at IS NULL
+			LEFT JOIN animal_question_answers aqa ON cq.id = aqa.question_id
+			AND aqa.user_id = :user_id
+			AND aqa.animal_id = :animal_id
+			AND aqa.animal_number = :animal_num
+			AND aqa.deleted_at IS NULL
+			JOIN category_language cl ON cl.category_id = cq.category_id AND cl.language_id = 2 AND cl.category_id = 101 AND cl.deleted_at IS NULL
+			WHERE ql.language_id = :language_id
+			AND aqa.animal_id = :animal_id
+			AND cq.deleted_at IS NULL
+			AND cq.question_tag IN (67, 68)
+			ORDER BY aqa.created_at DESC`,
 			{
 				replacements: { user_id, animal_id, animal_num, language_id },
 				type: QueryTypes.SELECT,

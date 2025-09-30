@@ -1,7 +1,7 @@
 import { DataTypes, Model, Sequelize, Optional } from 'sequelize'
 
 export interface ProductPaymentAttributes {
-	id: number
+	id?: number
 	user_id: number
 	product_id: number
 	amount: number
@@ -9,8 +9,13 @@ export interface ProductPaymentAttributes {
 	email?: string | null
 	billing_instrument: string
 	phone: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	coupon_id?: number | null
+	status: string
+	offer_id?: number | null
+	address: string
+	deleted_at?: Date | null
 }
 
 export class ProductPayment
@@ -18,7 +23,13 @@ export class ProductPayment
 		ProductPaymentAttributes,
 		Optional<
 			ProductPaymentAttributes,
-			'id' | 'email' | 'created_at' | 'updated_at'
+			| 'id'
+			| 'email'
+			| 'created_at'
+			| 'updated_at'
+			| 'deleted_at'
+			| 'coupon_id'
+			| 'offer_id'
 		>
 	>
 	implements ProductPaymentAttributes
@@ -31,15 +42,20 @@ export class ProductPayment
 	public email?: string | null
 	public billing_instrument!: string
 	public phone!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
+	public coupon_id?: number | null
+	public status!: string
+	public offer_id?: number | null
+	public address!: string
 }
 
 export default (sequelize: Sequelize): typeof ProductPayment => {
 	ProductPayment.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 				allowNull: false,
@@ -57,40 +73,48 @@ export default (sequelize: Sequelize): typeof ProductPayment => {
 				allowNull: false,
 			},
 			payment_id: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			email: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			billing_instrument: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			phone: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
+			coupon_id: {
+				type: DataTypes.INTEGER,
+				allowNull: true,
 			},
-			updated_at: {
-				type: DataTypes.DATE,
+			status: {
+				type: DataTypes.STRING(191),
 				allowNull: false,
-				defaultValue: DataTypes.NOW,
+			},
+			offer_id: {
+				type: DataTypes.INTEGER,
+				allowNull: true,
+			},
+			address: {
+				type: DataTypes.TEXT,
+				allowNull: false,
 			},
 		},
 		{
 			sequelize,
-			modelName: 'ProductPayment',
 			tableName: 'product_payment',
-			underscored: true,
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return ProductPayment

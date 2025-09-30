@@ -7,9 +7,21 @@ import {
 	createCommonQuestionSchema,
 	updateCommonQuestionSchema,
 	addQuestionInOtherLanguageSchema,
-	updateQuestionInOtherLanguageSchema,
 } from '@/validations/common_question.validation'
 
+/**
+ * @swagger
+ * tags:
+ *   name: Questions
+ *   description: Question management endpoints
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: CommonQuestions
+ *   description: Common question management endpoints
+ */
 const router: Router = Router()
 
 /**
@@ -25,20 +37,129 @@ const router: Router = Router()
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateCommonQuestionRequest'
+ *             type: object
+ *             properties:
+ *               category_id:
+ *                 type: integer
+ *                 example: 1
+ *               sub_category_id:
+ *                 type: integer
+ *                 nullable: true
+ *                 example: 2
+ *               language_id:
+ *                 type: integer
+ *                 example: 1
+ *               questions:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     question:
+ *                       type: string
+ *                       example: "What is your age?"
+ *                     validation_rule_id:
+ *                       type: integer
+ *                       example: 3
+ *                     form_type_id:
+ *                       type: integer
+ *                       example: 2
+ *                     date:
+ *                       type: integer
+ *                       enum: [0, 1]
+ *                       example: 1
+ *                     question_tag:
+ *                       type: integer
+ *                       example: 5
+ *                     question_unit:
+ *                       type: integer
+ *                       example: 4
+ *                     form_type_value:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Dropdown"
+ *                     hint:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Enter your age in years"
+ *             required:
+ *               - category_id
+ *               - language_id
+ *               - questions
  *     responses:
- *       201:
- *         description: Created successfully
+ *       200:
+ *         description: Questions created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       400:
- *         description: Bad request
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Questions added successfully"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       401:
+ *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   example:
+ *                     category_id: ["The selected category id is invalid."]
+ *                     questions.0.question: ["questions.0.question has already been taken."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/question',
@@ -68,26 +189,145 @@ router.post(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UpdateCommonQuestionRequest'
+ *             type: object
+ *             properties:
+ *               category_id:
+ *                 type: integer
+ *                 example: 1
+ *               sub_category_id:
+ *                 type: integer
+ *                 nullable: true
+ *                 example: 2
+ *               question:
+ *                 type: string
+ *                 example: "What is your updated age?"
+ *               validation_rule_id:
+ *                 type: integer
+ *                 example: 3
+ *               form_type_id:
+ *                 type: integer
+ *                 example: 2
+ *               date:
+ *                 type: boolean
+ *                 example: true
+ *               form_type_value:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "Dropdown"
+ *               question_tag_id:
+ *                 type: integer
+ *                 example: 5
+ *               question_unit_id:
+ *                 type: integer
+ *                 example: 4
+ *               hint:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "Provide age in years"
+ *             required:
+ *               - category_id
+ *               - question
+ *               - validation_rule_id
+ *               - form_type_id
+ *               - date
+ *               - question_tag_id
+ *               - question_unit_id
  *     responses:
  *       200:
  *         description: Updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       400:
- *         description: Bad request
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Updated successfully."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       401:
+ *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
- *         description: Not found
+ *         description: Question not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Question not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   example:
+ *                     question: ["The question has already been taken."]
+ *                     category_id: ["The selected category id is invalid."]
+ *                     sub_category_id: ["The selected sub category id is invalid."]
+ *                     validation_rule_id: ["The selected validation rule id is invalid."]
+ *                     form_type_id: ["The selected form type id is invalid."]
+ *                     question_tag_id: ["The selected question tag id is invalid."]
+ *                     question_unit_id: ["The selected question unit id is invalid."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.put(
 	'/question/:id',
@@ -118,13 +358,74 @@ router.put(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong. Please try again
+ *                 errors:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  *       404:
  *         description: Not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Question not found
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.delete(
 	'/question/:id',
@@ -154,18 +455,64 @@ router.delete(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       404:
- *         description: Not found
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     category_name:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Health"
+ *                     sub_category_name:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Mental Health"
+ *                     validation_rule:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Required"
+ *                     question:
+ *                       type: string
+ *                       example: "What is your age?"
+ *                     form_type:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Input"
+ *                     question_id:
+ *                       type: integer
+ *                       example: 12
+ *                     date:
+ *                       type: boolean
+ *                       example: 0
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       401:
+ *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  */
+
 router.get(
 	'/question/:id',
 	authenticate,
-	wrapAsync(authorize(['SuperAdmin'])),
 	wrapAsync(CommonQuestionController.show),
 )
 
@@ -173,7 +520,7 @@ router.get(
  * @swagger
  * /all_question:
  *   get:
- *     summary: Get all questions
+ *     summary: Get all questions grouped by category and subcategory
  *     tags: [Questions]
  *     security:
  *       - bearerAuth: []
@@ -187,34 +534,65 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           category_id: { type: integer, example: 1 }
+ *                           sub_category_id: { type: integer, example: 2 }
+ *                           question_id: { type: integer, example: 10 }
+ *                           question: { type: string, example: "What is the breed?" }
+ *                           form_type: { type: string, example: "Text" }
+ *                           validation_rule: { type: string, example: "Required" }
+ *                           form_type_id: { type: integer, example: 3 }
+ *                           validation_rule_id: { type: integer, example: 5 }
+ *                           date: { type: boolean, example: false }
+ *                           form_type_value: { type: string, example: null }
+ *                           constant_value: { type: integer, example: 1 }
+ *                           question_tag: { type: string, example: "General" }
+ *                           question_unit: { type: string, example: "Kg" }
+ *                           question_tag_id: { type: integer, example: 1 }
+ *                           question_unit_id: { type: integer, example: 2 }
+ *                           hint: { type: string, example: null }
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
  *                 data:
  *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       category_id: { type: integer, example: 1 }
- *                       category_name: { type: string, example: "Cattle" }
- *                       sub_category_id: { type: integer, example: 2 }
- *                       sub_category_name: { type: string, example: "Dairy" }
- *                       question: { type: string, example: "What is the breed?" }
- *                       form_type: { type: string, example: "Text" }
- *                       validation_rule: { type: string, example: "Required" }
- *                       qiestion_id: { type: integer, example: 10 }
- *                       validation_rule_id: { type: integer, example: 5 }
- *                       form_type_id: { type: integer, example: 3 }
- *                       date: { type: boolean, example: false }
- *                       form_type_value: { type: string, example: null }
- *                       constant_value: { type: integer, example: 1 }
- *                       question_tag: { type: string, example: "General" }
- *                       question_unit: { type: string, example: "Kg" }
- *                       question_tag_id: { type: integer, example: 1 }
- *                       question_unit_id: { type: integer, example: 2 }
- *                       hint: { type: string, example: null }
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
+
 router.get(
 	'/all_question',
 	authenticate,
-	wrapAsync(authorize(['SuperAdmin'])),
 	wrapAsync(CommonQuestionController.listAll),
 )
 
@@ -232,6 +610,10 @@ router.get(
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - question_id
+ *               - language_id
+ *               - question
  *             properties:
  *               question_id:
  *                 type: integer
@@ -244,13 +626,15 @@ router.get(
  *                 example: "What is the breed?"
  *               form_type_value:
  *                 type: string
+ *                 nullable: true
  *                 example: null
  *               hint:
  *                 type: string
+ *                 nullable: true
  *                 example: null
  *     responses:
- *       201:
- *         description: Success
+ *       200:
+ *         description: Question added successfully
  *         content:
  *           application/json:
  *             schema:
@@ -258,10 +642,13 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Success"
  *                 data:
  *                   type: array
+ *                   items: {}
+ *                   example: []
  *       400:
- *         description: This question is already added in this language
+ *         description: Bad Request - Already exists or validation error
  *         content:
  *           application/json:
  *             schema:
@@ -269,9 +656,46 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "This question is already added in this language"
  *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   example:
+ *                     question_id: ["The selected question id is invalid"]
+ *                     language_id: ["The selected language id is invalid"]
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
  *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
+
 router.post(
 	'/add_question_in_other_language',
 	authenticate,
@@ -301,6 +725,10 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - question_id
+ *               - language_id
+ *               - question
  *             properties:
  *               question_id:
  *                 type: integer
@@ -313,9 +741,11 @@ router.post(
  *                 example: "What is the breed?"
  *               form_type_value:
  *                 type: string
+ *                 nullable: true
  *                 example: null
  *               hint:
  *                 type: string
+ *                 nullable: true
  *                 example: null
  *     responses:
  *       200:
@@ -327,10 +757,13 @@ router.post(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Updated successfully."
  *                 data:
  *                   type: array
- *       404:
- *         description: Not found
+ *                   items: {}
+ *                   example: []
+ *       400:
+ *         description: Bad Request - Already exists or invalid input
  *         content:
  *           application/json:
  *             schema:
@@ -338,12 +771,60 @@ router.post(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "This question is already added in this language"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       404:
+ *         description: Not Found - Question language record does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Question language record not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
+
 router.put(
 	'/update_question_in_other_language/:id',
 	authenticate,
 	wrapAsync(authorize(['SuperAdmin'])),
-	validateRequest(updateQuestionInOtherLanguageSchema),
+	validateRequest(addQuestionInOtherLanguageSchema),
 	wrapAsync(CommonQuestionController.updateOtherLanguageQuestion),
 )
 
@@ -353,6 +834,8 @@ router.put(
  *   get:
  *     summary: Get all questions grouped by category/subcategory for a language
  *     tags: [CommonQuestions]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -366,17 +849,100 @@ router.put(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       404:
- *         description: Not found
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           validation_rule:
+ *                             type: string
+ *                             example: "Required"
+ *                           master_question:
+ *                             type: string
+ *                             example: "What is your age?"
+ *                           language_question:
+ *                             type: string
+ *                             example: "¿Cuál es tu edad?"
+ *                           question_id:
+ *                             type: integer
+ *                             example: 5
+ *                           form_type:
+ *                             type: string
+ *                             example: "Text"
+ *                           date:
+ *                             type: boolean
+ *                             example: false
+ *                           form_type_value:
+ *                             type: string
+ *                             nullable: true
+ *                             example: null
+ *                           question_language_id:
+ *                             type: integer
+ *                             example: 12
+ *                           category_id:
+ *                             type: integer
+ *                             example: 1
+ *                           sub_category_id:
+ *                             type: integer
+ *                             example: 2
+ *                           validation_rule_id:
+ *                             type: integer
+ *                             example: 3
+ *                           language_form_type_value:
+ *                             type: string
+ *                             nullable: true
+ *                             example: null
+ *                           language_hint:
+ *                             type: string
+ *                             nullable: true
+ *                             example: "Tu edad en años"
+ *                           master_hint:
+ *                             type: string
+ *                             nullable: true
+ *                             example: "Enter age in years"
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
+
 router.get(
 	'/get_all_questions_based_on_language/:id',
-	CommonQuestionController.getAllQuestionsBasedOnLanguage,
+	authenticate,
+	wrapAsync(CommonQuestionController.getAllQuestionsBasedOnLanguage),
 )
 
 export default router

@@ -30,13 +30,68 @@ import {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "success"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 2
+ *                       name:
+ *                         type: string
+ *                         example: "English"
+ *                       language_code:
+ *                         type: string
+ *                         example: "EN"
+ *                       created_at:
+ *                         type: string
+ *                         example: "2018-09-24 14:37:05"
+ *                       updated_at:
+ *                         type: string
+ *                         example: "2018-10-09 16:07:01"
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 const languageRouter: ExpressRouter = Router()
 
@@ -58,26 +113,92 @@ languageRouter.get(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Language'
+ *             type: object
+ *             properties:
+ *               language:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                       example: "English"
+ *                     language_code:
+ *                       type: string
+ *                       example: "EN"
+ *             required:
+ *               - language
  *     responses:
- *       201:
+ *       200:
  *         description: Language created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 languageRouter.post(
 	'/language',
@@ -106,32 +227,104 @@ languageRouter.post(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Language'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "English"
+ *               language_code:
+ *                 type: string
+ *                 example: "EN"
+ *             required:
+ *               - name
  *     responses:
  *       200:
  *         description: Language updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Language updated successfully"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       404:
  *         description: Language not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Language not found"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 404
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 languageRouter.put(
 	'/language/:id',
@@ -153,26 +346,84 @@ languageRouter.put(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/UpdateUserLanguage'
+ *             type: object
+ *             properties:
+ *               language_id:
+ *                 type: integer
+ *                 example: 2
+ *             required:
+ *               - language_id
  *     responses:
  *       200:
  *         description: User language updated
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 languageRouter.put(
 	'/user_language',

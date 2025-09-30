@@ -33,11 +33,16 @@ import animalQuestionAnswerRoutes from './animal_question_answer.routes'
 import deliveryRecordRoutes from './delivery_record.routes'
 import pedigreeRoutes from './pedigree.routes'
 import reportRoutes from './report.routes'
+import reportsRoutes from './reports.routes'
+import pregnancyDetectionRouter from './pregnancy_detection.routes'
+import dryingRecordRouter from './drying_record.routes'
+import fcmNotificationRouter from './fcm_notification.routes'
 
 const v1Router: ExpressRouter = Router()
 
 //Routes
 v1Router.use(authRoutes)
+v1Router.use(pregnancyDetectionRouter)
 v1Router.use(languageRouter)
 v1Router.use(userRouter)
 v1Router.use(questionValidationRoutes)
@@ -71,5 +76,9 @@ v1Router.use(animalQuestionAnswerRoutes)
 v1Router.use(deliveryRecordRoutes)
 v1Router.use(pedigreeRoutes)
 v1Router.use(reportRoutes)
+v1Router.use(reportsRoutes)
+v1Router.use(pregnancyDetectionRouter)
+v1Router.use(dryingRecordRouter)
+v1Router.use(fcmNotificationRouter)
 
 export default v1Router

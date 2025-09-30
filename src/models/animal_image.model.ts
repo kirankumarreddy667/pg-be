@@ -6,14 +6,18 @@ export interface AnimalImageAttributes {
 	animal_id: number
 	animal_number: string
 	image: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class AnimalImage
 	extends Model<
 		AnimalImageAttributes,
-		Optional<AnimalImageAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			AnimalImageAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
 	>
 	implements AnimalImageAttributes
 {
@@ -22,8 +26,9 @@ export class AnimalImage
 	public animal_id!: number
 	public animal_number!: string
 	public image!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public readonly created_at?: Date | null
+	public readonly updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof AnimalImage => {
@@ -32,10 +37,8 @@ export default (sequelize: Sequelize): typeof AnimalImage => {
 			id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
 			user_id: { type: DataTypes.INTEGER, allowNull: false },
 			animal_id: { type: DataTypes.INTEGER, allowNull: false },
-			animal_number: { type: DataTypes.STRING, allowNull: false },
-			image: { type: DataTypes.STRING, allowNull: false },
-			created_at: { type: DataTypes.DATE, allowNull: false },
-			updated_at: { type: DataTypes.DATE, allowNull: false },
+			animal_number: { type: DataTypes.STRING(191), allowNull: false },
+			image: { type: DataTypes.STRING(191), allowNull: false },
 		},
 		{
 			sequelize,
@@ -43,6 +46,10 @@ export default (sequelize: Sequelize): typeof AnimalImage => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return AnimalImage

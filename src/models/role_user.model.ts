@@ -17,20 +17,37 @@ const RoleUserModel = (sequelize: Sequelize): typeof RoleUser => {
 	RoleUser.init(
 		{
 			user_id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				allowNull: false,
 				primaryKey: true,
+				references: {
+					model: 'users',
+					key: 'id',
+				},
+				onUpdate: 'CASCADE',
+				onDelete: 'CASCADE',
 			},
 			role_id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				allowNull: false,
 				primaryKey: true,
+				references: {
+					model: 'roles',
+					key: 'id',
+				},
+				onUpdate: 'CASCADE',
+				onDelete: 'CASCADE',
 			},
 		},
 		{
 			sequelize,
 			tableName: 'role_user',
 			timestamps: false,
+			indexes: [
+				{
+					fields: ['role_id'],
+				},
+			],
 		},
 	)
 	return RoleUser

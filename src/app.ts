@@ -23,6 +23,9 @@ import { testConnection } from './config/database'
 import { validateEnv, EnvironmentError } from './config/env.validation'
 import { xssProtection } from './middlewares/auth.middleware'
 import { helmetOptions } from './utils/helmet'
+import '../src/schedules/user_notifications'
+import '../src/schedules/fcm_notifications'
+import cookieParser from "cookie-parser"
 
 // Validate environment variables before starting the app
 try {
@@ -77,16 +80,26 @@ class Server {
 			res.setHeader('Origin-Agent-Cluster', '?0')
 			next()
 		})
+		this.app.set('trust proxy', true)
 		this.app.disable('x-powered-by')
 		this.app.use(helmet(helmetOptions))
 		this.app.use(cors(options))
 		this.app.use(
-			createRateLimiter(15 * 60 * 1000, 100) as unknown as RequestHandler,
+			createRateLimiter(15 * 60 * 1000, 10000) as unknown as RequestHandler,
+		)
+		this.app.use(
+			'/api/v1/razorpay/webhook',
+			express.raw({ type: 'application/json' }),
 		)
 		this.app.use(express.json({ limit: '20mb' }))
 		this.app.use(express.urlencoded({ extended: true, limit: '20mb' }))
+		this.app.use(cookieParser())
 		this.app.use(session)
 		this.app.use(express.static(path.join(process.cwd(), 'public')))
+		this.app.use(
+			'/storage',
+			express.static(path.join(process.cwd(), 'storage')),
+		)
 		this.app.set('view engine', 'ejs')
 		this.app.set('views', path.join(__dirname, 'views'))
 	}

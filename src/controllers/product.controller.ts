@@ -24,7 +24,7 @@ export class ProductController {
 			const { data } = req.body as { data: Product[] }
 			await ProductService.addProducts(data)
 
-			RESPONSE.SuccessResponse(res, 201, { message: 'Success', data: [] })
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
 			next(error)
 		}

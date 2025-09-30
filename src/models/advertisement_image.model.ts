@@ -4,9 +4,9 @@ export interface AdvertisementImageAttributes {
 	id?: number
 	advertisement_id: number
 	image: string
-	created_at?: Date
-	updated_at?: Date
-	deleted_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class AdvertisementImage
@@ -22,9 +22,9 @@ export class AdvertisementImage
 	public id!: number
 	public advertisement_id!: number
 	public image!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
-	public deleted_at!: Date
+	public readonly created_at!: Date | null
+	public readonly updated_at!: Date | null
+	public deleted_at!: Date | null
 }
 
 export default (sequelize: Sequelize): typeof AdvertisementImage => {
@@ -34,9 +34,10 @@ export default (sequelize: Sequelize): typeof AdvertisementImage => {
 				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
+				allowNull: false,
 			},
 			advertisement_id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				allowNull: false,
 			},
 			image: {
@@ -64,6 +65,8 @@ export default (sequelize: Sequelize): typeof AdvertisementImage => {
 			updatedAt: 'updated_at',
 			deletedAt: 'deleted_at',
 			paranoid: true,
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return AdvertisementImage

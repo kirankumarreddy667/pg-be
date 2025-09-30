@@ -29,10 +29,11 @@ table td{
 			</tr>
 		</thead>
 		<tbody>
-			@if(isset($reportData['pregnant']) && count($reportData['pregnant']) > 0)
-			   @foreach($reportData['pregnant'] as $key=>$history)
+			<% if(reportData && reportData.pregnant && Object.keys(reportData.pregnant).length > 0) { %>
+			   <% Object.keys(reportData.pregnant).forEach(function(key) { 
+			   		const history = reportData.pregnant[key]; %>
 				<tr>
-					<td>{{$key}}</td> 
+					<td><%= key %></td> 
 					<td>
 						<div class="container">
 							<h4>AI History</h4>
@@ -46,16 +47,16 @@ table td{
 									</tr>
 								</thead>
 								<tbody>
-									@if(isset($history['aiHistory']) && count($history['aiHistory']) > 0)
-									   @foreach($history['aiHistory'] as $value)
+									<% if(history.aiHistory && history.aiHistory.length > 0) { %>
+									   <% history.aiHistory.forEach(function(value) { %>
 										<tr>
-											<td>{{ (isset($value['dateOfAI']) ? $value['dateOfAI'] :'') }}</td>
-											<td>{{ (isset($value['bullNumber']) ? $value['bullNumber'] :'') }}</td>
-											<td>{{ (isset($value['motherYield']) ? $value['motherYield'] :'') }}</td>
-											<td>{{ (isset($value['semenCompanyName']) ? $value['semenCompanyName'] :'') }}</td>
+											<td><%= value.dateOfAI ? value.dateOfAI : '' %></td>
+											<td><%= value.bullNumber ? value.bullNumber : '' %></td>
+											<td><%= value.motherYield ? value.motherYield : '' %></td>
+											<td><%= value.semenCompanyName ? value.semenCompanyName : '' %></td>
 										</tr>
-										@endforeach
-									@endif
+										<% }); %>
+									<% } %>
 								</tbody>
 							</table>
 
@@ -69,15 +70,15 @@ table td{
 									</tr>
 								</thead>
 								<tbody>
-									@if(isset($history['deliveryHistory']) && count($history['deliveryHistory']) > 0)
-										@foreach($history['deliveryHistory'] as $value)
+									<% if(history.deliveryHistory && history.deliveryHistory.length > 0) { %>
+										<% history.deliveryHistory.forEach(function(value) { %>
 										<tr>
-											<td>{{ $value['calfNumber'] }}</td>
-											<td>{{ $value['dateOfDelvery'] }}</td>
-											<td>{{ $value['typeOfDelivery'] }}</td>
+											<td><%= value.calfNumber %></td>
+											<td><%= value.dateOfDelvery %></td>
+											<td><%= value.typeOfDelivery %></td>
 										</tr>
-										@endforeach
-									@endif
+										<% }); %>
+									<% } %>
 								</tbody>
 							</table>
 
@@ -89,20 +90,20 @@ table td{
 									</tr>
 								</thead>
 								<tbody>
-									@if(isset($history['heatHistory']) && count($history['heatHistory']) > 0)
-										@foreach($history['heatHistory'] as $value)
+									<% if(history.heatHistory && history.heatHistory.length > 0) { %>
+										<% history.heatHistory.forEach(function(value) { %>
 										<tr>
-											<td>{{ $value['heatDate'] }}</td>	
+											<td><%= value.heatDate %></td>	
 										</tr>
-										@endforeach
-									@endif
+										<% }); %>
+									<% } %>
 								</tbody>
 							</table>
                         </div>
                  </td> 
 				</tr>
-				@endforeach
-			@endif
+				<% }); %>
+			<% } %>
 		</tbody>
 	</table>
 	<h3 style="font-family:'Times New Roman', Times, serif;">Non Pregnant Animals</h3><hr>
@@ -114,10 +115,11 @@ table td{
 			</tr>
 		</thead>
 		<tbody>
-			@if(isset($reportData['no_pregnant']) && count($reportData['no_pregnant']) > 0)
-			   @foreach($reportData['no_pregnant'] as $key=>$history)
+			<% if(reportData && reportData.no_pregnant && Object.keys(reportData.no_pregnant).length > 0) { %>
+			   <% Object.keys(reportData.no_pregnant).forEach(function(key) { 
+			   		const history = reportData.no_pregnant[key]; %>
 				<tr>
-					<td>{{$key}}</td> 
+					<td><%= key %></td> 
 					<td>
 						<div class="container">
 							<h4>AI History</h4>
@@ -131,16 +133,16 @@ table td{
 									</tr>
 								</thead>
 								<tbody>
-									@if(isset($history['aiHistory']) && count($history['aiHistory']) > 0)
-									   @foreach($history['aiHistory'] as $value)
+									<% if(history.aiHistory && history.aiHistory.length > 0) { %>
+									   <% history.aiHistory.forEach(function(value) { %>
 										<tr>
-											<td>{{ (isset($value['dateOfAI']) ? $value['dateOfAI'] :'') }}</td>
-											<td>{{ (isset($value['bullNumber']) ? $value['bullNumber'] :'') }}</td>
-											<td>{{ (isset($value['motherYield']) ? $value['motherYield'] :'') }}</td>
-											<td>{{ (isset($value['semenCompanyName']) ? $value['semenCompanyName'] :'') }}</td>
+											<td><%= value.dateOfAI ? value.dateOfAI : '' %></td>
+											<td><%= value.bullNumber ? value.bullNumber : '' %></td>
+											<td><%= value.motherYield ? value.motherYield : '' %></td>
+											<td><%= value.semenCompanyName ? value.semenCompanyName : '' %></td>
 										</tr>
-										@endforeach
-									@endif
+										<% }); %>
+									<% } %>
 								</tbody>
 							</table>
 
@@ -154,15 +156,15 @@ table td{
 									</tr>
 								</thead>
 								<tbody>
-									@if(isset($history['deliveryHistory']) && count($history['deliveryHistory']) > 0)
-										@foreach($history['deliveryHistory'] as $value)
+									<% if(history.deliveryHistory && history.deliveryHistory.length > 0) { %>
+										<% history.deliveryHistory.forEach(function(value) { %>
 										<tr>
-											<td>{{ $value['calfNumber'] }}</td>
-											<td>{{ $value['dateOfDelvery'] }}</td>
-											<td>{{ $value['typeOfDelivery'] }}</td>
+											<td><%= value.calfNumber %></td>
+											<td><%= value.dateOfDelvery %></td>
+											<td><%= value.typeOfDelivery %></td>
 										</tr>
-										@endforeach
-									@endif
+										<% }); %>
+									<% } %>
 								</tbody>
 							</table>
 
@@ -174,20 +176,20 @@ table td{
 									</tr>
 								</thead>
 								<tbody>
-									@if(isset($history['heatHistory']) && count($history['heatHistory']) > 0)
-										@foreach($history['heatHistory'] as $value)
+									<% if(history.heatHistory && history.heatHistory.length > 0) { %>
+										<% history.heatHistory.forEach(function(value) { %>
 										<tr>
-											<td>{{ $value['heatDate'] }}</td>	
+											<td><%= value.heatDate %></td>	
 										</tr>
-										@endforeach
-									@endif
+										<% }); %>
+									<% } %>
 								</tbody>
 							</table>
                         </div>
                  </td> 
 				</tr>
-				@endforeach
-			@endif
+				<% }); %>
+			<% } %>
 		</tbody>
 	</table>
 </div>

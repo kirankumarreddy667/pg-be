@@ -1,8 +1,14 @@
 import Joi from 'joi'
 
 export const sortUsersSchema = Joi.object({
-	payment_status: Joi.string().required(),
-	sort_by: Joi.string().required(),
+	payment_status: Joi.string().required().messages({
+		'any.required': 'The payment_status field is required.',
+		'string.empty': 'The payment_status field is required.',
+	}),
+	sort_by: Joi.string().required().messages({
+		'any.required': 'The sort_by field is required.',
+		'string.empty': 'The sort_by field is required.',
+	}),
 	start_date: Joi.date().iso().optional(),
 	end_date: Joi.date().iso().optional(),
 	type: Joi.string().optional(),
@@ -45,7 +51,7 @@ export const updatePaymentStatusSchema = Joi.object({
 				'The exp_date must be a valid date in Y-m-d format.',
 		}),
 	amount: Joi.number().optional(),
-})
+}).unknown(false)
 
 export const saveUserDeviceSchema = Joi.object({
 	firebase_token: Joi.string().required().messages({
@@ -64,19 +70,21 @@ export const saveUserDeviceSchema = Joi.object({
 })
 
 export const userAnswerCountSchema = Joi.object({
-	type: Joi.string().valid('all_time').optional(),
-	start_date: Joi.date().iso().when('type', {
-		is: Joi.exist(),
-		then: Joi.forbidden(),
-		otherwise: Joi.required(),
-	}),
-	end_date: Joi.date().iso().when('type', {
-		is: Joi.exist(),
-		then: Joi.forbidden(),
-		otherwise: Joi.required(),
-	}),
-})
-	.or('type', 'start_date')
-	.messages({
-		'any.required': 'Either type or start_date/end_date is required',
-	})
+	type: Joi.string().optional(),
+	start_date: Joi.string()
+		.pattern(/^\d{4}-\d{2}-\d{2}$/)
+		.optional()
+		.messages({
+			'any.required': 'The exp_date field is required.',
+			'string.pattern.base':
+				'The exp_date must be a valid date in Y-m-d format.',
+		}),
+	end_date: Joi.string()
+		.pattern(/^\d{4}-\d{2}-\d{2}$/)
+		.optional()
+		.messages({
+			'any.required': 'The exp_date field is required.',
+			'string.pattern.base':
+				'The exp_date must be a valid date in Y-m-d format.',
+		}),
+}).unknown(false)

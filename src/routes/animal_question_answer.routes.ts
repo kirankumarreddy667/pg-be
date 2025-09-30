@@ -6,9 +6,6 @@ import {
 	createAnimalQuestionAnswerSchema,
 	updateAnimalQuestionAnswerSchema,
 	updateAnimalBreedingMilkHealthQuestionAnswerSchema,
-	updateAnimalBirthQuestionAnswerSchema,
-	saveAnimalHeatEventQuestionAnswerSchema,
-	updateAnimalHeatEventQuestionAnswerSchema,
 	mapAnimalMotherToCalfSchema,
 } from '@/validations/animal_question_answer.validation'
 import { wrapAsync } from '@/utils/asyncHandler'
@@ -35,28 +32,158 @@ const router: Router = Router()
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAnimalQuestionAnswerRequest'
+ *             type: object
+ *             required:
+ *               - animal_id
+ *               - animal_number
+ *               - answers
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 example: 1
+ *                 description: The ID of the animal
+ *               animal_number:
+ *                 type: string
+ *                 example: "COW001"
+ *                 description: The unique number/identifier for the animal
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-08-31"
+ *                 description: Optional date for the answers (defaults to current date)
+ *               answers:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - question_id
+ *                     - answer
+ *                   properties:
+ *                     question_id:
+ *                       type: integer
+ *                       example: 1
+ *                       description: The ID of the question being answered
+ *                     answer:
+ *                       oneOf:
+ *                         - type: string
+ *                         - type: number
+ *                         - type: boolean
+ *                       example: "Cow"
+ *                       description: The answer to the question
  *     responses:
  *       200:
- *         description: Success
+ *         description: Answers submitted successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad request - validation errors
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: The animal id field is required.
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       409:
- *         description: Duplicate animal number
+ *         description: Conflict - duplicate animal number
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: This animal number is already taken
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 409
+ *       422:
+ *         description: Validation error - invalid animal_id or question_id
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: The given data was invalid.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     answers.0.question_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected answers.0.question_id is invalid."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
-
 router.post(
 	'/animal_question_answer',
 	authenticate,
@@ -78,31 +205,122 @@ router.post(
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the animal
+ *         example: 1
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the language for localized content
+ *         example: 1
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
+ *         description: The unique number/identifier for the animal
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Grouped answers
+ *         description: Grouped answers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   description: Grouped questions and answers by category and subcategory
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_id:
+ *                             type: integer
+ *                           validation_rule:
+ *                             type: string
+ *                             nullable: true
+ *                           master_question:
+ *                             type: string
+ *                           language_question:
+ *                             type: string
+ *                             nullable: true
+ *                           question_id:
+ *                             type: integer
+ *                           form_type:
+ *                             type: string
+ *                             nullable: true
+ *                           date:
+ *                             type: boolean
+ *                           answer:
+ *                             type: string
+ *                             nullable: true
+ *                           form_type_value:
+ *                             type: string
+ *                             nullable: true
+ *                           language_form_type_value:
+ *                             type: string
+ *                             nullable: true
+ *                           constant_value:
+ *                             type: string
+ *                             nullable: true
+ *                           question_tag:
+ *                             type: integer
+ *                             nullable: true
+ *                           question_unit:
+ *                             type: integer
+ *                             nullable: true
+ *                           answer_date:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                           animal_number:
+ *                             type: string
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
-
 router.get(
 	'/user_animal_question_answer/:animal_id/:language_id/:animal_number',
 	authenticate,
@@ -123,31 +341,109 @@ router.get(
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the animal
+ *         example: 1
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the language for localized content
+ *         example: 1
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
+ *         description: The unique number/identifier for the animal
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Grouped answers
+ *         description: Basic details answers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   description: Grouped basic details questions and answers by category and subcategory
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_id:
+ *                             type: integer
+ *                           validation_rule:
+ *                             type: string
+ *                             nullable: true
+ *                           master_question:
+ *                             type: string
+ *                           language_question:
+ *                             type: string
+ *                             nullable: true
+ *                           question_id:
+ *                             type: integer
+ *                           form_type:
+ *                             type: string
+ *                             nullable: true
+ *                           date:
+ *                             type: boolean
+ *                           answer:
+ *                             type: string
+ *                             nullable: true
+ *                           hint:
+ *                             type: string
+ *                             nullable: true
+ *                           question_created_at:
+ *                             type: string
+ *                             format: date-time
+ *                           animal_number:
+ *                             type: string
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
-
 router.get(
 	'/user_animal_basic_details_question_answer/:animal_id/:language_id/:animal_number',
 	authenticate,
@@ -170,31 +466,106 @@ router.get(
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the animal
+ *         example: 1
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the language for localized content
+ *         example: 1
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
+ *         description: The unique number/identifier for the animal
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Grouped answers
+ *         description: Breeding details answers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   description: Grouped breeding details questions and answers by category and subcategory
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_id:
+ *                             type: integer
+ *                           validation_rule:
+ *                             type: string
+ *                             nullable: true
+ *                           master_question:
+ *                             type: string
+ *                           language_question:
+ *                             type: string
+ *                             nullable: true
+ *                           question_id:
+ *                             type: integer
+ *                           form_type:
+ *                             type: string
+ *                             nullable: true
+ *                           date:
+ *                             type: boolean
+ *                           answer:
+ *                             type: string
+ *                             nullable: true
+ *                           hint:
+ *                             type: string
+ *                             nullable: true
+ *                           animal_number:
+ *                             type: string
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
-
 router.get(
 	'/user_animal_breeding_details_question_answer/:animal_id/:language_id/:animal_number',
 	authenticate,
@@ -217,31 +588,106 @@ router.get(
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the animal
+ *         example: 1
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the language for localized content
+ *         example: 1
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
+ *         description: The unique number/identifier for the animal
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Grouped answers
+ *         description: Milk details answers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   description: Grouped milk details questions and answers by category and subcategory
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_id:
+ *                             type: integer
+ *                           validation_rule:
+ *                             type: string
+ *                             nullable: true
+ *                           master_question:
+ *                             type: string
+ *                           language_question:
+ *                             type: string
+ *                             nullable: true
+ *                           question_id:
+ *                             type: integer
+ *                           form_type:
+ *                             type: string
+ *                             nullable: true
+ *                           date:
+ *                             type: boolean
+ *                           answer:
+ *                             type: string
+ *                             nullable: true
+ *                           hint:
+ *                             type: string
+ *                             nullable: true
+ *                           animal_number:
+ *                             type: string
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
-
 router.get(
 	'/user_animal_milk_details_question_answer/:animal_id/:language_id/:animal_number',
 	authenticate,
@@ -262,31 +708,106 @@ router.get(
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the animal
+ *         example: 1
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the language for localized content
+ *         example: 1
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
+ *         description: The unique number/identifier for the animal
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Grouped answers
+ *         description: Birth details answers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   description: Grouped birth details questions and answers by category and subcategory
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_id:
+ *                             type: integer
+ *                           validation_rule:
+ *                             type: string
+ *                             nullable: true
+ *                           master_question:
+ *                             type: string
+ *                           language_question:
+ *                             type: string
+ *                             nullable: true
+ *                           question_id:
+ *                             type: integer
+ *                           form_type:
+ *                             type: string
+ *                             nullable: true
+ *                           date:
+ *                             type: boolean
+ *                           answer:
+ *                             type: string
+ *                             nullable: true
+ *                           hint:
+ *                             type: string
+ *                             nullable: true
+ *                           animal_number:
+ *                             type: string
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
-
 router.get(
 	'/user_animal_birth_details_question_answer/:animal_id/:language_id/:animal_number',
 	authenticate,
@@ -309,31 +830,106 @@ router.get(
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the animal
+ *         example: 1
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the language for localized content
+ *         example: 1
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
+ *         description: The unique number/identifier for the animal
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Grouped answers
+ *         description: Health details answers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   description: Grouped health details questions and answers by category and subcategory
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_id:
+ *                             type: integer
+ *                           validation_rule:
+ *                             type: string
+ *                             nullable: true
+ *                           master_question:
+ *                             type: string
+ *                           language_question:
+ *                             type: string
+ *                             nullable: true
+ *                           question_id:
+ *                             type: integer
+ *                           form_type:
+ *                             type: string
+ *                             nullable: true
+ *                           date:
+ *                             type: boolean
+ *                           answer:
+ *                             type: string
+ *                             nullable: true
+ *                           hint:
+ *                             type: string
+ *                             nullable: true
+ *                           animal_number:
+ *                             type: string
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
-
 router.get(
 	'/user_animal_health_details_question_answer/:animal_id/:language_id/:animal_number',
 	authenticate,
@@ -350,19 +946,79 @@ router.get(
  *     tags: [AnimalQuestionAnswer]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: animalNumber
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Optional filter to search for specific animal numbers
+ *         example: "COW"
  *     responses:
  *       200:
- *         description: List of animal numbers
+ *         description: List of animal numbers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       animal_id:
+ *                         type: integer
+ *                         example: 1
+ *                         description: The ID of the animal
+ *                       animal_name:
+ *                         type: string
+ *                         example: "Cow"
+ *                         description: The name of the animal
+ *                       animal_number:
+ *                         type: string
+ *                         example: "COW001"
+ *                         description: The unique number/identifier for the animal
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
 
 router.get(
@@ -375,7 +1031,7 @@ router.get(
  * @swagger
  * /update_user_animal_basic_question_answer/{animal_number}/{animal_id}:
  *   put:
- *     summary: Update user animal basic details question answers (for today)
+ *     summary: Update user animal basic details question answers
  *     tags: [AnimalQuestionAnswer]
  *     security:
  *       - bearerAuth: []
@@ -385,36 +1041,143 @@ router.get(
  *         schema:
  *           type: string
  *         required: true
+ *         description: Animal number (unique identifier)
  *       - in: path
  *         name: animal_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: Animal ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAnimalQuestionAnswerRequest'
+ *             type: object
+ *             required:
+ *               - animal_id
+ *               - answers
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 example: 123
+ *                 description: The ID of the animal
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - question_id
+ *                     - answer
+ *                   properties:
+ *                     question_id:
+ *                       type: integer
+ *                       example: 15
+ *                       description: The ID of the question
+ *                     answer:
+ *                       oneOf:
+ *                         - type: string
+ *                         - type: number
+ *                         - type: boolean
+ *                       example: "Yes"
+ *                       description: The answer to the question
+ *                 minItems: 1
+ *                 description: Array of question-answer pairs
  *     responses:
  *       200:
- *         description: Success
+ *         description: Animal basic question answers updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad request (invalid payload or missing required fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The animal id field is required."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
- *       400:
- *         description: Invalid payload
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       422:
+ *         description: Validation error (invalid animal_id, question_id, etc.)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     "answers.0.question_id":
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected answers.0.question_id is invalid."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.put(
 	'/update_user_animal_basic_question_answer/:animal_number/:animal_id',
@@ -427,7 +1190,7 @@ router.put(
  * @swagger
  * /update_user_animal_breeding_question_answer/{animal_number}/{animal_id}:
  *   put:
- *     summary: Update user animal breeding details question answers (for today)
+ *     summary: Update user animal breeding details question answers
  *     tags: [AnimalQuestionAnswer]
  *     security:
  *       - bearerAuth: []
@@ -437,36 +1200,149 @@ router.put(
  *         schema:
  *           type: string
  *         required: true
+ *         description: Animal number (unique identifier)
  *       - in: path
  *         name: animal_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: Animal ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAnimalQuestionAnswerRequest'
+ *             type: object
+ *             required:
+ *               - animal_id
+ *               - date
+ *               - answers
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 example: 123
+ *                 description: The ID of the animal
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-08-31"
+ *                 description: Date for the breeding details
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - question_id
+ *                     - answer
+ *                   properties:
+ *                     question_id:
+ *                       type: integer
+ *                       example: 15
+ *                       description: The ID of the question
+ *                     answer:
+ *                       oneOf:
+ *                         - type: string
+ *                         - type: number
+ *                         - type: boolean
+ *                       example: "2024-08-15"
+ *                       description: The answer to the question (could be AI date, doctor number, etc.)
+ *                 minItems: 1
+ *                 description: Array of question-answer pairs for breeding details
  *     responses:
  *       200:
- *         description: Success
+ *         description: Animal breeding question answers updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad request (invalid payload or missing required fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The date field is required."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
- *       400:
- *         description: Invalid payload
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       422:
+ *         description: Validation error (invalid animal_id, question_id, etc.)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     date:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The date field is required."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.put(
 	'/update_user_animal_breeding_question_answer/:animal_number/:animal_id',
@@ -479,7 +1355,7 @@ router.put(
  * @swagger
  * /update_user_animal_milk_question_answer/{animal_number}/{animal_id}:
  *   put:
- *     summary: Update user animal milk details question answers (for today)
+ *     summary: Update user animal milk details question answers
  *     tags: [AnimalQuestionAnswer]
  *     security:
  *       - bearerAuth: []
@@ -489,36 +1365,149 @@ router.put(
  *         schema:
  *           type: string
  *         required: true
+ *         description: Animal number (unique identifier)
  *       - in: path
  *         name: animal_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: Animal ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAnimalQuestionAnswerRequest'
+ *             type: object
+ *             required:
+ *               - animal_id
+ *               - date
+ *               - answers
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 example: 123
+ *                 description: The ID of the animal
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-08-31"
+ *                 description: Date for the milk details
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - question_id
+ *                     - answer
+ *                   properties:
+ *                     question_id:
+ *                       type: integer
+ *                       example: 25
+ *                       description: The ID of the question
+ *                     answer:
+ *                       oneOf:
+ *                         - type: string
+ *                         - type: number
+ *                         - type: boolean
+ *                       example: 15.5
+ *                       description: The answer to the question (e.g., milk yield in liters)
+ *                 minItems: 1
+ *                 description: Array of question-answer pairs for milk details
  *     responses:
  *       200:
- *         description: Success
+ *         description: Animal milk question answers updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad request (invalid payload or missing required fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The date field is required."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
- *       400:
- *         description: Invalid payload
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       422:
+ *         description: Validation error (invalid animal_id, question_id, etc.)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     date:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The date field is required."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.put(
 	'/update_user_animal_milk_question_answer/:animal_number/:animal_id',
@@ -531,7 +1520,7 @@ router.put(
  * @swagger
  * /update_user_animal_birth_question_answer/{animal_number}/{animal_id}:
  *   put:
- *     summary: Update user animal birth details question answers (for today)
+ *     summary: Update user animal birth details question answers
  *     tags: [AnimalQuestionAnswer]
  *     security:
  *       - bearerAuth: []
@@ -541,41 +1530,148 @@ router.put(
  *         schema:
  *           type: string
  *         required: true
+ *         description: Animal number (unique identifier)
  *       - in: path
  *         name: animal_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: Animal ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAnimalQuestionAnswerRequest'
+ *             type: object
+ *             required:
+ *               - animal_id
+ *               - answers
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 example: 123
+ *                 description: The ID of the animal
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - question_id
+ *                     - answer
+ *                   properties:
+ *                     question_id:
+ *                       type: integer
+ *                       example: 40
+ *                       description: The ID of the question
+ *                     answer:
+ *                       oneOf:
+ *                         - type: string
+ *                         - type: number
+ *                         - type: boolean
+ *                       example: "2024-08-30"
+ *                       description: The answer to the question (e.g., birth date, calf details)
+ *                 minItems: 1
+ *                 description: Array of question-answer pairs for birth details
  *     responses:
  *       200:
- *         description: Success
+ *         description: Animal birth question answers updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad request (invalid payload or missing required fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The animal id field is required."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
- *       400:
- *         description: Invalid payload
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       422:
+ *         description: Validation error (invalid animal_id, question_id, etc.)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     "answers.0.question_id":
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected answers.0.question_id is invalid."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.put(
 	'/update_user_animal_birth_question_answer/:animal_number/:animal_id',
 	authenticate,
-	validateRequest(updateAnimalBirthQuestionAnswerSchema),
+	validateRequest(updateAnimalQuestionAnswerSchema),
 	wrapAsync(AnimalQuestionAnswerController.updateBirthDetailsOfAnimal),
 )
 
@@ -583,7 +1679,7 @@ router.put(
  * @swagger
  * /update_user_animal_health_question_answer/{animal_number}/{animal_id}:
  *   put:
- *     summary: Update user animal health details question answers (for today)
+ *     summary: Update user animal health details question answers
  *     tags: [AnimalQuestionAnswer]
  *     security:
  *       - bearerAuth: []
@@ -593,41 +1689,154 @@ router.put(
  *         schema:
  *           type: string
  *         required: true
+ *         description: Animal number (unique identifier)
  *       - in: path
  *         name: animal_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: Animal ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAnimalQuestionAnswerRequest'
+ *             type: object
+ *             required:
+ *               - animal_id
+ *               - date
+ *               - answers
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 example: 123
+ *                 description: The ID of the animal
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-08-31"
+ *                 description: Date for the health details
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - question_id
+ *                     - answer
+ *                   properties:
+ *                     question_id:
+ *                       type: integer
+ *                       example: 50
+ *                       description: The ID of the question
+ *                     answer:
+ *                       oneOf:
+ *                         - type: string
+ *                         - type: number
+ *                         - type: boolean
+ *                       example: "Normal"
+ *                       description: The answer to the question (e.g., health, temperature)
+ *                 minItems: 1
+ *                 description: Array of question-answer pairs for health details
  *     responses:
  *       200:
- *         description: Success
+ *         description: Animal health question answers updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad request (invalid payload or missing required fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The date field is required."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
- *       400:
- *         description: Invalid payload
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       422:
+ *         description: Validation error (invalid animal_id, question_id, etc.)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     date:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The date field is required."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.put(
 	'/update_user_animal_health_question_answer/:animal_number/:animal_id',
 	authenticate,
-	validateRequest(updateAnimalBreedingMilkHealthQuestionAnswerSchema),
+	validateRequest(updateAnimalQuestionAnswerSchema),
 	wrapAsync(AnimalQuestionAnswerController.updateHealthDetailsOfAnimal),
 )
 
@@ -645,41 +1854,150 @@ router.put(
  *         schema:
  *           type: string
  *         required: true
+ *         description: Animal number (unique identifier)
+ *         example: "COW001"
  *       - in: path
  *         name: animal_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: Animal ID
+ *         example: 123
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAnimalQuestionAnswerRequest'
+ *             type: object
+ *             required:
+ *               - animal_id
+ *               - answers
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 example: 123
+ *                 description: The ID of the animal
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - question_id
+ *                     - answer
+ *                   properties:
+ *                     question_id:
+ *                       type: integer
+ *                       example: 60
+ *                       description: The ID of the question
+ *                     answer:
+ *                       oneOf:
+ *                         - type: string
+ *                         - type: number
+ *                         - type: boolean
+ *                       example: "Yes"
+ *                       description: The answer to the question
+ *                 minItems: 1
+ *                 description: Array of question-answer pairs for heat event details
  *     responses:
  *       200:
- *         description: Success
+ *         description: Animal heat event question answers updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad request (invalid payload or missing required fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The animal id field is required."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
- *       400:
- *         description: Invalid payload
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       422:
+ *         description: Validation error (invalid animal_id, question_id, etc.)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     "answers.0.question_id":
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected answers.0.question_id is invalid."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.put(
 	'/update_user_animal_heat_event_question_answers/:animal_number/:animal_id',
 	authenticate,
-	validateRequest(updateAnimalHeatEventQuestionAnswerSchema),
+	validateRequest(updateAnimalQuestionAnswerSchema),
 	wrapAsync(AnimalQuestionAnswerController.updateHeatEventDetailsOfAnimal),
 )
 
@@ -696,31 +2014,145 @@ router.put(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAnimalQuestionAnswerRequest'
+ *             type: object
+ *             required:
+ *               - animal_id
+ *               - animal_number
+ *               - answers
+ *             properties:
+ *               animal_id:
+ *                 type: integer
+ *                 example: 123
+ *                 description: The ID of the animal
+ *               animal_number:
+ *                 type: string
+ *                 example: "COW001"
+ *                 description: The unique number/identifier for the animal
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-08-31"
+ *                 description: Optional date for the answers (defaults to current date)
+ *               answers:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - question_id
+ *                     - answer
+ *                   properties:
+ *                     question_id:
+ *                       type: integer
+ *                       example: 60
+ *                       description: The ID of the question being answered
+ *                     answer:
+ *                       oneOf:
+ *                         - type: string
+ *                         - type: number
+ *                         - type: boolean
+ *                       example: "Yes"
+ *                       description: The answer to the question
  *     responses:
  *       200:
- *         description: Success
+ *         description: Heat event question answers saved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad request (invalid payload or missing required fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The animal id field is required."
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 400
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
- *       400:
- *         description: Invalid payload
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       422:
+ *         description: Validation error (invalid animal_id, question_id, etc.)
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     "answers.0.question_id":
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected answers.0.question_id is invalid."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/save_user_animal_heat_event_question_answers',
 	authenticate,
-	validateRequest(saveAnimalHeatEventQuestionAnswerSchema),
+	validateRequest(createAnimalQuestionAnswerSchema),
 	wrapAsync(AnimalQuestionAnswerController.saveHeatEventDetailsOfAnimal),
 )
 
@@ -738,29 +2170,121 @@ router.post(
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the animal
+ *         example: 1
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the language for localized content
+ *         example: 1
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
+ *         description: The unique number/identifier for the animal
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Grouped answers
+ *         description: Heat event question answers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "success"
+ *                 data:
+ *                   type: object
+ *                   description: Grouped heat event questions and answers by category and subcategory
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           animal_id:
+ *                             type: integer
+ *                           validation_rule:
+ *                             type: string
+ *                             nullable: true
+ *                           master_question:
+ *                             type: string
+ *                           language_question:
+ *                             type: string
+ *                             nullable: true
+ *                           question_id:
+ *                             type: integer
+ *                           form_type:
+ *                             type: string
+ *                             nullable: true
+ *                           date:
+ *                             type: boolean
+ *                           answer:
+ *                             type: string
+ *                             nullable: true
+ *                           form_type_value:
+ *                             type: string
+ *                             nullable: true
+ *                           language_form_type_value:
+ *                             type: string
+ *                             nullable: true
+ *                           constant_value:
+ *                             type: string
+ *                             nullable: true
+ *                           question_tag:
+ *                             type: integer
+ *                             nullable: true
+ *                           question_unit:
+ *                             type: integer
+ *                             nullable: true
+ *                           answer_date:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                           animal_number:
+ *                             type: string
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
 router.get(
 	'/user_animal_heat_event_question_answer/:animal_id/:language_id/:animal_number',
@@ -784,29 +2308,116 @@ router.get(
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the animal
+ *         example: 1
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: The ID of the language for localized content
+ *         example: 1
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
+ *         description: The unique number/identifier for the animal
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Previous heat event answers
+ *         description: Previous heat event question answers retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "success"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       animal_id:
+ *                         type: integer
+ *                       validation_rule:
+ *                         type: string
+ *                         nullable: true
+ *                       master_question:
+ *                         type: string
+ *                       language_question:
+ *                         type: string
+ *                         nullable: true
+ *                       question_id:
+ *                         type: integer
+ *                       form_type:
+ *                         type: string
+ *                         nullable: true
+ *                       date:
+ *                         type: boolean
+ *                       answer:
+ *                         type: string
+ *                         nullable: true
+ *                       form_type_value:
+ *                         type: string
+ *                         nullable: true
+ *                       language_form_type_value:
+ *                         type: string
+ *                         nullable: true
+ *                       constant_value:
+ *                         type: string
+ *                         nullable: true
+ *                       question_tag:
+ *                         type: integer
+ *                         nullable: true
+ *                       question_unit:
+ *                         type: integer
+ *                         nullable: true
+ *                       answer_date:
+ *                         type: string
+ *                         format: date-time
+ *                         nullable: true
+ *                       animal_number:
+ *                         type: string
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
  */
 router.get(
 	'/user_previous_heat_event_question_answers/:animal_id/:language_id/:animal_number',
@@ -849,18 +2460,43 @@ router.get(
  *                 data:
  *                   type: object
  *                   properties:
- *                     answer:
+ *                     lactating_status:
  *                       type: string
- *                       example: 'Lactating'
- *                     created_at:
- *                       type: string
- *                       format: date-time
- *                       example: '2024-07-18T00:00:00.000Z'
- *                     question_id:
- *                       type: integer
- *                       example: 123
+ *                       example: "Lactating"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.get(
 	'/user_animal_lactating_status/:animal_id/:animal_num',
@@ -906,6 +2542,38 @@ router.get(
  *                       example: 'Pregnant'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.get(
 	'/user_animal_pregnancy_status/:animal_id/:animal_num',
@@ -936,7 +2604,7 @@ router.get(
  *         description: Animal number
  *     responses:
  *       200:
- *         description: Success
+ *         description: Animal calfs retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -944,16 +2612,50 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Success"
  *                 data:
  *                   type: array
  *                   items:
  *                     type: string
+ *                     example: "CALF001"
+ *                     description: The calf animal number
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.get(
 	'/animal_calfs/:animal_id/:animal_number',
@@ -984,7 +2686,7 @@ router.get(
  *         description: Animal number
  *     responses:
  *       200:
- *         description: Success
+ *         description: Delivery dates retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -992,6 +2694,7 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Success"
  *                 data:
  *                   type: array
  *                   items:
@@ -999,12 +2702,45 @@ router.get(
  *                     properties:
  *                       delivery_date:
  *                         type: string
+ *                         example: "2024-08-31"
+ *                         description: The delivery date
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.get(
 	'/animal_delivery_dates/:animal_id/:animal_number',
@@ -1029,13 +2765,21 @@ router.get(
  *             properties:
  *               animal_id:
  *                 type: integer
+ *                 example: 123
+ *                 description: The ID of the animal
  *               delivery_date:
  *                 type: string
  *                 format: date
+ *                 example: "2024-08-31"
+ *                 description: The delivery date
  *               mother_animal_number:
  *                 type: string
+ *                 example: "COW001"
+ *                 description: The mother animal number
  *               calf_animal_number:
  *                 type: string
+ *                 example: "CALF001"
+ *                 description: The calf animal number
  *             required:
  *               - animal_id
  *               - delivery_date
@@ -1043,29 +2787,99 @@ router.get(
  *               - calf_animal_number
  *     responses:
  *       201:
- *         description: Mapping created
+ *         description: Mother-calf mapping created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       206:
  *         description: Mapping already exists
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Mapping already exists"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 206
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
  *       422:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "The given data was invalid."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     animal_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The selected animal id is invalid."]
+ *                     delivery_date:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["The delivery date field is required."]
+ *                 status:
+ *                   type: integer
+ *                   example: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.post(
 	'/save_animal_mapped_mother_calf',
@@ -1089,15 +2903,17 @@ router.post(
  *           type: integer
  *         required: true
  *         description: Animal ID
+ *         example: 123
  *       - in: path
  *         name: mother_number
  *         schema:
  *           type: string
  *         required: true
  *         description: Mother animal number
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Success
+ *         description: Attached calfs retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -1105,6 +2921,7 @@ router.post(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Success"
  *                 data:
  *                   type: array
  *                   items:
@@ -1112,14 +2929,49 @@ router.post(
  *                     properties:
  *                       calf_number:
  *                         type: string
+ *                         example: "CALF001"
+ *                         description: The calf animal number
  *                       delivery_date:
  *                         type: string
+ *                         example: "2024-08-31"
+ *                         description: The delivery date
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.get(
 	'/attached_calfs_of_animal/:animal_id/:mother_number',
@@ -1142,15 +2994,17 @@ router.get(
  *           type: integer
  *         required: true
  *         description: Animal ID
+ *         example: 123
  *       - in: path
  *         name: animal_number
  *         schema:
  *           type: string
  *         required: true
  *         description: Animal number
+ *         example: "COW001"
  *     responses:
  *       200:
- *         description: Success
+ *         description: AI history retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -1158,6 +3012,7 @@ router.get(
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Success"
  *                 data:
  *                   type: array
  *                   items:
@@ -1165,20 +3020,61 @@ router.get(
  *                     properties:
  *                       date_of_AI:
  *                         type: string
+ *                         example: "2024-08-15"
+ *                         description: The date of artificial insemination
  *                       bull_no:
  *                         type: string
+ *                         example: "BULL001"
+ *                         description: The bull number used for insemination
  *                       mother_yield:
  *                         type: string
+ *                         example: "15.5"
+ *                         description: The mother's milk yield
  *                       semen_company:
  *                         type: string
+ *                         example: "ABC Semen Co."
+ *                         description: The semen company
  *                       answer_date:
  *                         type: string
+ *                         example: "2024-08-15"
+ *                         description: The date when the answer was recorded
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 data:
+ *                   type: array
+ *                   items: {}
+ *                   example: []
+ *                 status:
+ *                   type: integer
+ *                   example: 500
  */
 router.get(
 	'/AI_history_of_animal/:animal_id/:animal_number',

@@ -2,6 +2,7 @@ import { RequestHandler } from 'express'
 import { ValidationRule } from '@/models/validation_rule.model'
 import RESPONSE from '@/utils/response'
 import { ValidationRuleService } from '@/services/validation_rule.service'
+import { ValidationRequestError } from '@/utils/errors'
 
 export class ValidationRuleController {
 	public static readonly create: RequestHandler = async (req, res, next) => {
@@ -11,15 +12,12 @@ export class ValidationRuleController {
 				value.name,
 			)
 			if (existingRule) {
-				return res.status(422).json({
-					message: 'The given data was invalid.',
-					errors: {
-						farm_name: ['The validation rule name has already been taken.'],
-					},
+				throw new ValidationRequestError({
+					name: ['The name has already been taken.'],
 				})
 			}
 			await ValidationRuleService.create(value)
-			return RESPONSE.SuccessResponse(res, 201, {
+			return RESPONSE.SuccessResponse(res, 200, {
 				data: [],
 				message: 'Success',
 			})
@@ -37,15 +35,15 @@ export class ValidationRuleController {
 				value.name,
 			)
 			if (existingRule && existingRule.get('id') !== Number(id)) {
-				return res.status(422).json({
-					message: 'The given data was invalid.',
-					errors: {
-						name: ['The validation rule name has already been taken.'],
-					},
+				throw new ValidationRequestError({
+					name: ['The name has already been taken.'],
 				})
 			}
 			// Update rule
-			await ValidationRuleService.update(Number(id), value)
+			const updated = await ValidationRuleService.update(Number(id), value)
+			if (!updated) {
+				return RESPONSE.FailureResponse(res, 404, { message: 'Not found' })
+			}
 			return RESPONSE.SuccessResponse(res, 200, {
 				data: [],
 				message: 'Success',
@@ -72,7 +70,10 @@ export class ValidationRuleController {
 			const { id } = req.params
 			const rule = await ValidationRuleService.getById(Number(id))
 			if (!rule) {
-				return RESPONSE.FailureResponse(res, 404, { message: 'Not found' })
+				return RESPONSE.SuccessResponse(res, 200, {
+					message: 'Success',
+					data: null,
+				})
 			}
 			return RESPONSE.SuccessResponse(res, 200, {
 				data: rule,

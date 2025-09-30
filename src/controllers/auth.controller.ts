@@ -30,6 +30,15 @@ interface ForgotPasswordBody {
 	password: string
 }
 
+interface RefreshTokenBody {
+	refresh_token?: string
+}
+
+interface RefreshTokenCookies {
+	refresh_token?: string
+	refreshToken?: string
+}
+
 export class AuthController {
 	public static readonly userRegistration: RequestHandler = async (
 		req,
@@ -110,6 +119,16 @@ export class AuthController {
 		try {
 			const { phone_number, password } = req.body as LoginBody
 			const loginData = await AuthService.login(phone_number, password)
+
+			// after: const loginData = await AuthService.login(phone_number, password)
+
+			res.cookie('refresh_token', loginData.refresh_token, {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'strict',
+				maxAge: 30 * 24 * 60 * 60 * 1000, // 7 days
+			})
+
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success.',
 				data: loginData,
@@ -202,6 +221,15 @@ export class AuthController {
 				phone_number,
 				password,
 			)
+
+			// Set refresh token as httpOnly cookie
+			res.cookie('refresh_token', result.refresh_token, {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'strict',
+				maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+			})
+
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success.',
 				data: result,
@@ -244,6 +272,84 @@ export class AuthController {
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'password changed successfully',
 				data: [],
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly refreshToken: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			// Typecast body and cookies
+			const body = req.body as RefreshTokenBody
+			const cookies = req.cookies as RefreshTokenCookies
+
+			// Get token from cookies or body
+			const token = body.refresh_token || cookies.refresh_token
+
+			if (!token) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'No refresh token provided',
+				})
+			}
+
+			const { accessToken, refreshToken } =
+				await AuthService.refreshToken(token)
+
+			// Set cookie for web
+			res.cookie('refresh_token', refreshToken, {
+				httpOnly: true,
+				secure: true,
+				sameSite: 'strict',
+				maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+			})
+
+			return RESPONSE.SuccessResponse(res, 200, {
+				message: 'Token refreshed successfully',
+				data: [
+					{
+						access_token: accessToken,
+						refresh_token: refreshToken,
+					},
+				],
+			})
+		} catch (err) {
+			// Type-safe error handling
+			const error = err instanceof Error ? err : new Error('Unknown error')
+
+			if (
+				error.message === 'Refresh token invalid or rotated' ||
+				error.message === 'Invalid token payload'
+			) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: error.message,
+				})
+			}
+
+			next(error)
+		}
+	}
+
+	public static readonly logout: RequestHandler = async (req, res, next) => {
+		try {
+			const userId = (req.user as { id: number })?.id
+
+			if (userId) {
+				await AuthService.logout(userId)
+			}
+
+			res.clearCookie('refresh_token', {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'strict',
+			})
+
+			return RESPONSE.SuccessResponse(res, 200, {
+				message: 'Logged out successfully',
 			})
 		} catch (error) {
 			next(error)

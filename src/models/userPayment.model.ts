@@ -7,9 +7,10 @@ export interface UserPaymentAttributes {
 	amount: number
 	num_of_valid_years: number
 	plan_exp_date: Date
-	payment_history_id?: number | null
-	created_at?: Date
-	updated_at?: Date
+	payment_history_id: number
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class UserPayment
@@ -17,27 +18,28 @@ export class UserPayment
 		UserPaymentAttributes,
 		Optional<
 			UserPaymentAttributes,
-			'id' | 'payment_history_id' | 'created_at' | 'updated_at'
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
 		>
 	>
 	implements UserPaymentAttributes
 {
-	declare id: number
-	declare user_id: number
-	declare plan_id: number
-	declare amount: number
-	declare num_of_valid_years: number
-	declare plan_exp_date: Date
-	declare payment_history_id: number | null
-	declare readonly created_at: Date
-	declare readonly updated_at: Date
+	public id!: number
+	public user_id!: number
+	public plan_id!: number
+	public amount!: number
+	public num_of_valid_years!: number
+	public plan_exp_date!: Date
+	public payment_history_id!: number
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof UserPayment => {
 	UserPayment.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -50,7 +52,7 @@ export default (sequelize: Sequelize): typeof UserPayment => {
 				allowNull: false,
 			},
 			amount: {
-				type: DataTypes.FLOAT,
+				type: DataTypes.INTEGER,
 				allowNull: false,
 			},
 			num_of_valid_years: {
@@ -60,20 +62,12 @@ export default (sequelize: Sequelize): typeof UserPayment => {
 			plan_exp_date: {
 				type: DataTypes.DATE,
 				allowNull: false,
+				defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
 			},
 			payment_history_id: {
 				type: DataTypes.INTEGER,
-				allowNull: true,
-			},
-			created_at: {
-				type: DataTypes.DATE,
 				allowNull: false,
-				defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+				defaultValue: 0,
 			},
 		},
 		{
@@ -82,6 +76,10 @@ export default (sequelize: Sequelize): typeof UserPayment => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 

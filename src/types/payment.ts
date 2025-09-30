@@ -1,11 +1,13 @@
-export interface PaymentRequestBody {
-  plan_id: number;
-  amount: number;
-  currency: string;
-  payment_gateway: string;
-  number_of_valid_years: number;
-  plan_exp_date: string;
-  billing_instrument: string;
-  offer_id?: number | null;
-  coupon_id?: number | null;
+export interface PaymentData {
+	plan_id: number
+	coupon_id?: number
+	offer_id?: number
+	amount: number
+	quantity?: number
+}
+
+export interface PaymentVerify {
+	razorpay_order_id: string
+	razorpay_payment_id: string
+	razorpay_signature: string
 }

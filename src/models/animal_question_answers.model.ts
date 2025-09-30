@@ -1,39 +1,47 @@
-import { Model, DataTypes, Sequelize } from 'sequelize'
+import { Model, DataTypes, Sequelize, Optional } from 'sequelize'
 
 export interface AnimalQuestionAnswerAttributes {
-	id?: number
+	id: number
 	question_id: number
 	user_id: number
 	answer: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
 	animal_id: number
 	animal_number: string
-	status?: boolean
+	status: boolean
 	logic_value?: string | null
+	deleted_at?: Date | null
 }
 
 export class AnimalQuestionAnswer
-	extends Model<AnimalQuestionAnswerAttributes>
+	extends Model<
+		AnimalQuestionAnswerAttributes,
+		Optional<
+			AnimalQuestionAnswerAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
+	>
 	implements AnimalQuestionAnswerAttributes
 {
 	public id!: number
 	public question_id!: number
 	public user_id!: number
 	public answer!: string
-	public created_at!: Date
-	public updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
 	public animal_id!: number
 	public animal_number!: string
 	public status!: boolean
-	public logic_value!: string | null
+	public logic_value?: string | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof AnimalQuestionAnswer => {
 	AnimalQuestionAnswer.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -46,18 +54,8 @@ export default (sequelize: Sequelize): typeof AnimalQuestionAnswer => {
 				allowNull: false,
 			},
 			answer: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
 			},
 			animal_id: {
 				type: DataTypes.INTEGER,
@@ -68,12 +66,12 @@ export default (sequelize: Sequelize): typeof AnimalQuestionAnswer => {
 				allowNull: false,
 			},
 			status: {
-				type: DataTypes.BOOLEAN,
+				type: DataTypes.TINYINT,
 				allowNull: false,
-				defaultValue: false,
+				defaultValue: 0,
 			},
 			logic_value: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 		},
@@ -83,6 +81,15 @@ export default (sequelize: Sequelize): typeof AnimalQuestionAnswer => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			indexes: [
+				{
+					fields: ['user_id'],
+				},
+			],
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return AnimalQuestionAnswer

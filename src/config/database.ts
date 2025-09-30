@@ -3,6 +3,12 @@ import { logger } from './logger'
 import { initModels } from '@/models'
 import { env } from './env'
 
+// Narrow type for mysql2 typeCast field
+type MySQLTypeCastField = {
+	type: string
+	string: () => string | null
+}
+
 // Create Sequelize instance
 const sequelize = new Sequelize(
 	env.DB_DATABASE,
@@ -12,6 +18,25 @@ const sequelize = new Sequelize(
 		host: env.DB_HOST,
 		dialect: 'mysql',
 		logging: false,
+		dialectOptions: {
+			charset: 'utf8mb4',
+			dateStrings: true,
+			typeCast: (field: unknown, next: () => unknown): unknown => {
+				const f = field as Partial<MySQLTypeCastField>
+				if (
+					typeof f.type === 'string' &&
+					(f.type === 'DATETIME' || f.type === 'TIMESTAMP') &&
+					typeof f.string === 'function'
+				) {
+					return f.string()
+				}
+				return next()
+			},
+		},
+		define: {
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
+		},
 	},
 )
 

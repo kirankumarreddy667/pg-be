@@ -13,31 +13,37 @@ export class ValidationRuleService {
 	static async getValidationRuleByName(
 		name: string,
 	): Promise<ValidationRule | null> {
-		return await db.ValidationRule.findOne({ where: { name } })
+		return await db.ValidationRule.findOne({
+			where: { name, deleted_at: null },
+		})
 	}
 
 	static async update(
 		id: number,
 		data: { name: string; description?: string | null; constant_value: number },
 	): Promise<ValidationRule | null> {
-		const rule = await db.ValidationRule.findByPk(id)
+		const rule = await db.ValidationRule.findOne({
+			where: { id, deleted_at: null },
+		})
 		if (!rule) return null
-		await rule.update(data)
+		await db.ValidationRule.update(data, { where: { id } })
 		return rule
 	}
 
 	static async getAll(): Promise<ValidationRule[]> {
-		return await db.ValidationRule.findAll()
+		return await db.ValidationRule.findAll({ where: { deleted_at: null } })
 	}
 
 	static async getById(id: number): Promise<ValidationRule | null> {
-		return await db.ValidationRule.findByPk(id)
+		return await db.ValidationRule.findOne({ where: { id, deleted_at: null } })
 	}
 
 	static async deleteById(id: number): Promise<boolean> {
-		const rule = await db.ValidationRule.findByPk(id)
+		const rule = await db.ValidationRule.findOne({
+			where: { id, deleted_at: null },
+		})
 		if (!rule) return false
-		await rule.destroy()
+		await db.ValidationRule.destroy({ where: { id } })
 		return true
 	}
 }

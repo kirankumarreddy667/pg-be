@@ -1,13 +1,14 @@
 import { DataTypes, Model, Sequelize, Optional } from 'sequelize'
 
 export interface FixedInvestmentDetailsAttributes {
-	id: number
+	id?: number
 	type_of_investment: number
 	amount_in_rs: number
 	user_id: number
 	date_of_installation_or_purchase: Date
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class FixedInvestmentDetails
@@ -15,7 +16,7 @@ export class FixedInvestmentDetails
 		FixedInvestmentDetailsAttributes,
 		Optional<
 			FixedInvestmentDetailsAttributes,
-			'id' | 'created_at' | 'updated_at'
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
 		>
 	>
 	implements FixedInvestmentDetailsAttributes
@@ -25,15 +26,16 @@ export class FixedInvestmentDetails
 	public amount_in_rs!: number
 	public user_id!: number
 	public date_of_installation_or_purchase!: Date
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof FixedInvestmentDetails => {
 	FixedInvestmentDetails.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 				allowNull: false,
@@ -53,26 +55,19 @@ export default (sequelize: Sequelize): typeof FixedInvestmentDetails => {
 			date_of_installation_or_purchase: {
 				type: DataTypes.DATE,
 				allowNull: false,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
 				defaultValue: DataTypes.NOW,
 			},
 		},
 		{
 			sequelize,
-			modelName: 'FixedInvestmentDetails',
 			tableName: 'fixed_investment_details',
-			underscored: true,
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return FixedInvestmentDetails

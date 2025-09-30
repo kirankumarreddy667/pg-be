@@ -25,7 +25,7 @@ export class DailyRecordQuestionController {
 					questions: Question[]
 				},
 			)
-			return RESPONSE.SuccessResponse(res, 201, {
+			return RESPONSE.SuccessResponse(res, 200, {
 				message: 'Questions added successfully',
 				data: [],
 			})
@@ -114,25 +114,13 @@ export class DailyRecordQuestionController {
 							language_id: number
 							question: string
 							form_type_value?: string | null
-							hint?: string | null
 						},
 					)
-				if (result.success) {
-					return RESPONSE.SuccessResponse(res, 200, {
-						message: result.message,
-						data: [],
-					})
-				} else if (result.code === 404) {
-					return RESPONSE.FailureResponse(res, 404, {
-						message: result.message,
-						errors: [result.message],
-					})
-				} else {
-					return RESPONSE.FailureResponse(res, 422, {
-						message: 'The given data was invalid.',
-						errors: [result.message],
-					})
-				}
+
+				return RESPONSE.SuccessResponse(res, 200, {
+					message: result.message,
+					data: [],
+				})
 			} catch (error) {
 				next(error)
 			}

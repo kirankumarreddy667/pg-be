@@ -21,7 +21,7 @@ export class AuthService {
 		const transaction = await db.sequelize.transaction()
 		try {
 			const existingUser = await db.User.findOne({
-				where: { phone_number: userData.phone_number },
+				where: { phone_number: userData.phone_number, deleted_at: null },
 				include: [
 					{
 						model: db.RoleUser,
@@ -34,7 +34,7 @@ export class AuthService {
 
 			if (userData.email) {
 				const existingEmail = await db.User.findOne({
-					where: { email: userData.email },
+					where: { email: userData.email, deleted_at: null },
 					transaction,
 				})
 				if (existingEmail) {
@@ -61,7 +61,7 @@ export class AuthService {
 
 			// Assign the 'USER' role
 			const userRole = await db.Role.findOne({
-				where: { name: 'User' },
+				where: { name: 'User', deleted_at: null },
 				transaction,
 			})
 			if (!userRole) {
@@ -98,11 +98,12 @@ export class AuthService {
 		password: string,
 	): Promise<{
 		token: string
+		refresh_token: string
 		user_id: number
-		email: string | undefined
+		email: string | null
 		name: string
 		phone: string
-		farm_name: string | undefined
+		farm_name: string | null
 		payment_status: 'free' | 'premium'
 		plan_expires_on: Date | null
 		otp_status: boolean
@@ -110,7 +111,7 @@ export class AuthService {
 		const roleId = phone_number === '7207063149' ? 1 : 2
 
 		const userWithRole = await db.User.findOne({
-			where: { phone_number },
+			where: { phone_number, deleted_at: null },
 			include: [
 				{
 					model: db.RoleUser,
@@ -143,7 +144,7 @@ export class AuthService {
 		let planExpDate: Date | null = null
 		if (userWithRole.get('payment_status') !== 'free') {
 			const planPayment = await db.UserPayment.findOne({
-				where: { user_id: userWithRole.get('id') },
+				where: { user_id: userWithRole.get('id'), deleted_at: null },
 				order: [['created_at', 'DESC']],
 			})
 			planExpDate = planPayment?.get('plan_exp_date') || null
@@ -157,13 +158,24 @@ export class AuthService {
 			`${getApiBaseUrl()}/login`,
 		)
 
+		// Generate refresh token and save in remember_token column
+		const refreshToken = await TokenService.generateRefreshToken({
+			id: userWithRole.get('id'),
+		})
+
+		await db.User.update(
+			{ remember_token: refreshToken },
+			{ where: { id: userWithRole.get('id') } },
+		)
+
 		return {
 			token,
+			refresh_token: refreshToken,
 			user_id: userWithRole.get('id'),
-			email: userWithRole.get('email'),
+			email: userWithRole?.get('email') || null,
 			name: userWithRole.get('name'),
 			phone: userWithRole.get('phone_number'),
-			farm_name: userWithRole.get('farm_name'),
+			farm_name: userWithRole?.get('farm_name') || null,
 			payment_status: userWithRole.get('payment_status'),
 			plan_expires_on: planExpDate,
 			otp_status: otpStatus,
@@ -176,7 +188,10 @@ export class AuthService {
 	): Promise<{ success: boolean; message: string }> {
 		const transaction = await db.sequelize.transaction()
 		try {
-			const user = await db.User.findByPk(userId, { transaction })
+			const user = await db.User.findOne({
+				where: { id: userId, deleted_at: null },
+				transaction,
+			})
 			if (!user) {
 				throw new ValidationRequestError({
 					user_id: ['The selected user id is invalid.'],
@@ -199,15 +214,15 @@ export class AuthService {
 			const result = await OtpService.verifyOtp(
 				userId,
 				otp,
-				createdAt,
+				createdAt as Date,
 				transaction,
 			)
-
-			// Update user OTP status within transaction
-			await db.User.update(
-				{ otp_status: true },
-				{ where: { id: userId }, transaction },
-			)
+			if (result.success) {
+				await db.User.update(
+					{ otp_status: true },
+					{ where: { id: userId }, transaction },
+				)
+			}
 
 			await transaction.commit()
 			return result
@@ -224,8 +239,8 @@ export class AuthService {
 		id: number
 		otp: string
 		user_id: number
-		created_at: string
-		updated_at: string
+		created_at: string | null
+		updated_at: string | null
 	}> {
 		const transaction = await db.sequelize.transaction()
 		try {
@@ -238,16 +253,18 @@ export class AuthService {
 				id: otp.id,
 				otp: otp.get('otp'),
 				user_id: otp.get('user_id'),
-				created_at: otp
-					.get('created_at')
-					.toISOString()
-					.slice(0, 19)
-					.replace('T', ' '),
-				updated_at: otp
-					.get('updated_at')
-					.toISOString()
-					.slice(0, 19)
-					.replace('T', ' '),
+				created_at: otp.get('created_at')
+					? (otp.get('created_at') as Date)
+							.toISOString()
+							.slice(0, 19)
+							.replace('T', ' ')
+					: null,
+				updated_at: otp.get('updated_at')
+					? (otp.get('updated_at') as Date)
+							.toISOString()
+							.slice(0, 19)
+							.replace('T', ' ')
+					: null,
 			}
 			return data
 		} catch (error) {
@@ -331,5 +348,51 @@ export class AuthService {
 			token,
 			user,
 		}
+	}
+
+	public static async refreshToken(
+		oldRefreshToken: string,
+	): Promise<{ accessToken: string; refreshToken: string }> {
+		// Verify the token
+		const decoded = await TokenService.verifyRefreshToken(oldRefreshToken)
+
+		const sub = decoded?.sub
+		if (!sub || (typeof sub !== 'string' && typeof sub !== 'number')) {
+			throw new Error('Invalid token payload')
+		}
+
+		const userId = Number(sub)
+		if (isNaN(userId)) {
+			throw new Error('Invalid user ID in token')
+		}
+
+		// Find user with matching remember_token
+		const user = await db.User.findOne({
+			where: { id: userId, remember_token: oldRefreshToken, deleted_at: null },
+		})
+		if (!user) throw new Error('Refresh token invalid or rotated')
+
+		// Convert to plain object to access fields
+		const userData = user.toJSON()
+
+		// 3. Generate new tokens
+		const newAccessToken = await TokenService.generateAccessToken({
+			id: userData.id!,
+		})
+		const newRefreshToken = await TokenService.generateRefreshToken({
+			id: userData.id!,
+		})
+
+		// 4. Rotate refresh token in DB
+		await db.User.update(
+			{ remember_token: newRefreshToken },
+			{ where: { id: userData.id } },
+		)
+		return { accessToken: newAccessToken, refreshToken: newRefreshToken }
+	}
+
+	public static async logout(userId: number): Promise<boolean> {
+		await db.User.update({ remember_token: null }, { where: { id: userId } })
+		return true
 	}
 }

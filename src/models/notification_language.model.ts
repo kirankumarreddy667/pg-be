@@ -11,8 +11,9 @@ export interface NotificationLanguageAttributes {
 	send_notification_date?: Date | null
 	status: number
 	days_before: number
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class NotificationLanguage
@@ -20,7 +21,11 @@ export class NotificationLanguage
 		NotificationLanguageAttributes,
 		Optional<
 			NotificationLanguageAttributes,
-			'id' | 'send_notification_date' | 'created_at' | 'updated_at'
+			| 'id'
+			| 'send_notification_date'
+			| 'created_at'
+			| 'updated_at'
+			| 'deleted_at'
 		>
 	>
 	implements NotificationLanguageAttributes
@@ -32,18 +37,19 @@ export class NotificationLanguage
 	public heading!: string
 	public animal_id!: number
 	public animal_number!: string
-	public send_notification_date!: Date | null
+	public send_notification_date?: Date | null
 	public status!: number
 	public days_before!: number
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof NotificationLanguage => {
 	NotificationLanguage.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -60,7 +66,7 @@ export default (sequelize: Sequelize): typeof NotificationLanguage => {
 				allowNull: false,
 			},
 			heading: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			animal_id: {
@@ -68,7 +74,7 @@ export default (sequelize: Sequelize): typeof NotificationLanguage => {
 				allowNull: false,
 			},
 			animal_number: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			send_notification_date: {
@@ -84,16 +90,6 @@ export default (sequelize: Sequelize): typeof NotificationLanguage => {
 				type: DataTypes.INTEGER,
 				allowNull: false,
 			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
 		},
 		{
 			sequelize,
@@ -101,6 +97,10 @@ export default (sequelize: Sequelize): typeof NotificationLanguage => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return NotificationLanguage

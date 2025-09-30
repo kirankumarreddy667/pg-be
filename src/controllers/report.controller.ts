@@ -23,7 +23,7 @@ export class ReportController {
 				end_date,
 			)
 			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
+				message: 'success',
 				data,
 			})
 		} catch (error) {
@@ -48,7 +48,7 @@ export class ReportController {
 					end_date,
 				)
 				return RESPONSE.SuccessResponse(res, 200, {
-					message: 'Success',
+					message: 'success',
 					data,
 				})
 			} catch (error) {
@@ -130,7 +130,7 @@ export class ReportController {
 						end_date,
 					)
 				return RESPONSE.SuccessResponse(res, 200, {
-					message: 'Success',
+					message: 'success',
 					data,
 				})
 			} catch (error) {
@@ -158,7 +158,7 @@ export class ReportController {
 				end_date,
 			)
 			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
+				message: 'success',
 				data,
 			})
 		} catch (error) {
@@ -194,34 +194,6 @@ export class ReportController {
 		}
 	}
 
-	public static readonly incomeAggregateAverage: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const { start_date, end_date } = req.params
-			const data = await ReportService.incomeAggregateAverage(
-				user.id,
-				start_date,
-				end_date,
-			)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
 	public static readonly incomeExpenseOnSalePurchaseAnimal: RequestHandler =
 		async (req: Request, res: Response, next: NextFunction) => {
 			try {
@@ -239,7 +211,7 @@ export class ReportController {
 					end_date,
 				)
 				return RESPONSE.SuccessResponse(res, 200, {
-					message: 'Success',
+					message: 'success',
 					data,
 				})
 			} catch (error) {
@@ -269,7 +241,7 @@ export class ReportController {
 				animal_number,
 			)
 			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
+				message: 'success',
 				data,
 			})
 		} catch (error) {
@@ -277,7 +249,7 @@ export class ReportController {
 		}
 	}
 
-	public static readonly animalHealthReport: RequestHandler = async (
+	public static readonly incomeAggregateAverage: RequestHandler = async (
 		req: Request,
 		res: Response,
 		next: NextFunction,
@@ -291,281 +263,13 @@ export class ReportController {
 				})
 			}
 			const { start_date, end_date } = req.params
-			const data = await ReportService.animalHealthReport(
+			const data = await ReportService.incomeAggregateAverage(
 				user.id,
 				start_date,
 				end_date,
 			)
 			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
-	public static readonly animalMilkProductionQuantityReport: RequestHandler =
-		async (req: Request, res: Response, next: NextFunction) => {
-			try {
-				const user = req.user as { id: number } | undefined
-				if (!user) {
-					return RESPONSE.FailureResponse(res, 401, {
-						message: 'Unauthorized',
-						data: [],
-					})
-				}
-				const { start_date, end_date } = req.params
-				const data = await ReportService.animalMilkProductionQuantityReport(
-					user.id,
-					start_date,
-					end_date,
-				)
-				return RESPONSE.SuccessResponse(res, 200, {
-					message: 'Success',
-					data,
-				})
-			} catch (error) {
-				next(error)
-			}
-		}
-
-	public static readonly animalMilkProductionQualityReport: RequestHandler =
-		async (req: Request, res: Response, next: NextFunction) => {
-			try {
-				const user = req.user as { id: number } | undefined
-				if (!user) {
-					return RESPONSE.FailureResponse(res, 401, {
-						message: 'Unauthorized',
-						data: [],
-					})
-				}
-				const { start_date, end_date } = req.params
-				const data = await ReportService.animalMilkProductionQualityReport(
-					user.id,
-					start_date,
-					end_date,
-				)
-				return RESPONSE.SuccessResponse(res, 200, {
-					message: 'Success',
-					data,
-				})
-			} catch (error) {
-				next(error)
-			}
-		}
-
-	public static readonly manureProductionReport: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const { start_date, end_date } = req.params
-			const data = await ReportService.manureProductionReport(
-				user.id,
-				start_date,
-				end_date,
-			)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
-	public static readonly profitLossReport: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const { start_date, end_date } = req.params
-			const data = await ReportService.profitLossReport(
-				user.id,
-				start_date,
-				end_date,
-			)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
-	public static readonly summaryReport: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const { start_date, end_date } = req.params
-			const data = await ReportService.summaryReport(
-				user.id,
-				start_date,
-				end_date,
-			)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
-	public static readonly farmInvestmentReport: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const { language_id } = req.params
-			const data = await ReportService.farmInvestmentReport(
-				user.id,
-				Number(language_id),
-			)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
-	public static readonly totalExpenseAggregateAverage: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const { start_date, end_date } = req.params
-			const data = await ReportService.totalExpenseAggregateAverage(
-				user.id,
-				start_date,
-				end_date,
-			)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
-	public static readonly healthReportDetails: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const { start_date, end_date } = req.params
-			const data = await ReportService.healthReportDetails(
-				user.id,
-				start_date,
-				end_date,
-			)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
-	public static readonly latestProfitLossReport: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const data = await ReportService.latestProfitLossReport(user.id)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
-				data,
-			})
-		} catch (error) {
-			next(error)
-		}
-	}
-
-	public static readonly animalMilkReportDetails: RequestHandler = async (
-		req: Request,
-		res: Response,
-		next: NextFunction,
-	) => {
-		try {
-			const user = req.user as { id: number } | undefined
-			if (!user) {
-				return RESPONSE.FailureResponse(res, 401, {
-					message: 'Unauthorized',
-					data: [],
-				})
-			}
-			const { start_date, end_date } = req.params
-			const data = await ReportService.animalMilkReportDetails(
-				user.id,
-				start_date,
-				end_date,
-			)
-			return RESPONSE.SuccessResponse(res, 200, {
-				message: 'Success',
+				message: 'success',
 				data,
 			})
 		} catch (error) {
@@ -587,7 +291,7 @@ export class ReportController {
 				})
 			}
 
-			const report = await ReportService.generatePdf(
+			await ReportService.generatePdf(
 				user.id,
 				req.body as {
 					report_type: string
@@ -600,7 +304,7 @@ export class ReportController {
 			)
 			return RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success',
-				data: report,
+				data: [],
 			})
 		} catch (error) {
 			next(error)

@@ -31,17 +31,13 @@ export class LanguageController {
 		next,
 	) => {
 		try {
-			const { name, language_code } = req.body as {
-				name: string
-				language_code: string
+			const { language } = req.body as {
+				language: { name: string; language_code: string }[]
 			}
-			const language = await LanguageService.createLanguage({
-				name,
-				language_code,
-			})
-			RESPONSE.SuccessResponse(res, 201, {
-				data: language,
-				message: 'Language created successfully',
+			await LanguageService.createLanguage(language)
+			RESPONSE.SuccessResponse(res, 200, {
+				data: [],
+				message: 'success',
 			})
 		} catch (error) {
 			next(error)
@@ -56,7 +52,7 @@ export class LanguageController {
 		try {
 			const { id } = req.params
 			const { name, language_code } = req.body as {
-				name?: string
+				name: string
 				language_code?: string
 			}
 			const updated = await LanguageService.updateLanguage(Number(id), {
@@ -68,8 +64,8 @@ export class LanguageController {
 				return
 			}
 			RESPONSE.SuccessResponse(res, 200, {
-				data: updated,
-				message: 'Language updated successfully',
+				data: [],
+				message: 'Success',
 			})
 		} catch (error) {
 			next(error)

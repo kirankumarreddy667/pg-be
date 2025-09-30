@@ -76,14 +76,31 @@ export class AdvertisementService {
 		}
 	}
 
-	static async findAll(): Promise<AdvertisementWithImages[]> {
+	static async findAll(
+		status: number | undefined,
+	): Promise<AdvertisementWithImages[]> {
 		//add a status filer for active ads
-		const ads = await Advertisement.findAll({
-			include: [{ model: AdvertisementImage, as: 'images' }],
-			order: [['created_at', 'DESC']],
-			where: {
+		let where = {}
+		if (status === 1 || status === 0) {
+			where = {
+				status,
 				deleted_at: null,
-			},
+			}
+		} else {
+			where = {
+				deleted_at: null,
+			}
+		}
+
+		const ads = await Advertisement.findAll({
+			include: [
+				{
+					model: AdvertisementImage,
+					as: 'images',
+					where: { deleted_at: null },
+				},
+			],
+			where,
 		})
 
 		return ads.map((ad) => {
@@ -115,10 +132,16 @@ export class AdvertisementService {
 	}
 
 	static async findById(id: number): Promise<AdvertisementWithImages | null> {
-		const ad = await Advertisement.findByPk(id, {
-			include: [{ model: AdvertisementImage, as: 'images' }],
+		const ad = await Advertisement.findOne({
+			where: { id, deleted_at: null },
+			include: [
+				{
+					model: AdvertisementImage,
+					as: 'images',
+					where: { deleted_at: null },
+				},
+			],
 		})
-
 		if (!ad) {
 			return null
 		}
@@ -169,17 +192,18 @@ export class AdvertisementService {
 				{ where: { id }, transaction: t },
 			)
 
-			// If photos provided, replace images
-			if (Array.isArray(data.photos) && data.photos.length > 0) {
-				// 1. Fetch all old images
-				const oldImages = await AdvertisementImage.findAll({
-					where: { advertisement_id: id },
-					transaction: t,
-				})
-				// 2. Delete files from disk
-				for (const img of oldImages) {
-					const filePath = path.join(AD_IMAGES_DIR, img.image)
-					const thumbPath = path.join(THUMB_DIR, img.image)
+			// 0. Fetch current images
+			const currentImages = await AdvertisementImage.findAll({
+				where: { advertisement_id: id, deleted_at: null },
+				transaction: t,
+			})
+
+			// 1. If no photos provided, delete all images
+			if (data.photos.length === 0) {
+				// Delete all files from disk
+				for (const img of currentImages) {
+					const filePath = path.join(AD_IMAGES_DIR, img.get('image'))
+					const thumbPath = path.join(THUMB_DIR, img.get('image'))
 					if (fs.existsSync(filePath)) {
 						fs.unlinkSync(filePath)
 					}
@@ -187,29 +211,95 @@ export class AdvertisementService {
 						fs.unlinkSync(thumbPath)
 					}
 				}
-				// 3. Hard delete old image records
+				// Delete all image records from DB
 				await AdvertisementImage.destroy({
 					where: { advertisement_id: id },
-					force: true,
 					transaction: t,
 				})
-				// 4. Save new images
-				await Promise.all(
-					data.photos.map(async (photo: string) => {
-						const fileName = await saveBase64Image(photo)
-						await AdvertisementImage.create(
-							{
-								advertisement_id: id,
-								image: fileName,
-							},
-							{ transaction: t },
-						)
-					}),
+			}
+
+			// If photos provided, handle mixed updates
+			if (Array.isArray(data.photos) && data.photos.length > 0) {
+				// 2. Separate URLs and base64 images from incoming data
+				const existingUrls: string[] = []
+				const newBase64Images: string[] = []
+
+				data.photos.forEach((photo: string) => {
+					if (photo.startsWith('data:image/')) {
+						// Base64 image - new upload
+						newBase64Images.push(photo)
+					} else {
+						// URL - existing image, extract filename
+						const filename = path.basename(new URL(photo).pathname)
+						existingUrls.push(filename)
+					}
+				})
+
+				// 3. Find images to delete (current images not in existingUrls)
+				const imagesToDelete = currentImages.filter(
+					(img) => !existingUrls.includes(img.get('image')),
 				)
+
+				// 4. Delete old files from disk
+				for (const img of imagesToDelete) {
+					const filePath = path.join(AD_IMAGES_DIR, img.get('image'))
+					const thumbPath = path.join(THUMB_DIR, img.get('image'))
+					if (fs.existsSync(filePath)) {
+						fs.unlinkSync(filePath)
+					}
+					if (fs.existsSync(thumbPath)) {
+						fs.unlinkSync(thumbPath)
+					}
+				}
+
+				// 5. Delete old image records from DB
+				if (imagesToDelete.length > 0) {
+					const imageIdsToDelete = imagesToDelete.map(
+						(img) => img?.get('id') || img.id,
+					)
+					await AdvertisementImage.destroy({
+						where: { id: imageIdsToDelete },
+						transaction: t,
+					})
+				}
+
+				// 6. Save new base64 images
+				if (newBase64Images.length > 0) {
+					await Promise.all(
+						newBase64Images.map(async (photo: string) => {
+							const fileName = await saveBase64Image(photo)
+							await AdvertisementImage.create(
+								{
+									advertisement_id: id,
+									image: fileName,
+								},
+								{ transaction: t },
+							)
+						}),
+					)
+				}
 			}
 
 			await t.commit()
 			return { message: 'Advertisement updated successfully' }
+		} catch (error) {
+			await t.rollback()
+			throw error
+		}
+	}
+
+	static async status(
+		id: number,
+		status: number,
+	): Promise<{ message: string }> {
+		const t = await sequelize.transaction()
+		try {
+			await db.Advertisement.update(
+				{ status },
+				{ where: { id }, transaction: t },
+			)
+			await t.commit()
+			return { message: 'Status updated successfully' }
 		} catch (error) {
 			await t.rollback()
 			throw error

@@ -11,19 +11,19 @@ export class EnquireUsService {
 	}): Promise<EnquireUs> {
 		const enquiry = await EnquireUs.create({
 			first_name: data.first_name,
-			last_name: data.last_name ?? '',
+			last_name: data.last_name ?? null,
 			email: data.email,
 			phone_number: data.phone,
 			query: data.query,
 		})
 
 		addToEmailQueue({
-			to: 'saniya8537@gmail.com',
+			to: 'powergotha@gmail.com',
 			subject: `Enquiry from ${data.first_name}`,
 			template: 'enquiryNotification',
 			data: {
 				first_name: data.first_name,
-				last_name: data.last_name ?? '',
+				last_name: data.last_name ?? 'null',
 				email: data.email,
 				phone: data.phone,
 				query: data.query,
@@ -35,7 +35,8 @@ export class EnquireUsService {
 
 	static async listAll(): Promise<EnquireUs[]> {
 		return EnquireUs.findAll({
-			order: [['created_at', 'DESC']],
+			where: { deleted_at: null },
+			order: [['created_at', 'ASC']],
 		})
 	}
 }

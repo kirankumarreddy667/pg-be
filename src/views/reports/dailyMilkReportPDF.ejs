@@ -15,14 +15,13 @@ table td{
 }
 
 </style>
-<center><h1>Daily Milk Report</h1></center> <br>
 </head>
 
 <body>
 <div class="container">
-	@if(isset($milkReportPDF['animal_number']) && !empty($milkReportPDF['animal_number']))
-	<h4 style="margin-bottom: 20px"><b><span style="text-transform: uppercase;">Details of Selected Animal</span> {{$milkReportPDF['animal_number']}}</b></h4>
-	@endif
+	<% if(milkReportPDF.animal_number && milkReportPDF.animal_number !== '') { %>
+	<h4 style="margin-bottom: 20px"><b><span style="text-transform: uppercase;">Details of Selected Animal</span> <%= milkReportPDF.animal_number %></b></h4>
+	<% } %>
 	<h4>Cow Daily Milk Data</h4>
 	<table class="table table-bordered">
 		<thead>
@@ -36,17 +35,17 @@ table td{
 			</tr>
 		</thead>
 		<tbody>
-			 @foreach ($milkReportPDF['cow_daily_milk'] as $value)
+			<% milkReportPDF.cow_daily_milk.forEach(function(value) { %>
 			<tr>
-				<td>{{ $value['record_date'] }}</td>
-				{{-- <td>{{ $value['animal_id'] }}</td> --}}
-				<td>{{ $value['animal_number'] }}</td>
-				<td>{{ $value['morning_milk_in_litres'] }}</td>
-				<td>{{ $value['evening_milk_in_litres'] }}</td>
-				<td>{{ $value['total_milk_in_litres'] }}</td>
+				<td><%= value.record_date %></td>
+				<!-- <td><%= value.animal_id %></td> -->
+				<td><%= value.animal_number %></td>
+				<td><%= value.morning_milk_in_litres %></td>
+				<td><%= value.evening_milk_in_litres %></td>
+				<td><%= value.total_milk_in_litres %></td>
 
 			</tr>
-			@endforeach
+			<% }); %>
 		</tbody>
 	</table>
 
@@ -63,17 +62,17 @@ table td{
 			</tr>
 		</thead>
 		<tbody>
-		    @foreach ($milkReportPDF['buffalo_daily_milk'] as $value)
+		    <% milkReportPDF.buffalo_daily_milk.forEach(function(value) { %>
 			<tr>
-				<td>{{ $value['record_date'] }}</td>
-				{{-- <td>{{ $value['animal_id'] }}</td> --}}
-				<td>{{ $value['animal_number'] }}</td>
-				<td>{{ $value['morning_milk_in_litres'] }}</td>
-				<td>{{ $value['evening_milk_in_litres'] }}</td>
-				<td>{{ $value['total_milk_in_litres'] }}</td>
+				<td><%= value.record_date %></td>
+				<!-- <td><%= value.animal_id %></td> -->
+				<td><%= value.animal_number %></td>
+				<td><%= value.morning_milk_in_litres %></td>
+				<td><%= value.evening_milk_in_litres %></td>
+				<td><%= value.total_milk_in_litres %></td>
 
 			</tr>
-			@endforeach
+			<% }); %>
 		</tbody>
 	</table>
 
@@ -91,12 +90,12 @@ table td{
 		</thead>
 		<tbody>  
 			<tr>
-				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['record_period'])) ? $milkReportPDF['relevent_total']['record_period'] : "" }}</td>
-				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_cow_morning_milk'])) ? $milkReportPDF['relevent_total']['total_cow_morning_milk'] : "" }}</td>
-				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_cow_evening_milk'])) ? $milkReportPDF['relevent_total']['total_cow_evening_milk'] : ""}}</td>
-				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_buffalo_morning_milk'])) ? $milkReportPDF['relevent_total']['total_buffalo_morning_milk'] : "" }}</td>
-				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_buffalo_evening_milk'])) ? $milkReportPDF['relevent_total']['total_buffalo_evening_milk'] : "" }}</td>
-				<td>{{ (isset($milkReportPDF['relevent_total']) && isset($milkReportPDF['relevent_total']['total_milk'])) ? $milkReportPDF['relevent_total']['total_milk'] : "" }}</td>
+				<td><%= (milkReportPDF.relevent_total && milkReportPDF.relevent_total.record_period) ? milkReportPDF.relevent_total.record_period : "" %></td>
+				<td><%= (milkReportPDF.relevent_total && milkReportPDF.relevent_total.total_cow_morning_milk) ? milkReportPDF.relevent_total.total_cow_morning_milk : "" %></td>
+				<td><%= (milkReportPDF.relevent_total && milkReportPDF.relevent_total.total_cow_evening_milk) ? milkReportPDF.relevent_total.total_cow_evening_milk : "" %></td>
+				<td><%= (milkReportPDF.relevent_total && milkReportPDF.relevent_total.total_buffalo_morning_milk) ? milkReportPDF.relevent_total.total_buffalo_morning_milk : "" %></td>
+				<td><%= (milkReportPDF.relevent_total && milkReportPDF.relevent_total.total_buffalo_evening_milk) ? milkReportPDF.relevent_total.total_buffalo_evening_milk : "" %></td>
+				<td><%= (milkReportPDF.relevent_total && milkReportPDF.relevent_total.total_milk) ? milkReportPDF.relevent_total.total_milk : "" %></td>
 			</tr>
 		</tbody>
 	</table>
@@ -114,16 +113,17 @@ table td{
 			</tr>
 		</thead>
 		<tbody> 
-		 @foreach($milkReportPDF['daywise_sub_total'] as $key => $value)
+		 <% Object.keys(milkReportPDF.daywise_sub_total).forEach(function(key) { 
+		    const value = milkReportPDF.daywise_sub_total[key]; %>
 			<tr>
-				<td>{{$key}}</td>
-				<td>{{ (isset($value['cow_morning_milk'])) ? $value['cow_morning_milk'] : 0 }}</td>
-				<td>{{ (isset($value['cow_evening_milk'])) ? $value['cow_evening_milk'] : 0 }}</td>
-				<td>{{ (isset($value['buffalo_morning_milk'])) ? $value['buffalo_morning_milk'] : 0 }}</td>
-				<td>{{ (isset($value['buffalo_evening_milk'])) ? $value['buffalo_evening_milk'] : 0 }}</td>
-				<td>{{ ((isset($value['cow_total'])) ? $value['cow_total'] : 0) + ((isset($value['buffalo_total'])) ? $value['buffalo_total'] : 0) }}</td>
+				<td><%= key %></td>
+				<td><%= value.cow_morning_milk || 0 %></td>
+				<td><%= value.cow_evening_milk || 0 %></td>
+				<td><%= value.buffalo_morning_milk || 0 %></td>
+				<td><%= value.buffalo_evening_milk || 0 %></td>
+				<td><%= (value.cow_total || 0) + (value.buffalo_total || 0) %></td>
 			</tr>
-			@endforeach
+		<% }); %>
 		</tbody>
 	</table>
 
@@ -138,14 +138,15 @@ table td{
 			</tr>
 		</thead>
 		<tbody> 
-		 @foreach($milkReportPDF['daywise_sub_total'] as $key => $value)
+		 <% Object.keys(milkReportPDF.daywise_sub_total).forEach(function(key) { 
+		    const value = milkReportPDF.daywise_sub_total[key]; %>
 			<tr>
-				<td>{{$key}}</td>
-				<td>{{ (isset($value['cow_total'])) ? $value['cow_total'] : 0 }}</td>
-				<td>{{ (isset($value['buffalo_total'])) ? $value['buffalo_total'] : 0 }}</td>
-				<td>{{ ((isset($value['cow_total'])) ? $value['cow_total'] : 0) + ((isset($value['buffalo_total'])) ? $value['buffalo_total'] : 0) }}</td>
+				<td><%= key %></td>
+				<td><%= value.cow_total || 0 %></td>
+				<td><%= value.buffalo_total || 0 %></td>
+				<td><%= (value.cow_total || 0) + (value.buffalo_total || 0) %></td>
 			</tr>
-			@endforeach
+		<% }); %>
 		</tbody>
 	</table>
 </div>

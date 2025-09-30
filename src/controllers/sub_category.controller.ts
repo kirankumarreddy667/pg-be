@@ -16,7 +16,7 @@ export class SubcategoryController {
 				})
 			}
 			await SubcategoryService.create({ name })
-			return RESPONSE.SuccessResponse(res, 201, {
+			return RESPONSE.SuccessResponse(res, 200, {
 				data: [],
 				message: 'Success',
 			})
@@ -41,14 +41,8 @@ export class SubcategoryController {
 		try {
 			const { id } = req.params
 			const subcategory = await SubcategoryService.getById(Number(id))
-			if (!subcategory) {
-				return RESPONSE.FailureResponse(res, 404, {
-					message: 'Not found.',
-					data: [],
-				})
-			}
 			return RESPONSE.SuccessResponse(res, 200, {
-				data: subcategory,
+				data: subcategory || null,
 				message: 'Success',
 			})
 		} catch (error) {

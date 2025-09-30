@@ -17,15 +17,10 @@ export class DailyRecordQuestionAnswerController {
 				})
 			}
 			const { answers, date } = req.body as {
-				answers: { question_id: number; answer: string }[]
+				answers: { question_id: number; answer: { name: string }[] }[]
 				date: string
 			}
-			if (!answers || !date) {
-				return RESPONSE.FailureResponse(res, 422, {
-					message: 'Missing required fields',
-					data: [],
-				})
-			}
+
 			const result = await DailyRecordQuestionAnswerService.createAnswers({
 				answers,
 				date,
@@ -57,15 +52,11 @@ export class DailyRecordQuestionAnswerController {
 				answers: { daily_record_answer_id: number; answer: string }[]
 				date: string
 			}
-			if (!answers || !date) {
-				return RESPONSE.FailureResponse(res, 422, {
-					message: 'Missing required fields',
-					data: [],
-				})
-			}
+
 			const result = await DailyRecordQuestionAnswerService.updateAnswers(
 				user.id,
 				answers,
+				date,
 			)
 			return RESPONSE.SuccessResponse(res, 200, {
 				message: result.message,
@@ -86,22 +77,15 @@ export class DailyRecordQuestionAnswerController {
 						data: [],
 					})
 				}
-				const language_id = Number(req.params.language_id)
-				const date = req.params.date
-				if (!language_id || !date) {
-					return RESPONSE.FailureResponse(res, 422, {
-						message: 'Missing required params',
-						data: [],
-					})
-				}
+				const { language_id, date } = req.params
 				const data =
 					await DailyRecordQuestionAnswerService.getDailyRecordQuestionsWithAnswers(
 						user.id,
-						language_id,
+						Number(language_id),
 						date,
 					)
 				return RESPONSE.SuccessResponse(res, 200, {
-					message: 'Success',
+					message: 'success',
 					data,
 				})
 			} catch (error) {

@@ -3,7 +3,6 @@ import { SwaggerOptions } from 'swagger-ui-express'
 const swagOptions: SwaggerOptions = {
 	definition: {
 		openapi: '3.0.0',
-		schemes: ['http'],
 		info: {
 			title: 'POWERGOTHA API Documentation',
 			version: '1.0.0',

@@ -1,4 +1,4 @@
-import { Model, DataTypes, Sequelize } from 'sequelize'
+import { Model, DataTypes, Sequelize, Optional } from 'sequelize'
 import type { Category } from './category.model'
 import type { Subcategory } from './sub_category.model'
 import type { ValidationRule } from './validation_rule.model'
@@ -13,38 +13,52 @@ export interface CommonQuestionsAttributes {
 	category_id: number
 	sub_category_id?: number | null
 	question: string
-	validation_rule?: string | null
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
 	form_type_id?: number | null
-	validation_rule_id?: number | null
-	date?: boolean
+	validation_rule_id: number
+	date: boolean
 	form_type_value?: string | null
-	question_tag?: number | null
+	question_tag: number
 	question_unit?: number | null
 	hint?: string | null
-	sequence_number?: number | null
+	sequence_number: number
+	deleted_at?: Date | null
 }
 
 export class CommonQuestions
-	extends Model<CommonQuestionsAttributes>
+	extends Model<
+		CommonQuestionsAttributes,
+		Optional<
+			CommonQuestionsAttributes,
+			| 'id'
+			| 'question_unit'
+			| 'form_type_id'
+			| 'form_type_value'
+			| 'hint'
+			| 'created_at'
+			| 'updated_at'
+			| 'sub_category_id'
+			| 'deleted_at'
+		>
+	>
 	implements CommonQuestionsAttributes
 {
 	public id!: number
 	public category_id!: number
-	public sub_category_id!: number | null
+	public sub_category_id?: number | null
 	public question!: string
-	public validation_rule!: string | null
-	public created_at!: Date
-	public updated_at!: Date
-	public form_type_id!: number | null
-	public validation_rule_id!: number | null
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
+	public form_type_id?: number | null
+	public validation_rule_id!: number
 	public date!: boolean
-	public form_type_value!: string | null
-	public question_tag!: number | null
-	public question_unit!: number | null
-	public hint!: string | null
-	public sequence_number!: number | null
+	public form_type_value?: string | null
+	public question_tag!: number
+	public question_unit?: number | null
+	public hint?: string | null
+	public sequence_number!: number
 	public Category?: Category
 	public Subcategory?: Subcategory
 	public ValidationRule?: ValidationRule
@@ -59,7 +73,7 @@ export default (sequelize: Sequelize): typeof CommonQuestions => {
 	CommonQuestions.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -75,40 +89,22 @@ export default (sequelize: Sequelize): typeof CommonQuestions => {
 				type: DataTypes.TEXT,
 				allowNull: false,
 			},
-			validation_rule: {
-				type: DataTypes.STRING,
-				allowNull: true,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			form_type_id: {
-				type: DataTypes.INTEGER,
-				allowNull: true,
-			},
 			validation_rule_id: {
 				type: DataTypes.INTEGER,
-				allowNull: true,
+				allowNull: false,
 			},
 			date: {
-				type: DataTypes.BOOLEAN,
+				type: DataTypes.TINYINT,
 				allowNull: true,
-				defaultValue: false,
+				defaultValue: 0,
 			},
 			form_type_value: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			question_tag: {
 				type: DataTypes.INTEGER,
-				allowNull: true,
+				allowNull: false,
 			},
 			question_unit: {
 				type: DataTypes.INTEGER,
@@ -120,7 +116,7 @@ export default (sequelize: Sequelize): typeof CommonQuestions => {
 			},
 			sequence_number: {
 				type: DataTypes.INTEGER,
-				allowNull: true,
+				allowNull: false,
 			},
 		},
 		{
@@ -129,6 +125,10 @@ export default (sequelize: Sequelize): typeof CommonQuestions => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
+			paranoid: true,
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return CommonQuestions

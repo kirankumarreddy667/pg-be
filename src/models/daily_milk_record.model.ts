@@ -8,14 +8,18 @@ export interface DailyMilkRecordAttributes {
 	record_date: Date
 	morning_milk_in_litres: number
 	evening_milk_in_litres: number
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class DailyMilkRecord
 	extends Model<
 		DailyMilkRecordAttributes,
-		Optional<DailyMilkRecordAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			DailyMilkRecordAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
 	>
 	implements DailyMilkRecordAttributes
 {
@@ -26,20 +30,16 @@ export class DailyMilkRecord
 	public record_date!: Date
 	public morning_milk_in_litres!: number
 	public evening_milk_in_litres!: number
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
-
-	// static associate(models: any) {
-	//   DailyMilkRecord.belongsTo(models.User, { foreignKey: 'user_id' })
-	//   DailyMilkRecord.belongsTo(models.Animal, { foreignKey: 'animal_id' })
-	// }
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof DailyMilkRecord => {
 	DailyMilkRecord.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -52,7 +52,7 @@ export default (sequelize: Sequelize): typeof DailyMilkRecord => {
 				allowNull: false,
 			},
 			animal_number: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			record_date: {
@@ -60,22 +60,12 @@ export default (sequelize: Sequelize): typeof DailyMilkRecord => {
 				allowNull: false,
 			},
 			morning_milk_in_litres: {
-				type: DataTypes.DECIMAL(8, 2),
+				type: DataTypes.DOUBLE(10, 2),
 				allowNull: false,
 			},
 			evening_milk_in_litres: {
-				type: DataTypes.DECIMAL(8, 2),
+				type: DataTypes.DOUBLE(10, 2),
 				allowNull: false,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
 			},
 		},
 		{
@@ -84,7 +74,10 @@ export default (sequelize: Sequelize): typeof DailyMilkRecord => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
-			indexes: [{ fields: ['animal_id', 'record_date'] }],
+			deletedAt: 'deleted_at',
+			paranoid: true,
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return DailyMilkRecord

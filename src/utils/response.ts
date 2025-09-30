@@ -17,6 +17,16 @@ interface ResponseData<T = unknown> {
 	message: string
 	data?: T
 	status?: number
+	pagination?:
+		| {
+				currentPage: number
+				totalPages: number
+				totalItems: number
+				itemsPerPage: number
+				hasNextPage: boolean
+				hasPrevPage: boolean
+		  }
+		| undefined
 }
 
 const RESPONSE = {
@@ -26,9 +36,10 @@ const RESPONSE = {
 		data: ResponseData<T>,
 	): void => {
 		const response: SuccessResponse<T> & { status: number } = {
-			message: data.message,
 			data: data.data,
+			message: data.message,
 			status,
+			pagination: data.pagination || undefined,
 		}
 		res.status(status).json(response)
 	},

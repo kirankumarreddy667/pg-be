@@ -87,10 +87,12 @@ export const resetPassword = Joi.object().keys({
 export const businessLoginSchema = Joi.object({
 	phone_number: Joi.string().pattern(/^\d+$/).required().messages({
 		'any.required': 'The phone number field is required.',
+		'string.empty': 'The phone number field is required.',
 		'string.pattern.base': 'Phone number must contain only digits',
 	}),
 	password: Joi.string().min(6).max(16).required().messages({
 		'any.required': 'The password field is required.',
+		'string.empty': 'The password field is required.',
 		'string.min': 'Password must be at least 6 characters long',
 		'string.max': 'Password must not exceed 16 characters',
 	}),
@@ -98,10 +100,11 @@ export const businessLoginSchema = Joi.object({
 
 export const businessForgotPasswordSchema = Joi.object({
 	email: Joi.string().email().required().messages({
-		'any.required': 'Email is required',
-		'string.email': 'Email must be a valid email address',
+		'any.required': 'The email field is required',
+		'string.empty': 'The email field is required',
+		'string.email': 'The email must be a valid email address',
 	}),
-})
+}).unknown(false)
 
 export const changePasswordSchema = Joi.object({
 	old_password: Joi.string().required().messages({

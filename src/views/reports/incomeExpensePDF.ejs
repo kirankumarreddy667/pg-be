@@ -13,9 +13,7 @@ table td{
 	text-align: center;
 	padding:5px;
 }
-
 </style>
-<center><h1>Expense/Income Report</h1></center> <br>
 </head>
 
 <body>
@@ -36,33 +34,32 @@ table td{
 			</tr>
 		</thead>
 		<tbody>
-			@if(isset($incomeExpense['expenseData']))
-			  @foreach ($incomeExpense['expenseData'] as $value)
-				<tr>
-					<td>{{ $value['Date'] }}</td>
-					<td>{{ $value['Expense'] }}</td>
-					<td>{{ $value['Income'] }}</td>
-					<td>{{ $value['Profit'] }}</td>
-					<td>{{ $value['GreenFeed'] }}</td>
-					<td>{{ $value['DryFeed'] }}</td>
-					<td>{{ $value['CattleFeed'] }}</td>
-					<td>{{ $value['Supplement'] }}</td>
-					<td>{{ $value['OtherExpense'] }}</td>
-
-				</tr>
-			  @endforeach
-			@endif
+			<% if (incomeExpense && incomeExpense.expenseData) { %>
+				<% incomeExpense.expenseData.forEach(function(value) { %>
+					<tr>
+						<td><%= value.Date %></td>
+						<td><%= value.Expense %></td>
+						<td><%= value.Income %></td>
+						<td><%= value.Profit %></td>
+						<td><%= value.GreenFeed %></td>
+						<td><%= value.DryFeed %></td>
+						<td><%= value.CattleFeed %></td>
+						<td><%= value.Supplement %></td>
+						<td><%= value.OtherExpense %></td>
+					</tr>
+				<% }); %>
+			<% } %>
 
 			<tr style="margin-top: 20px">
 				<th>Totals:</th>
-				<td>{{ (isset($incomeExpense['totalExpenseData']['totalExpense']))? $incomeExpense['totalExpenseData']['totalExpense'] : '' }}</td>
-				<td>{{ (isset($incomeExpense['totalExpenseData']['totalIncome']))? $incomeExpense['totalExpenseData']['totalIncome'] : '' }}</td>
-				<td>{{ (isset($incomeExpense['totalExpenseData']['totalProfit']))? $incomeExpense['totalExpenseData']['totalProfit'] : '' }}</td>
-				<td>{{ (isset($incomeExpense['totalExpenseData']['totalGreenFeed']))? $incomeExpense['totalExpenseData']['totalGreenFeed'] : '' }}</td>
-				<td>{{ (isset($incomeExpense['totalExpenseData']['totalDryFeed']))? $incomeExpense['totalExpenseData']['totalDryFeed'] : '' }}</td>
-				<td>{{ (isset($incomeExpense['totalExpenseData']['totalCattleFeed']))? $incomeExpense['totalExpenseData']['totalCattleFeed'] : '' }}</td>
-				<td>{{ (isset($incomeExpense['totalExpenseData']['totalSupplement']))? $incomeExpense['totalExpenseData']['totalSupplement'] : '' }}</td>
-				<td>{{ (isset($incomeExpense['totalExpenseData']['totalOtherExpense']))? $incomeExpense['totalExpenseData']['totalOtherExpense'] : '' }}</td>
+				<td><%= (incomeExpense && incomeExpense.totalExpenseData && incomeExpense.totalExpenseData.totalExpense) ? incomeExpense.totalExpenseData.totalExpense : '' %></td>
+				<td><%= (incomeExpense && incomeExpense.totalExpenseData && incomeExpense.totalExpenseData.totalIncome) ? incomeExpense.totalExpenseData.totalIncome : '' %></td>
+				<td><%= (incomeExpense && incomeExpense.totalExpenseData && incomeExpense.totalExpenseData.totalProfit) ? incomeExpense.totalExpenseData.totalProfit : '' %></td>
+				<td><%= (incomeExpense && incomeExpense.totalExpenseData && incomeExpense.totalExpenseData.totalGreenFeed) ? incomeExpense.totalExpenseData.totalGreenFeed : '' %></td>
+				<td><%= (incomeExpense && incomeExpense.totalExpenseData && incomeExpense.totalExpenseData.totalDryFeed) ? incomeExpense.totalExpenseData.totalDryFeed : '' %></td>
+				<td><%= (incomeExpense && incomeExpense.totalExpenseData && incomeExpense.totalExpenseData.totalCattleFeed) ? incomeExpense.totalExpenseData.totalCattleFeed : '' %></td>
+				<td><%= (incomeExpense && incomeExpense.totalExpenseData && incomeExpense.totalExpenseData.totalSupplement) ? incomeExpense.totalExpenseData.totalSupplement : '' %></td>
+				<td><%= (incomeExpense && incomeExpense.totalExpenseData && incomeExpense.totalExpenseData.totalOtherExpense) ? incomeExpense.totalExpenseData.totalOtherExpense : '' %></td>
 			</tr>
 
 		</tbody>

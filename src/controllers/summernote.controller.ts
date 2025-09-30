@@ -7,10 +7,9 @@ export class SummernoteController {
 		try {
 			const { summernoteInput } = req.body as { summernoteInput: string }
 			const summernote = await SummernoteService.create(summernoteInput)
-			RESPONSE.SuccessResponse(res, 201, {
-				message: 'Article created',
-				data: summernote,
-			})
+			const plainSummernote = summernote.toJSON()
+
+			return res.render('summernote_display', { summernote: plainSummernote })
 		} catch (error) {
 			next(error)
 		}

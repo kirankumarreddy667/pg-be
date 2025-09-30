@@ -22,7 +22,7 @@ export class CommonQuestionController {
 					}>
 				},
 			)
-			RESPONSE.SuccessResponse(res, 201, result)
+			RESPONSE.SuccessResponse(res, 200, result)
 		} catch (error) {
 			next(error)
 		}
@@ -41,8 +41,8 @@ export class CommonQuestionController {
 					validation_rule_id: number
 					date: boolean
 					form_type_value?: string | null
-					question_tag: number
-					question_unit: number
+					question_tag_id: number
+					question_unit_id: number
 					hint?: string | null
 				},
 			)
@@ -77,9 +77,9 @@ export class CommonQuestionController {
 			const id = Number(req.params.id)
 			const data = await CommonQuestionService.findById(id)
 			if (!data) {
-				return RESPONSE.FailureResponse(res, 404, {
-					message: 'Not found',
-					data: [],
+				return RESPONSE.SuccessResponse(res, 200, {
+					message: 'Success',
+					data: null,
 				})
 			}
 			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
@@ -113,7 +113,7 @@ export class CommonQuestionController {
 				},
 			)
 			if (result.success) {
-				RESPONSE.SuccessResponse(res, 201, {
+				RESPONSE.SuccessResponse(res, 200, {
 					message: result.message,
 					data: result.data,
 				})
@@ -145,7 +145,17 @@ export class CommonQuestionController {
 					question_id: number
 				},
 			)
-			RESPONSE.SuccessResponse(res, 200, result)
+			if (result.success) {
+				RESPONSE.SuccessResponse(res, 200, {
+					message: result.message,
+					data: result.data,
+				})
+			} else {
+				RESPONSE.FailureResponse(res, 400, {
+					message: result.message,
+					data: result.data,
+				})
+			}
 		} catch (error) {
 			next(error)
 		}

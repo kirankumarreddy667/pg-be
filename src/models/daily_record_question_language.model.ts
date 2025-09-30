@@ -5,10 +5,11 @@ export interface DailyRecordQuestionLanguageAttributes {
 	daily_record_question_id: number
 	language_id: number
 	question: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
 	form_type_value?: string | null
 	hint?: string | null
+	deleted_at?: Date | null
 }
 
 export class DailyRecordQuestionLanguage
@@ -16,7 +17,12 @@ export class DailyRecordQuestionLanguage
 		DailyRecordQuestionLanguageAttributes,
 		Optional<
 			DailyRecordQuestionLanguageAttributes,
-			'id' | 'created_at' | 'updated_at' | 'form_type_value' | 'hint'
+			| 'id'
+			| 'created_at'
+			| 'updated_at'
+			| 'form_type_value'
+			| 'hint'
+			| 'deleted_at'
 		>
 	>
 	implements DailyRecordQuestionLanguageAttributes
@@ -25,17 +31,18 @@ export class DailyRecordQuestionLanguage
 	public daily_record_question_id!: number
 	public language_id!: number
 	public question!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
 	public form_type_value!: string | null
 	public hint!: string | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof DailyRecordQuestionLanguage => {
 	DailyRecordQuestionLanguage.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -52,22 +59,12 @@ export default (sequelize: Sequelize): typeof DailyRecordQuestionLanguage => {
 				allowNull: false,
 			},
 			form_type_value: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			hint: {
 				type: DataTypes.TEXT,
 				allowNull: true,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
 			},
 		},
 		{
@@ -76,6 +73,10 @@ export default (sequelize: Sequelize): typeof DailyRecordQuestionLanguage => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
+			paranoid: true,
 		},
 	)
 	return DailyRecordQuestionLanguage

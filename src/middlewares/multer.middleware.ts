@@ -1,9 +1,10 @@
 import multer from 'multer'
 import path from 'path'
+import crypto from 'crypto'
 
 const storage = multer.diskStorage({
 	destination: function (_req, _file, cb) {
-		cb(null, path.join(process.cwd(), 'uploads'))
+		cb(null, path.join(process.cwd(), 'public', 'CSVFile'))
 	},
 	filename: function (_req, file, cb) {
 		cb(null, `${Date.now()}-${file.originalname}`)
@@ -25,14 +26,17 @@ export const uploadCSV = multer({
 	},
 })
 
-const MAX_IMAGE_SIZE = 3 * 1024 * 1024 // 3 MB
+const MAX_IMAGE_SIZE = 3 * 1024 * 1024
 export const uploadAnimalImage = multer({
 	storage: multer.diskStorage({
 		destination: function (_req, _file, cb) {
 			cb(null, path.join(process.cwd(), 'public', 'profile_img'))
 		},
 		filename: function (_req, file, cb) {
-			cb(null, `${Date.now()}-${file.originalname}`)
+			// Generate random string like PHP's str_random(50)
+			const randomString = crypto.randomBytes(25).toString('hex') // 50 chars
+			const extension = path.extname(file.originalname).toLowerCase()
+			cb(null, `${randomString}${extension}`)
 		},
 	}),
 	limits: {

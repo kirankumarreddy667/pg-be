@@ -2,6 +2,7 @@ import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { AnimalService } from '@/services/animal.service'
 import type { User } from '@/types/index'
+import db from '@/config/database'
 
 export class AnimalController {
 	public static readonly addAnimal: RequestHandler = async (
@@ -9,18 +10,22 @@ export class AnimalController {
 		res,
 		next,
 	): Promise<void> => {
+		const transaction = await db.sequelize.transaction()
 		try {
 			await AnimalService.create(
 				req.body as {
 					name: string
 					language_id: number
 				},
+				transaction,
 			)
-			RESPONSE.SuccessResponse(res, 201, {
+			await transaction.commit()
+			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Animal added successfully',
 				data: [],
 			})
 		} catch (error) {
+			await transaction.rollback()
 			next(error)
 		}
 	}
@@ -32,6 +37,12 @@ export class AnimalController {
 	): Promise<void> => {
 		try {
 			const id = Number(req.params.id)
+			const animal = await AnimalService.findById(id)
+			if (!animal)
+				return RESPONSE.FailureResponse(res, 404, {
+					message: 'Not found',
+					data: [],
+				})
 			await AnimalService.update(
 				id,
 				req.body as {
@@ -53,21 +64,25 @@ export class AnimalController {
 		res,
 		next,
 	): Promise<void> => {
+		const transaction = await db.sequelize.transaction()
 		try {
 			const id = Number(req.params.id)
-			const deleted = await AnimalService.delete(id)
+			const deleted = await AnimalService.delete(id, transaction)
 			if (deleted) {
+				await transaction.commit()
 				RESPONSE.SuccessResponse(res, 200, {
 					message: 'Animal deleted successfully',
 					data: [],
 				})
 			} else {
+				await transaction.rollback()
 				RESPONSE.FailureResponse(res, 400, {
 					message: 'Something went wrong. Please try again',
 					data: [],
 				})
 			}
 		} catch (error) {
+			await transaction.rollback()
 			next(error)
 		}
 	}
@@ -98,7 +113,7 @@ export class AnimalController {
 			const result = await AnimalService.addTypeOfAnAnimal(
 				req.body as { animal_id: number; type_id: number },
 			)
-			RESPONSE.SuccessResponse(res, 201, { message: result.message, data: [] })
+			RESPONSE.SuccessResponse(res, 200, { message: result.message, data: [] })
 		} catch (error) {
 			next(error)
 		}
@@ -128,7 +143,10 @@ export class AnimalController {
 	): Promise<void> => {
 		try {
 			const result = await AnimalService.getAllAnimalsWithTheirTypes()
-			res.status(200).json(result)
+			RESPONSE.SuccessResponse(res, 200, {
+				message: result.message,
+				data: result.data,
+			})
 		} catch (error) {
 			next(error)
 		}
@@ -141,13 +159,12 @@ export class AnimalController {
 	): Promise<void> => {
 		try {
 			const id = Number(req.params.animal_type_id)
-			const animalType = await AnimalService.findAnimalTypeById(id)
-			if (!animalType)
-				return RESPONSE.FailureResponse(res, 404, {
-					message: 'Animal type not found',
+			const result = await AnimalService.deleteAnimalType(id)
+			if (!result.success)
+				return RESPONSE.FailureResponse(res, 400, {
+					message: result.message,
 					data: [],
 				})
-			const result = await AnimalService.deleteAnimalType(id)
 			RESPONSE.SuccessResponse(res, 200, {
 				message: result.message,
 				data: [],
@@ -183,7 +200,7 @@ export class AnimalController {
 			const user = req.user as User
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -210,7 +227,7 @@ export class AnimalController {
 			const user = req.user as User
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -219,12 +236,17 @@ export class AnimalController {
 				animal_number: string
 				answers: { question_id: number; answer: string }[]
 			}
-			await AnimalService.deleteUserAnimal(
+			const result = await AnimalService.deleteUserAnimal(
 				user?.id,
 				animal_id,
 				animal_number,
 				answers,
 			)
+			if (!result)
+				return RESPONSE.FailureResponse(res, 400, {
+					message: 'Something went wrong',
+					data: [],
+				})
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success',
 				data: [],
@@ -234,7 +256,7 @@ export class AnimalController {
 		}
 	}
 
-	public static readonly farmAnimalCount: RequestHandler = async (
+	public static readonly userAnimalCount: RequestHandler = async (
 		req,
 		res,
 		next,
@@ -243,11 +265,11 @@ export class AnimalController {
 			const user = req.user as User
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
-			const result = await AnimalService.farmAnimalCount(user.id)
+			const result = await AnimalService.userAnimalCount(user.id)
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success',
 				data: result,
@@ -266,7 +288,7 @@ export class AnimalController {
 			const user = req.user as User
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -287,7 +309,7 @@ export class AnimalController {
 			const user = req.user as User
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -310,7 +332,7 @@ export class AnimalController {
 					question_id: number[]
 				},
 			)
-			RESPONSE.SuccessResponse(res, 201, { message: result.message, data: [] })
+			RESPONSE.SuccessResponse(res, 200, { message: result.message, data: [] })
 		} catch (error) {
 			next(error)
 		}
@@ -324,6 +346,11 @@ export class AnimalController {
 		try {
 			const id = Number(req.params.id)
 			const result = await AnimalService.deleteAnimalQuestion(id)
+			if (!result.success)
+				return RESPONSE.FailureResponse(res, 400, {
+					message: result.message,
+					data: [],
+				})
 			RESPONSE.SuccessResponse(res, 200, { message: result.message, data: [] })
 		} catch (error) {
 			next(error)
@@ -359,7 +386,7 @@ export class AnimalController {
 				const user = req.user as User
 				if (!user) {
 					return RESPONSE.FailureResponse(res, 401, {
-						message: 'User not found',
+						message: 'Unauthorized',
 						data: [],
 					})
 				}
@@ -387,7 +414,7 @@ export class AnimalController {
 			const user = req.user as User
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -416,7 +443,7 @@ export class AnimalController {
 			const user = req.user as User
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -455,38 +482,42 @@ export class AnimalController {
 			const user = req.user as User
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
-			}
-			let animal_id: number
-			if (typeof req.query.animal_id === 'string') {
-				animal_id = Number(req.query.animal_id)
-			} else if (typeof req.params.animal_id === 'string') {
-				animal_id = Number(req.params.animal_id)
-			} else {
-				animal_id = NaN
 			}
 
-			let animal_number: string
-			if (typeof req.query.animal_number === 'string') {
-				animal_number = req.query.animal_number
-			} else if (typeof req.params.animal_number === 'string') {
-				animal_number = req.params.animal_number
-			} else {
-				animal_number = ''
-			}
-			if (isNaN(animal_id) || !animal_number) {
-				return RESPONSE.FailureResponse(res, 400, {
-					message:
-						'animal_id and animal_number are required as query or path params',
-					data: [],
-				})
-			}
+			const animal_id = Number(req.params.animal_id)
+			const animal_number = String(req.params.animal_number)
 			const data = await AnimalService.getAnimalProfile(
 				user,
 				animal_id,
 				animal_number,
+			)
+			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly deletedHistory: RequestHandler = async (
+		req,
+		res,
+		next,
+	) => {
+		try {
+			const user = req.user as User
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'Unauthorized',
+					data: [],
+				})
+			}
+			const user_id = user.id
+			const animal_id = Number(req.params.animal_id)
+			const data = await AnimalService.getUserDeletedAnimalHistory(
+				user_id,
+				animal_id,
 			)
 			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
 		} catch (error) {

@@ -6,7 +6,9 @@ export class ContactUsService {
 		email: string
 		whatsapp: string
 	} | null> {
-		const contact = await db.ContactUs.findOne()
+		const contact = await db.ContactUs.findOne({
+			where: { deleted_at: null },
+		})
 		if (!contact) return null
 		return {
 			phone: contact.get('phone_number') ?? '',

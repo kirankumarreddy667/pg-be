@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { BusinessOutletService } from '@/services/business_outlet.service'
+import db from '@/config/database'
 
 export class BusinessOutletController {
 	public static readonly store: RequestHandler = async (
@@ -18,7 +19,7 @@ export class BusinessOutletController {
 					business_address: string
 				},
 			)
-			RESPONSE.SuccessResponse(res, 201, {
+			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Business outlet created successfully',
 				data: [],
 			})
@@ -59,7 +60,7 @@ export class BusinessOutletController {
 				},
 			)
 			RESPONSE.SuccessResponse(res, 200, {
-				message: 'Business outlet updated',
+				message: 'Success',
 				data: [],
 			})
 		} catch (error) {
@@ -75,7 +76,10 @@ export class BusinessOutletController {
 		try {
 			const id = Number(req.params.id)
 			await BusinessOutletService.delete(id)
-			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Business Outlet Deleted Successfully',
+				data: [],
+			})
 		} catch (error) {
 			next(error)
 		}
@@ -88,16 +92,16 @@ export class BusinessOutletController {
 	): Promise<void> => {
 		try {
 			const { user_id, business_outlet_id } = req.body as {
-				user_id: number
+				user_id: number[]
 				business_outlet_id: number
 			}
-			const mapping = await BusinessOutletService.mapUserWithBusinessOutlet({
+			await BusinessOutletService.mapUserWithBusinessOutlet({
 				user_id,
 				business_outlet_id,
 			})
-			RESPONSE.SuccessResponse(res, 201, {
-				message: 'Mapping created',
-				data: mapping,
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: [],
 			})
 		} catch (error) {
 			next(error)
@@ -133,6 +137,16 @@ export class BusinessOutletController {
 				end_date?: string
 				search: string
 			}
+			const user_id = (req.user as { id: number })?.id
+			const user = await db.User.findOne({
+				where: { id: user_id, deleted_at: null },
+			})
+			if (!user)
+				return RESPONSE.FailureResponse(res, 404, {
+					message: 'User not found',
+					data: [],
+				})
+
 			const farmers = await BusinessOutletService.farmersList({
 				start_date,
 				end_date,
@@ -152,12 +166,22 @@ export class BusinessOutletController {
 			try {
 				const farmer_id = Number(req.params.farmer_id)
 				const business_outlet_id = Number(req.params.business_outlet_id)
+				const user_id = (req.user as { id: number })?.id
+				const user = await db.User.findOne({
+					where: { id: user_id, deleted_at: null },
+				})
+				if (!user)
+					return RESPONSE.FailureResponse(res, 404, {
+						message: 'User not found',
+						data: [],
+					})
 				await BusinessOutletService.deleteMappedFarmerToBusinessOutlet(
 					farmer_id,
 					business_outlet_id,
+					user_id,
 				)
 				RESPONSE.SuccessResponse(res, 200, {
-					message: 'Mapping deleted',
+					message: 'Success',
 					data: [],
 				})
 			} catch (error) {

@@ -3,9 +3,15 @@ import { OfferService } from '@/services/offer.service'
 import RESPONSE from '@/utils/response'
 
 export interface CreateOfferBody {
-	image?: string
-	additional_months?: number
-	additional_years?: number
+	data: {
+		name: string
+		title: string
+		description: string
+		amount: number
+		plan_id?: number
+		product_id?: number
+		offer_type: string
+	}[]
 	language_id: number
 }
 
@@ -16,10 +22,10 @@ export class OfferController {
 		next,
 	): Promise<void> => {
 		try {
-			const offers = await OfferService.getAllOffers()
+			const offers = await OfferService.listAll()
 			RESPONSE.SuccessResponse(res, 200, {
 				data: offers,
-				message: 'Offers fetched successfully',
+				message: 'Success',
 			})
 		} catch (error) {
 			next(error)
@@ -33,10 +39,10 @@ export class OfferController {
 	): Promise<void> => {
 		try {
 			const { language_id } = req.params
-			const offers = await OfferService.getOffersByLanguage(Number(language_id))
+			const offers = await OfferService.findByLanguageId(Number(language_id))
 			RESPONSE.SuccessResponse(res, 200, {
 				data: offers,
-				message: 'Offers fetched by language',
+				message: 'Success',
 			})
 		} catch (error) {
 			next(error)
@@ -50,10 +56,10 @@ export class OfferController {
 	): Promise<void> => {
 		try {
 			const data = req.body as CreateOfferBody
-			const offer = await OfferService.createOffer(data)
-			RESPONSE.SuccessResponse(res, 201, {
-				data: offer,
-				message: 'Offer created successfully',
+			await OfferService.createOffer(data)
+			RESPONSE.SuccessResponse(res, 200, {
+				data: [],
+				message: 'Success',
 			})
 		} catch (error) {
 			next(error)

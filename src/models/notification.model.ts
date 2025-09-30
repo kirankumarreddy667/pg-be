@@ -3,36 +3,59 @@ import { Model, DataTypes, Sequelize, Optional } from 'sequelize'
 export interface NotificationAttributes {
 	id?: number
 	user_id: number
-	animal_id: number
-	animal_number: string
+	animal_id?: number
+	animal_number?: string | null
 	message: string
 	send_notification_date: Date
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
+	heading: string
+	status?: boolean
+	type: string
+	doctor_num?: string | null
+	doctor_message?: string | null
 }
 
 export class Notification
 	extends Model<
 		NotificationAttributes,
-		Optional<NotificationAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			NotificationAttributes,
+			| 'id'
+			| 'created_at'
+			| 'updated_at'
+			| 'deleted_at'
+			| 'doctor_num'
+			| 'doctor_message'
+			| 'animal_number'
+			| 'animal_id'
+			| 'status'
+		>
 	>
 	implements NotificationAttributes
 {
 	public id!: number
 	public user_id!: number
-	public animal_id!: number
-	public animal_number!: string
+	public animal_id?: number
+	public animal_number?: string | null
 	public message!: string
 	public send_notification_date!: Date
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
+	public heading!: string
+	public status?: boolean
+	public type!: string
+	public doctor_num?: string | null
+	public doctor_message?: string | null
 }
 
 export default (sequelize: Sequelize): typeof Notification => {
 	Notification.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -42,11 +65,11 @@ export default (sequelize: Sequelize): typeof Notification => {
 			},
 			animal_id: {
 				type: DataTypes.INTEGER,
-				allowNull: false,
+				allowNull: true,
 			},
 			animal_number: {
-				type: DataTypes.STRING,
-				allowNull: false,
+				type: DataTypes.STRING(191),
+				allowNull: true,
 			},
 			message: {
 				type: DataTypes.TEXT,
@@ -55,16 +78,28 @@ export default (sequelize: Sequelize): typeof Notification => {
 			send_notification_date: {
 				type: DataTypes.DATE,
 				allowNull: false,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
 				defaultValue: DataTypes.NOW,
 			},
-			updated_at: {
-				type: DataTypes.DATE,
+			heading: {
+				type: DataTypes.STRING(191),
 				allowNull: false,
-				defaultValue: DataTypes.NOW,
+			},
+			status: {
+				type: DataTypes.TINYINT,
+				allowNull: true,
+				defaultValue: 0,
+			},
+			type: {
+				type: DataTypes.STRING(191),
+				allowNull: false,
+			},
+			doctor_num: {
+				type: DataTypes.STRING(191),
+				allowNull: true,
+			},
+			doctor_message: {
+				type: DataTypes.TEXT,
+				allowNull: true,
 			},
 		},
 		{
@@ -73,6 +108,10 @@ export default (sequelize: Sequelize): typeof Notification => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
+			paranoid: true,
 		},
 	)
 	return Notification

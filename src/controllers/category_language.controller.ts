@@ -44,9 +44,9 @@ export class CategoryLanguageController {
 				language_id,
 				category_language_name,
 			})
-			return RESPONSE.SuccessResponse(res, 201, {
+			return RESPONSE.SuccessResponse(res, 200, {
 				data: [],
-				message: 'Success',
+				message: 'success',
 			})
 		} catch (error) {
 			next(error)
@@ -55,40 +55,36 @@ export class CategoryLanguageController {
 
 	public static readonly getAll: RequestHandler = async (req, res, next) => {
 		try {
-			const { language_id } = req.params
-			const records = await CategoryLanguageService.getAllByLanguage(
-				Number(language_id),
-			)
+			const { language_id } = req.params;
+			const records = await CategoryLanguageService.getAllByLanguage(Number(language_id));
+
 			return RESPONSE.SuccessResponse(res, 200, {
 				data: records,
-				message: 'Success',
-			})
+				message: 'success',
+			});
 		} catch (error) {
-			next(error)
+			next(error);
 		}
-	}
+	};
+
 
 	public static readonly getById: RequestHandler = async (req, res, next) => {
 		try {
-			const { category_id, language_id } = req.params
+			const { category_id, language_id } = req.params;
+
 			const record = await CategoryLanguageService.getByCategoryAndLanguage(
 				Number(category_id),
 				Number(language_id),
-			)
-			if (!record) {
-				return RESPONSE.FailureResponse(res, 404, {
-					message: 'Not found.',
-					data: [],
-				})
-			}
+			);
 			return RESPONSE.SuccessResponse(res, 200, {
 				data: record,
-				message: 'Success',
-			})
+				message: 'success',
+			});
 		} catch (error) {
-			next(error)
+			next(error);
 		}
-	}
+	};
+
 
 	public static readonly update: RequestHandler = async (req, res, next) => {
 		try {
@@ -124,7 +120,7 @@ export class CategoryLanguageController {
 			}
 			return RESPONSE.SuccessResponse(res, 200, {
 				data: [],
-				message: 'Success',
+				message: 'success',
 			})
 		} catch (error) {
 			next(error)

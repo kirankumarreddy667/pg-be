@@ -9,6 +9,7 @@ import {
 	MilkReportRow,
 	AnimalBreedingHistoryResult,
 	AllAnimalBreedingHistoryResult,
+	MilkProductionRow,
 } from '../services/report.service'
 
 const businessCredentialsTemplate = fs.readFileSync(
@@ -26,8 +27,13 @@ const manureProductionTemplate = fs.readFileSync(
 	'utf-8',
 )
 
+const milkProductionQualityTemplate = fs.readFileSync(
+	path.join(__dirname, '../views/reports/milkProductionQualityPDF.ejs'),
+	'utf-8',
+)
+
 const animalMilkProductionQuantityTemplate = fs.readFileSync(
-	path.join(__dirname, '../views/reports/milkProductionQuality.ejs'),
+	path.join(__dirname, '../views/reports/milkProductionQuantityPDF.ejs'),
 	'utf-8',
 )
 const profitLossGraphWithSellingAndPurcahsePriceTemplate = fs.readFileSync(
@@ -45,14 +51,20 @@ const incomeExpenseTemplate = fs.readFileSync(
 	path.join(__dirname, '../views/reports/incomeExpensePDF.ejs'),
 	'utf-8',
 )
-const milkProductionQuantityTemplate = fs.readFileSync(
-	path.join(__dirname, '../views/reports/milkProductionQuantity.ejs'),
-	'utf-8',
-)
+
 const milkReportTemplate = fs.readFileSync(
 	path.join(__dirname, '../views/reports/dailyMilkReportPDF.ejs'),
 	'utf-8',
 )
+const fixedInvestmentReportTemplate = fs.readFileSync(
+	path.join(__dirname, '../views/reports/fixedInvestmentReportPDF.ejs'),
+	'utf-8',
+)
+const breedingReportTemplate = fs.readFileSync(
+	path.join(__dirname, '../views/reports/breedingReportPDF.ejs'),
+	'utf-8',
+)
+
 const profileReportTemplate = fs.readFileSync(
 	path.join(__dirname, '../views/reports/animalProfileCertificate.ejs'),
 	'utf-8',
@@ -81,8 +93,14 @@ const adminPlanPaymentSuccessTemplate = fs.readFileSync(
 	'utf-8',
 )
 
+const report = fs.readFileSync(
+	path.join(__dirname, '../views/reports/report.ejs'),
+	'utf-8',
+)
+
 export interface EmailTemplateMap {
 	businessCredentials: { name: string; phone: string; password: string }
+	report: { user: string; report_type: string }
 	helathReport: {
 		animalHealthData: {
 			total_cost_of_treatment: number | string
@@ -104,17 +122,17 @@ export interface EmailTemplateMap {
 			total_in_rupees: string | number
 		}>
 	}
+	milkProductionQualityReport: {
+		milkProductionQualityData: MilkProductionRow[]
+	}
 	animalMilkProductionQuantityReport: {
 		milkProductionData: MilkProductionQuantityRow[]
 	}
-	profitLossGraphWithSellingAndPurcahsePriceReport: {
+	profitLossGraphWithSellingAndPurchasePriceReport: {
 		profitLossGraphData: ProfitLossGraphRow[]
 	}
 	profitLossReport: { profitLossData: ProfitLossRow[] }
 	incomeExpenseReport: { incomeExpense: IncomeExpenseResult }
-	milkProductionQuantityReport: {
-		milkProductionQuantityData: MilkProductionQuantityRow[]
-	}
 	milkReport: {
 		milkReportPDF: {
 			animal_number: string | null
@@ -122,6 +140,24 @@ export interface EmailTemplateMap {
 			buffalo_daily_milk: MilkReportRow[]
 			relevent_total: Record<string, unknown>
 			daywise_sub_total: Record<string, unknown>
+		}
+	}
+	fixedInvestmentReport: {
+		fixedInvestmentData: {
+			reportData: {
+				type_of_investment: string
+				amount_in_rs: string
+				date_of_installation_or_purchase: string
+				age_in_year: string
+			}[]
+			total_investment: string
+			number_of_investments: number
+		}
+	}
+	breedingReport: {
+		responseData: {
+			pregnant: Record<string, unknown>
+			non_pregnant: Record<string, unknown>
 		}
 	}
 	profileReport: {
@@ -145,7 +181,7 @@ export interface EmailTemplateMap {
 	}
 	planPaymentSuccess: {
 		name: string
-		quantity: number
+		quantity?: number
 		amount: number
 		coupon: string
 		coupon_code: string
@@ -155,7 +191,7 @@ export interface EmailTemplateMap {
 	}
 	adminPlanPaymentSuccess: {
 		plan_name: string
-		quantity: number
+		quantity?: number
 		name: string
 		email: string
 		phone: string
@@ -170,17 +206,21 @@ export const emailTemplates: {
 	[K in keyof EmailTemplateMap]: (data: EmailTemplateMap[K]) => string
 } = {
 	businessCredentials: (data) => ejs.render(businessCredentialsTemplate, data),
+	report: (data) => ejs.render(report, data),
 	helathReport: (data) => ejs.render(healthReportTemplate, data),
 	manureProductionReport: (data) => ejs.render(manureProductionTemplate, data),
 	animalMilkProductionQuantityReport: (data) =>
 		ejs.render(animalMilkProductionQuantityTemplate, data),
-	profitLossGraphWithSellingAndPurcahsePriceReport: (data) =>
+	profitLossGraphWithSellingAndPurchasePriceReport: (data) =>
 		ejs.render(profitLossGraphWithSellingAndPurcahsePriceTemplate, data),
 	profitLossReport: (data) => ejs.render(profitLossTemplate, data),
 	incomeExpenseReport: (data) => ejs.render(incomeExpenseTemplate, data),
-	milkProductionQuantityReport: (data) =>
-		ejs.render(milkProductionQuantityTemplate, data),
+	milkProductionQualityReport: (data) =>
+		ejs.render(milkProductionQualityTemplate, data),
 	milkReport: (data) => ejs.render(milkReportTemplate, data),
+	fixedInvestmentReport: (data) =>
+		ejs.render(fixedInvestmentReportTemplate, data),
+	breedingReport: (data) => ejs.render(breedingReportTemplate, data),
 	profileReport: (data) => ejs.render(profileReportTemplate, data),
 	animalBreedingHistoryReport: (data) =>
 		ejs.render(animalBreedingHistoryReportTemplate, data),

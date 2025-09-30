@@ -5,65 +5,63 @@ import { Role } from './role.model'
 export interface UserAttributes {
 	id?: number
 	name: string
-	email?: string
-	password?: string
+	email?: string | null
+	password?: string | null
 	phone_number: string
-	farm_name?: string
-	address?: string
-	pincode?: string
-	taluka?: string
-	district?: string
-	state?: string
-	country?: string
+	farm_name?: string | null
+	address?: string | null
+	pincode?: string | null
+	taluka?: string | null
+	district?: string | null
+	state?: string | null
+	country?: string | null
 	payment_status?: 'free' | 'premium'
-	remember_token?: string
-	village?: string
-	otp_status?: boolean
-	firebase_token?: string
-	device_id?: string
-	device_type?: string
-	language_id?: number
-	record_milk_refresh?: string
-	deleted_at?: Date
-	created_at?: Date
-	updated_at?: Date
-	googleId?: string
-	facebookId?: string
-	provider?: string[]
-	avatar?: string
-	emailVerified?: boolean
+	remember_token?: string | null
+	village?: string | null
+	otp_status: boolean
+	firebase_token?: string | null
+	device_id?: string | null
+	device_type?: string | null
+	language_id?: number | null
+	record_milk_refresh?: string | null
+	deleted_at?: Date | null
+	created_at?: Date | null
+	updated_at?: Date | null
+	google_id?: string | null
+	facebook_id?: string | null
+	provider?: string[] | null
+	avatar?: string | null
 }
 
 export class User extends Model<UserAttributes> implements UserAttributes {
 	public id!: number
 	public name!: string
-	public email?: string
-	public password?: string
+	public email?: string | null
+	public password?: string | null
 	public phone_number!: string
-	public farm_name?: string
-	public address?: string
-	public pincode?: string
-	public taluka?: string
-	public district?: string
-	public state?: string
-	public country?: string
+	public farm_name?: string | null
+	public address?: string | null
+	public pincode?: string | null
+	public taluka?: string | null
+	public district?: string | null
+	public state?: string | null
+	public country?: string | null
 	public payment_status!: 'free' | 'premium'
-	public remember_token?: string
-	public village?: string
+	public remember_token?: string | null
+	public village?: string | null
 	public otp_status!: boolean
-	public firebase_token?: string
-	public device_id?: string
-	public device_type?: string
-	public language_id?: number
-	public record_milk_refresh?: string
-	public deleted_at?: Date
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
-	public googleId?: string
-	public facebookId?: string
-	public provider?: string[]
-	public avatar?: string
-	public emailVerified?: boolean
+	public firebase_token?: string | null
+	public device_id?: string | null
+	public device_type?: string | null
+	public language_id?: number | null
+	public record_milk_refresh?: string | null
+	public deleted_at?: Date | null
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public google_id?: string | null
+	public facebook_id?: string | null
+	public provider?: string[] | null
+	public avatar?: string | null
 
 	public getRoles!: () => Promise<Role[]>
 }
@@ -72,86 +70,85 @@ const UserModel = (sequelize: Sequelize): typeof User => {
 	User.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
 			name: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			email: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
-				unique: true,
 				validate: {
 					isEmail: true,
 				},
 			},
 			password: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			phone_number: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
-				unique: true,
 			},
 			farm_name: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 				unique: true,
 			},
 			address: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			pincode: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			taluka: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			district: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			state: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			country: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			payment_status: {
-				type: DataTypes.ENUM('free', 'premium'),
+				type: DataTypes.STRING(191),
 				defaultValue: 'free',
 			},
 			remember_token: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(511),
 				allowNull: true,
 			},
 			village: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			otp_status: {
-				type: DataTypes.BOOLEAN,
-				defaultValue: false,
+				type: DataTypes.TINYINT,
+				allowNull: false,
+				defaultValue: 0,
 			},
 			firebase_token: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			device_id: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			device_type: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			language_id: {
@@ -166,27 +163,20 @@ const UserModel = (sequelize: Sequelize): typeof User => {
 				type: DataTypes.DATE,
 				allowNull: true,
 			},
-			googleId: {
-				type: DataTypes.STRING,
+			google_id: {
+				type: DataTypes.STRING(191),
 				allowNull: true,
-				unique: true,
 			},
-			facebookId: {
-				type: DataTypes.STRING,
+			facebook_id: {
+				type: DataTypes.STRING(191),
 				allowNull: true,
-				unique: true,
 			},
 			provider: {
 				type: DataTypes.JSON,
-				allowNull: false,
-				defaultValue: [],
-			},
-			avatar: {
-				type: DataTypes.STRING,
 				allowNull: true,
 			},
-			emailVerified: {
-				type: DataTypes.BOOLEAN,
+			avatar: {
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 		},
@@ -218,6 +208,8 @@ const UserModel = (sequelize: Sequelize): typeof User => {
 					}
 				},
 			},
+			charset: 'utf8',
+			collate: 'utf8_unicode_ci',
 		},
 	)
 	return User

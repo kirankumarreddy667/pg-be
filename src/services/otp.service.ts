@@ -33,7 +33,6 @@ export class OtpService {
 			where: { user_id: userId, otp: otpCode },
 			transaction,
 		})
-		// Note: User update is now handled in the calling method with transaction
 		return { success: true, message: 'OTP matched successfully' }
 	}
 

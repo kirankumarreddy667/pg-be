@@ -4,39 +4,45 @@ import RESPONSE from '@/utils/response'
 import { User } from '@/models'
 import db from '@/config/database'
 import { Op } from 'sequelize'
+import { ValidationRequestError } from '@/utils/errors'
 
 export class VaccinationController {
 	public static readonly create: RequestHandler = async (req, res, next) => {
 		try {
 			const userId = Number((req.user as User)?.id)
+
 			const vaccination = req.body as {
 				vaccination_type_ids: number[]
 				animal_numbers: string[]
-				vaccination_date: string
+				record_date: string
 				expense: number
 			}
 
+			// Validate vaccination_type_ids
 			const foundTypes = await db.VaccinationType.findAll({
-				where: { id: { [Op.in]: vaccination.vaccination_type_ids } },
+				where: {
+					id: { [Op.in]: vaccination.vaccination_type_ids },
+					deleted_at: null,
+				},
 			})
 			const foundTypeIds = foundTypes.map((type) => type.get('id'))
 			const missingTypeIds = vaccination.vaccination_type_ids.filter(
 				(id: number) => !foundTypeIds.includes(id),
 			)
 			if (missingTypeIds.length > 0) {
-				return RESPONSE.FailureResponse(res, 422, {
-					message: 'The given data was invalid.',
-					errors: {
-						vaccination_type_ids: [
-							`Invalid vaccination_type_ids: ${missingTypeIds.join(', ')}`,
-						],
-					},
+				throw new ValidationRequestError({
+					vaccination_type_ids: [
+						'The selected vaccination type ids is invalid.',
+					],
 				})
 			}
 
-			// Existence check for animal_numbers
+			// Validate animal_numbers
 			const foundAnimals = await db.AnimalQuestionAnswer.findAll({
-				where: { animal_number: { [Op.in]: vaccination.animal_numbers } },
+				where: {
+					animal_number: { [Op.in]: vaccination.animal_numbers },
+					deleted_at: null,
+				},
 				attributes: ['animal_number'],
 			})
 			const foundAnimalNumbers = foundAnimals.map((animal) =>
@@ -46,39 +52,30 @@ export class VaccinationController {
 				(num: string) => !foundAnimalNumbers.includes(num),
 			)
 			if (missingAnimalNumbers.length > 0) {
-				return RESPONSE.FailureResponse(res, 422, {
-					message: 'The given data was invalid.',
-					errors: {
-						animal_numbers: [
-							`Invalid animal_numbers: ${missingAnimalNumbers.join(', ')}`,
-						],
-					},
+				throw new ValidationRequestError({
+					animal_numbers: ['The selected animal numbers is invalid.'],
 				})
 			}
-
-			const data = req.body as {
-				expense: number
-				record_date: Date
-				animal_numbers: string[]
-				vaccination_type_ids: number[]
-			}
-			const result = await VaccinationService.create(userId, data)
-			RESPONSE.SuccessResponse(res, 201, result)
+			await VaccinationService.create(userId, vaccination)
+			return RESPONSE.SuccessResponse(res, 200, {
+				data: [],
+				message: 'Vaccination detail added successfully',
+			})
 		} catch (error) {
-			next(error)
+			return next(error)
 		}
 	}
 
 	public static readonly listAllType: RequestHandler = async (
-		req,
+		_req,
 		res,
 		next,
 	) => {
 		try {
 			const result = await VaccinationService.listAllType()
-			RESPONSE.SuccessResponse(res, 200, result)
+			return RESPONSE.SuccessResponse(res, 200, result)
 		} catch (error) {
-			next(error)
+			return next(error)
 		}
 	}
 }

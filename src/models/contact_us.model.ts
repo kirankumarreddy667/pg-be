@@ -1,18 +1,22 @@
 import { DataTypes, Model, Sequelize, Optional } from 'sequelize'
 
 export interface ContactUsAttributes {
-	id: number
+	id?: number
 	phone_number: string
 	contact_email: string
 	whatsapp: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class ContactUs
 	extends Model<
 		ContactUsAttributes,
-		Optional<ContactUsAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			ContactUsAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
 	>
 	implements ContactUsAttributes
 {
@@ -20,51 +24,44 @@ export class ContactUs
 	public phone_number!: string
 	public contact_email!: string
 	public whatsapp!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof ContactUs => {
 	ContactUs.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 				allowNull: false,
 			},
 			phone_number: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			contact_email: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			whatsapp: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
 			},
 		},
 		{
 			sequelize,
-			modelName: 'ContactUs',
 			tableName: 'contact_us',
-			underscored: true,
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
+			paranoid: true,
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
-    return ContactUs
+	return ContactUs
 }

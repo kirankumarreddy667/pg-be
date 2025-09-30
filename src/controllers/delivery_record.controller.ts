@@ -25,7 +25,7 @@ export class DeliveryRecordController {
 				},
 				user.id,
 			)
-			return res.status(result.status || 201).json(result)
+			return res.status(result.status || 200).json(result)
 		} catch (error) {
 			next(error)
 		}
@@ -101,7 +101,7 @@ export class DeliveryRecordController {
 						Number(language_id),
 						animal_number,
 					)
-				return res.status(200).json({ message: 'success', data })
+				return res.status(200).json({ data, message: 'success', status: 200 })
 			} catch (error) {
 				next(error)
 			}
@@ -126,7 +126,7 @@ export class DeliveryRecordController {
 				Number(animal_id),
 				animal_number,
 			)
-			return res.status(200).json({ message: 'success', data })
+			return res.status(200).json({ data, message: 'success', status: 200 })
 		} catch (error) {
 			next(error)
 		}

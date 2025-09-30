@@ -1,14 +1,11 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express'
 import { AnimalQuestionAnswerService } from '@/services/animal_question_answer.service'
 import RESPONSE from '@/utils/response'
+import db from '@/config/database'
 
 interface AnimalAnswerInput {
 	question_id: number
 	answer: string | number
-}
-
-interface AnimalNumberRequestBody {
-	animalNumber?: string
 }
 
 export class AnimalQuestionAnswerController {
@@ -17,6 +14,7 @@ export class AnimalQuestionAnswerController {
 		res: Response,
 		next: NextFunction,
 	) => {
+		const transaction = await db.sequelize.transaction()
 		try {
 			const user = req.user as { id: number } | undefined
 			if (!user) {
@@ -33,9 +31,12 @@ export class AnimalQuestionAnswerController {
 					date: string
 				},
 				user.id,
+				transaction,
 			)
-			RESPONSE.SuccessResponse(res, 201, { message: 'Success', data: [] })
+			await transaction.commit()
+			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
+			await transaction.rollback()
 			next(error)
 		}
 	}
@@ -62,7 +63,7 @@ export class AnimalQuestionAnswerController {
 					animal_number,
 				},
 			)
-			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+			RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 		} catch (error) {
 			next(error)
 		}
@@ -88,7 +89,7 @@ export class AnimalQuestionAnswerController {
 							animal_number,
 						},
 					)
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -114,7 +115,7 @@ export class AnimalQuestionAnswerController {
 							animal_number,
 						},
 					)
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -140,7 +141,7 @@ export class AnimalQuestionAnswerController {
 							animal_number,
 						},
 					)
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -166,7 +167,7 @@ export class AnimalQuestionAnswerController {
 							animal_number,
 						},
 					)
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -192,18 +193,14 @@ export class AnimalQuestionAnswerController {
 							animal_number,
 						},
 					)
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 			} catch (error) {
 				next(error)
 			}
 		}
 
 	public static readonly userAnimalNumbersFromQuestionAnswer: RequestHandler =
-		async (
-			req: Request<unknown, unknown, AnimalNumberRequestBody>,
-			res: Response,
-			next: NextFunction,
-		) => {
+		async (req: Request, res: Response, next: NextFunction) => {
 			try {
 				const user = req.user as { id: number } | undefined
 				if (!user) {
@@ -212,12 +209,12 @@ export class AnimalQuestionAnswerController {
 						data: [],
 					})
 				}
-				const { animalNumber } = req.body
+				const animalNumber = (req?.query?.animalNumber as string) || ''
 				const result =
 					await AnimalQuestionAnswerService.userAnimalNumbersFromQuestionAnswer(
 						{ user_id: user.id, animalNumber },
 					)
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -233,9 +230,10 @@ export class AnimalQuestionAnswerController {
 						data: [],
 					})
 				}
-				const { animal_number, animal_id } = req.params
-				const { answers } = req.body as {
+				const { animal_number } = req.params
+				const { answers, animal_id } = req.body as {
 					answers: AnimalAnswerInput[]
+					animal_id: number
 				}
 				await AnimalQuestionAnswerService.updateAnimalBasicQuestionAnswers({
 					user_id: user.id,
@@ -256,23 +254,32 @@ export class AnimalQuestionAnswerController {
 	) => {
 		try {
 			const user = req.user as { id: number } | undefined
-			if (!user) {
+			const existingUser = await db.User.findOne({
+				where: {
+					id: user?.id,
+					deleted_at: null,
+				},
+			})
+			if (!existingUser) {
 				return RESPONSE.FailureResponse(res, 401, {
 					message: 'Unauthorized',
 					data: [],
 				})
 			}
-			const { animal_number, animal_id } = req.params
-			const { answers, date } = req.body as {
+			const { animal_number } = req.params
+			const { answers, date, animal_id } = req.body as {
 				answers: AnimalAnswerInput[]
 				date: string
+				animal_id: number
 			}
+			const farm_name = existingUser?.farm_name ?? null
 			await AnimalQuestionAnswerService.updateAnimalBreedingQuestionAnswers({
-				user_id: user.id,
+				user_id: existingUser.get('id'),
 				animal_number,
 				animal_id: Number(animal_id),
 				answers,
 				date,
+				farm_name,
 			})
 			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
 		} catch (error) {
@@ -293,10 +300,11 @@ export class AnimalQuestionAnswerController {
 					data: [],
 				})
 			}
-			const { animal_number, animal_id } = req.params
-			const { answers, date } = req.body as {
+			const { animal_number } = req.params
+			const { answers, date, animal_id } = req.body as {
 				answers: AnimalAnswerInput[]
 				date: string
+				animal_id: number
 			}
 			await AnimalQuestionAnswerService.updateAnimalMilkQuestionAnswers({
 				user_id: user.id,
@@ -324,9 +332,10 @@ export class AnimalQuestionAnswerController {
 					data: [],
 				})
 			}
-			const { animal_number, animal_id } = req.params
-			const { answers } = req.body as {
+			const { animal_number } = req.params
+			const { answers, animal_id } = req.body as {
 				answers: AnimalAnswerInput[]
+				animal_id: number
 			}
 			await AnimalQuestionAnswerService.updateAnimalBirthQuestionAnswers({
 				user_id: user.id,
@@ -353,10 +362,11 @@ export class AnimalQuestionAnswerController {
 					data: [],
 				})
 			}
-			const { animal_number, animal_id } = req.params
-			const { answers, date } = req.body as {
+			const { animal_number } = req.params
+			const { answers, date, animal_id } = req.body as {
 				answers: AnimalAnswerInput[]
 				date: string
+				animal_id: number
 			}
 			await AnimalQuestionAnswerService.updateAnimalHealthQuestionAnswers({
 				user_id: user.id,
@@ -381,9 +391,10 @@ export class AnimalQuestionAnswerController {
 						data: [],
 					})
 				}
-				const { animal_number, animal_id } = req.params
-				const { answers } = req.body as {
+				const { animal_number } = req.params
+				const { answers, animal_id } = req.body as {
 					answers: AnimalAnswerInput[]
+					animal_id: number
 				}
 				await AnimalQuestionAnswerService.updateHeatEventDetailsOfAnimal({
 					user_id: user.id,
@@ -391,7 +402,7 @@ export class AnimalQuestionAnswerController {
 					animal_id: Number(animal_id),
 					answers,
 				})
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: [] })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: [] })
 			} catch (error) {
 				next(error)
 			}
@@ -414,7 +425,7 @@ export class AnimalQuestionAnswerController {
 				animal_id: number
 				animal_number: string
 				answers: AnimalAnswerInput[]
-				date: string
+				date?: string
 			}
 			await AnimalQuestionAnswerService.saveHeatEventDetailsOfAnimal({
 				user_id: user.id,
@@ -449,7 +460,7 @@ export class AnimalQuestionAnswerController {
 							animal_number,
 						},
 					)
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -475,7 +486,7 @@ export class AnimalQuestionAnswerController {
 							animal_number,
 						},
 					)
-				RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+				RESPONSE.SuccessResponse(res, 200, { message: 'success', data: result })
 			} catch (error) {
 				next(error)
 			}
@@ -545,7 +556,7 @@ export class AnimalQuestionAnswerController {
 			const user = req.user as { id: number } | undefined
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -555,7 +566,7 @@ export class AnimalQuestionAnswerController {
 				Number(animal_id),
 				animal_number,
 			)
-			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+			return RESPONSE.SuccessResponse(res, 200, { message: 'success', data })
 		} catch (error) {
 			next(error)
 		}
@@ -570,7 +581,7 @@ export class AnimalQuestionAnswerController {
 			const user = req.user as { id: number } | undefined
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -580,7 +591,7 @@ export class AnimalQuestionAnswerController {
 				Number(animal_id),
 				animal_number,
 			)
-			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+			return RESPONSE.SuccessResponse(res, 200, { message: 'success', data })
 		} catch (error) {
 			next(error)
 		}
@@ -593,6 +604,12 @@ export class AnimalQuestionAnswerController {
 	) => {
 		try {
 			const user = req.user as { id: number } | undefined
+			if (!user) {
+				return RESPONSE.FailureResponse(res, 401, {
+					message: 'Unauthorized',
+					data: [],
+				})
+			}
 			const result = await AnimalQuestionAnswerService.mapAnimalMotherToCalf(
 				user?.id,
 				req.body as {
@@ -602,7 +619,10 @@ export class AnimalQuestionAnswerController {
 					calf_animal_number: string
 				},
 			)
-			RESPONSE.SuccessResponse(res, 200, { message: 'Success', data: result })
+			RESPONSE.SuccessResponse(res, 200, {
+				message: 'Success',
+				data: result.data,
+			})
 		} catch (error) {
 			next(error)
 		}
@@ -617,7 +637,7 @@ export class AnimalQuestionAnswerController {
 			const user = req.user as { id: number } | undefined
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}
@@ -627,7 +647,7 @@ export class AnimalQuestionAnswerController {
 				Number(animal_id),
 				mother_number,
 			)
-			return RESPONSE.SuccessResponse(res, 200, { message: 'Success', data })
+			return RESPONSE.SuccessResponse(res, 200, { message: 'success', data })
 		} catch (error) {
 			next(error)
 		}
@@ -642,7 +662,7 @@ export class AnimalQuestionAnswerController {
 			const user = req.user as { id: number } | undefined
 			if (!user) {
 				return RESPONSE.FailureResponse(res, 401, {
-					message: 'User not found',
+					message: 'Unauthorized',
 					data: [],
 				})
 			}

@@ -8,35 +8,33 @@ export default class VaccinationService {
 		userId: number,
 		data: {
 			expense: number
-			record_date: Date
+			record_date: string
 			animal_numbers: string[]
 			vaccination_type_ids: number[]
 		},
-	): Promise<{ message: string; data: string[] }> {
+	): Promise<void> {
 		const detail = await VaccinationDetail.create({
 			user_id: userId,
 			expense: data.expense,
-			date: data.record_date,
+			date: new Date(data.record_date),
 		})
+
 		if (Array.isArray(data.animal_numbers)) {
-			for (const animal_number of data.animal_numbers) {
+			for (const animalNumber of data.animal_numbers) {
 				await AnimalVaccination.create({
 					vaccination_id: detail.id,
-					animal_number,
+					animal_number: animalNumber,
 				})
 			}
 		}
+
 		if (Array.isArray(data.vaccination_type_ids)) {
-			for (const type_id of data.vaccination_type_ids) {
+			for (const typeId of data.vaccination_type_ids) {
 				await UserVaccinationType.create({
 					vaccination_id: detail.id,
-					type_id,
+					type_id: typeId,
 				})
 			}
-		}
-		return {
-			message: 'Vaccination detail added successfully',
-			data: [],
 		}
 	}
 
@@ -45,6 +43,7 @@ export default class VaccinationService {
 		data: { id: number; type: string }[]
 	}> {
 		const resData = await VaccinationType.findAll({
+			where: { deleted_at: null },
 			attributes: ['id', 'type'],
 		})
 		return {

@@ -10,25 +10,27 @@ export class FormTypeService {
 	}
 
 	static async getFormTypeByName(name: string): Promise<FormType | null> {
-		return await db.FormType.findOne({ where: { name } })
+		return await db.FormType.findOne({ where: { name, deleted_at: null } })
 	}
 
 	static async getById(id: number): Promise<FormType | null> {
-		return await db.FormType.findByPk(id)
+		return await db.FormType.findOne({ where: { id, deleted_at: null } })
 	}
 
 	static async updateFormType(
 		id: number,
-		data: { name?: string; description?: string | null },
+		data: { name: string; description: string },
 	): Promise<FormType | null> {
-		const formType = await db.FormType.findByPk(id)
+		const formType = await db.FormType.findOne({
+			where: { id, deleted_at: null },
+		})
 		if (!formType) return null
-		await formType.update(data)
+		await db.FormType.update(data, { where: { id } })
 		return formType
 	}
 
 	static async getAll(): Promise<FormType[]> {
-		return await db.FormType.findAll()
+		return await db.FormType.findAll({ where: { deleted_at: null } })
 	}
 
 	static async deleteById(id: number): Promise<boolean> {

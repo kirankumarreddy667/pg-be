@@ -15,8 +15,8 @@ export class CategoryController {
 					},
 				})
 			}
-			await CategoryService.createCategory({ name })
-			return RESPONSE.SuccessResponse(res, 201, {
+			await CategoryService.createCategory({ name, sequence_number: 0 })
+			return RESPONSE.SuccessResponse(res, 200, {
 				data: [],
 				message: 'Success',
 			})
@@ -41,14 +41,8 @@ export class CategoryController {
 		try {
 			const { id } = req.params
 			const category = await CategoryService.getById(Number(id))
-			if (!category) {
-				return RESPONSE.FailureResponse(res, 404, {
-					message: 'Not found.',
-					data: [],
-				})
-			}
 			return RESPONSE.SuccessResponse(res, 200, {
-				data: category,
+				data: category || null,
 				message: 'Success',
 			})
 		} catch (error) {
@@ -71,7 +65,10 @@ export class CategoryController {
 			}
 			const updated = await CategoryService.updateCategory(Number(id), { name })
 			if (!updated) {
-				return res.status(404).json({ message: 'Not found.', data: [] })
+				return RESPONSE.FailureResponse(res, 404, {
+					message: 'Not found.',
+					data: [],
+				})
 			}
 			return RESPONSE.SuccessResponse(res, 200, {
 				data: [],

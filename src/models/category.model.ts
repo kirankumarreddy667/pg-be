@@ -3,42 +3,45 @@ import { Model, DataTypes, Sequelize, Optional } from 'sequelize'
 export interface CategoryAttributes {
 	id?: number
 	name: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	sequence_number: number
+	deleted_at?: Date | null
 }
 
 export class Category
 	extends Model<
 		CategoryAttributes,
-		Optional<CategoryAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			CategoryAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
 	>
 	implements CategoryAttributes
 {
 	public id!: number
 	public name!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public sequence_number!: number
+	public deleted_at!: Date | null
 }
 
 export default (sequelize: Sequelize): typeof Category => {
 	Category.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
 			name: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 				unique: true,
 			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
+			sequence_number: {
+				type: DataTypes.INTEGER,
 				allowNull: false,
 			},
 		},
@@ -48,6 +51,10 @@ export default (sequelize: Sequelize): typeof Category => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
+			paranoid: true,
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return Category

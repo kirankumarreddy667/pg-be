@@ -4,29 +4,34 @@ export interface AnimalQuestionsAttributes {
 	id?: number
 	animal_id: number
 	question_id: number
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class AnimalQuestions
 	extends Model<
 		AnimalQuestionsAttributes,
-		Optional<AnimalQuestionsAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			AnimalQuestionsAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
 	>
 	implements AnimalQuestionsAttributes
 {
 	public id!: number
 	public animal_id!: number
 	public question_id!: number
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof AnimalQuestions => {
 	AnimalQuestions.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -38,16 +43,6 @@ export default (sequelize: Sequelize): typeof AnimalQuestions => {
 				type: DataTypes.INTEGER,
 				allowNull: false,
 			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
 		},
 		{
 			sequelize,
@@ -55,6 +50,15 @@ export default (sequelize: Sequelize): typeof AnimalQuestions => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			indexes: [
+				{
+					fields: ['animal_id', 'question_id'],
+				},
+			],
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return AnimalQuestions

@@ -2,7 +2,6 @@ import { RequestHandler } from 'express'
 import { AdvertisementService } from '@/services/advertisement.service'
 import RESPONSE from '@/utils/response'
 import { NotFoundError } from '@/utils/errors'
-import db from '@/config/database'
 
 interface AdvertisementPayload {
 	name: string
@@ -24,7 +23,7 @@ export class AdvertisementController {
 		try {
 			const payload = req.body as AdvertisementPayload
 			const result = await AdvertisementService.create(payload)
-			RESPONSE.SuccessResponse(res, 201, {
+			RESPONSE.SuccessResponse(res, 200, {
 				message: result.message,
 				data: [],
 			})
@@ -39,7 +38,8 @@ export class AdvertisementController {
 		next,
 	): Promise<void> => {
 		try {
-			const data = await AdvertisementService.findAll()
+			const status = Number(req?.query?.status)
+			const data = await AdvertisementService.findAll(status)
 			RESPONSE.SuccessResponse(res, 200, {
 				message: 'Success',
 				data,
@@ -75,11 +75,37 @@ export class AdvertisementController {
 		try {
 			const { id } = req.params
 			const payload = req.body as AdvertisementPayload
-			const ad = await db.Advertisement.findByPk(Number(id))
+			const ad = await AdvertisementService.findById(Number(id))
 			if (!ad) {
 				throw new NotFoundError('Advertisement not found')
 			}
 			const result = await AdvertisementService.update(Number(id), payload)
+
+			RESPONSE.SuccessResponse(res, 200, {
+				message: result.message,
+				data: [],
+			})
+		} catch (error) {
+			next(error)
+		}
+	}
+
+	public static readonly status: RequestHandler = async (
+		req,
+		res,
+		next,
+	): Promise<void> => {
+		try {
+			const { id } = req.params
+			const ad = await AdvertisementService.findById(Number(id))
+			if (!ad) {
+				throw new NotFoundError('Advertisement not found')
+			}
+			const data = req.body as {
+				status: number
+			}
+
+			const result = await AdvertisementService.status(Number(id), data.status)
 
 			RESPONSE.SuccessResponse(res, 200, {
 				message: result.message,
@@ -97,7 +123,7 @@ export class AdvertisementController {
 	): Promise<void> => {
 		try {
 			const { id } = req.params
-			const ad = await db.Advertisement.findByPk(Number(id))
+			const ad = await AdvertisementService.findById(Number(id))
 			if (!ad) {
 				throw new NotFoundError('Advertisement not found')
 			}

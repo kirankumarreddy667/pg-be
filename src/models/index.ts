@@ -115,6 +115,14 @@ import DailyRecordQuestionAnswerModel, {
 	DailyRecordQuestionAnswer,
 } from './daily_record_question_answer.model'
 
+import ArticleCategoryModel, { ArticleCategory } from './article_category.model'
+import FarmTypeModel, { FarmType } from './farm_type.model'
+import PasswordResetModel, { PasswordReset } from './password_resets.model'
+import UserOffersModels, { UserOffers } from './user_offers.model'
+import FcmNotificationsModel, {
+	FcmNotifications,
+} from './fcm_notifications.model'
+
 interface Models {
 	User: typeof User
 	Otp: typeof Otp
@@ -176,6 +184,11 @@ interface Models {
 	AnimalMotherCalf: typeof AnimalMotherCalf
 	AnimalImage: typeof AnimalImage
 	DailyRecordQuestionAnswer: typeof DailyRecordQuestionAnswer
+	ArticleCategory: typeof ArticleCategory
+	FarmType: typeof FarmType
+	PasswordReset: typeof PasswordReset
+	UserOffers: typeof UserOffers
+	FcmNotifications: typeof FcmNotifications
 }
 export const initModels = (sequelize: Sequelize): Models => {
 	const User = UserModel(sequelize)
@@ -240,7 +253,11 @@ export const initModels = (sequelize: Sequelize): Models => {
 	const AnimalMotherCalf = AnimalMotherCalfModel(sequelize)
 	const AnimalImage = AnimalImageModel(sequelize)
 	const DailyRecordQuestionAnswer = DailyRecordQuestionAnswerModel(sequelize)
-
+	const ArticleCategory = ArticleCategoryModel(sequelize)
+	const FarmType = FarmTypeModel(sequelize)
+	const PasswordReset = PasswordResetModel(sequelize)
+	const UserOffers = UserOffersModels(sequelize)
+	const FcmNotifications = FcmNotificationsModel(sequelize)
 	// Associations
 	User.belongsToMany(Role, {
 		through: RoleUser,
@@ -270,7 +287,10 @@ export const initModels = (sequelize: Sequelize): Models => {
 		as: 'advertisement',
 	})
 
-	BusinessOutlet.belongsTo(User, { foreignKey: 'assign_to' })
+	BusinessOutlet.belongsTo(User, {
+		foreignKey: 'assign_to',
+		as: 'BusinessUser',
+	})
 	User.hasMany(BusinessOutlet, { foreignKey: 'assign_to' })
 
 	AnimalType.belongsTo(Animal, { foreignKey: 'animal_id', as: 'Animal' })
@@ -278,6 +298,30 @@ export const initModels = (sequelize: Sequelize): Models => {
 	Animal.hasMany(AnimalType, { foreignKey: 'animal_id' })
 	Type.hasMany(AnimalType, { foreignKey: 'type_id' })
 
+	// AnimalVaccination.belongsTo(Animal, {
+	// 	foreignKey: 'animal_id',
+	// 	as: 'AnimalVaccination',
+	// })
+
+	VaccinationDetail.hasMany(AnimalVaccination, {
+		foreignKey: 'vaccination_id',
+		as: 'AnimalVaccinations',
+	})
+
+	UserVaccinationType.belongsTo(VaccinationDetail, {
+		foreignKey: 'vaccination_id',
+		as: 'UserVaccinationType',
+	})
+
+	VaccinationDetail.hasMany(UserVaccinationType, {
+		foreignKey: 'vaccination_id',
+		as: 'VaccinationTypes',
+	})
+
+	UserVaccinationType.belongsTo(VaccinationType, {
+		foreignKey: 'type_id',
+		as: 'VaccinationType',
+	})
 	CommonQuestions.belongsTo(Category, {
 		foreignKey: 'category_id',
 		as: 'Category',
@@ -307,21 +351,183 @@ export const initModels = (sequelize: Sequelize): Models => {
 		as: 'CommonQuestion',
 	})
 
+	CommonQuestions.hasMany(QuestionLanguage, {
+		foreignKey: 'question_id',
+		as: 'QuestionLanguage',
+	})
+
+	CommonQuestions.belongsTo(CategoryLanguage, {
+		foreignKey: 'category_id',
+		as: 'CategoryLanguage',
+	})
+
+	CommonQuestions.belongsTo(SubCategoryLanguage, {
+		foreignKey: 'sub_category_id',
+		as: 'SubCategoryLanguage',
+	})
 	// Add association between DailyRecordQuestion and AnimalQuestionAnswer
 	DailyRecordQuestion.hasMany(AnimalQuestionAnswer, {
 		foreignKey: 'question_id',
-		as: 'Answers',
+		as: 'answers',
 	})
 	AnimalQuestionAnswer.belongsTo(DailyRecordQuestion, {
 		foreignKey: 'question_id',
 		as: 'DailyRecordQuestion',
 	})
 
+	AnimalQuestionAnswer.belongsTo(CommonQuestions, {
+		foreignKey: 'question_id',
+		as: 'AnimalQuestion',
+	})
+	AnimalQuestionAnswer.belongsTo(Animal, {
+		foreignKey: 'animal_id',
+		as: 'Animal',
+	})
+	// If using Sequelize
+	// Offer.hasMany(UserOffers, { foreignKey: 'offer_id' })
+	// UserOffers.belongsTo(Offer, { foreignKey: 'offer_id' })
+
+	User.hasMany(UserOffers, { foreignKey: 'user_id' })
+	UserOffers.belongsTo(User, { foreignKey: 'user_id' })
+
+	// offer.model.ts
+	Offer.belongsTo(Plan, { as: 'plan', foreignKey: 'plan_id' })
+	Offer.belongsTo(Product, { as: 'product', foreignKey: 'product_id' })
+
 	Plan.belongsTo(PlanType, { foreignKey: 'plan_type_id', as: 'PlanType' })
 	PlanType.hasMany(Plan, { foreignKey: 'plan_type_id', as: 'Plans' })
 	UserPaymentHistory.belongsTo(Plan, {
 		foreignKey: 'plan_id',
 		as: 'plan',
+	})
+	// Associations
+	DailyRecordQuestion.belongsTo(Category, {
+		foreignKey: 'category_id',
+		as: 'Category',
+	})
+	DailyRecordQuestion.belongsTo(Subcategory, {
+		foreignKey: 'sub_category_id',
+		as: 'Subcategory',
+	})
+	DailyRecordQuestion.belongsTo(ValidationRule, {
+		foreignKey: 'validation_rule_id',
+		as: 'ValidationRule',
+	})
+	DailyRecordQuestion.belongsTo(FormType, {
+		foreignKey: 'form_type_id',
+		as: 'FormType',
+	})
+	DailyRecordQuestion.belongsTo(QuestionUnit, {
+		foreignKey: 'question_unit',
+		as: 'QuestionUnit',
+	})
+	DailyRecordQuestion.belongsTo(QuestionTag, {
+		foreignKey: 'question_tag',
+		as: 'QuestionTag',
+	})
+
+	DailyRecordQuestion.hasMany(QuestionTagMapping, {
+		foreignKey: 'question_id',
+		as: 'QuestionTagMappings',
+	})
+
+	DailyRecordQuestionAnswer.belongsTo(DailyRecordQuestion, {
+		foreignKey: 'daily_record_question_id',
+		as: 'DailyRecordQuestion',
+	})
+
+	QuestionTagMapping.belongsTo(QuestionTag, {
+		foreignKey: 'question_tag_id',
+		as: 'QuestionTag',
+	})
+
+	Offer.belongsTo(UserOffers, {
+		foreignKey: 'offer_id',
+		as: 'UserOffers',
+	})
+	UserOffers.belongsTo(Offer, {
+		foreignKey: 'offer_id',
+		as: 'Offer',
+	})
+	Category.hasMany(CategoryLanguage, {
+		foreignKey: 'category_id',
+		as: 'translations',
+	})
+
+	CategoryLanguage.belongsTo(Category, {
+		foreignKey: 'category_id',
+		as: 'category',
+	})
+	SubCategoryLanguage.belongsTo(Subcategory, {
+		foreignKey: 'sub_category_id',
+		as: 'subcategory',
+	})
+	Subcategory.hasMany(SubCategoryLanguage, {
+		foreignKey: 'sub_category_id',
+		as: 'languages',
+	})
+	// DailyMilkRecord association with animals
+	DailyMilkRecord.belongsTo(Animal, { foreignKey: 'animal_id', as: 'Animal' })
+	Animal.hasMany(DailyMilkRecord, {
+		foreignKey: 'animal_id',
+		as: 'dailyRecords',
+	})
+	Animal.hasMany(AnimalQuestionAnswer, {
+		foreignKey: 'animal_id',
+		as: 'answers',
+	})
+	AnimalQuestionAnswer.belongsTo(CommonQuestions, {
+		foreignKey: 'question_id',
+		as: 'question',
+	})
+	CommonQuestions.hasMany(AnimalQuestionAnswer, {
+		foreignKey: 'question_id',
+		as: 'answers',
+	})
+
+	AnimalLactationYieldHistory.belongsTo(Animal, {
+		foreignKey: 'animal_id',
+		as: 'Animal',
+	})
+	Animal.hasMany(AnimalLactationYieldHistory, {
+		foreignKey: 'animal_id',
+		as: 'lactationHistory',
+	})
+
+	User.hasMany(UserPayment, {
+		foreignKey: 'user_id',
+		as: 'UserPayment',
+	})
+	UserPayment.belongsTo(User, {
+		foreignKey: 'user_id',
+		as: 'User',
+	})
+	User.hasMany(DailyRecordQuestionAnswer, {
+		foreignKey: 'user_id',
+		as: 'UserDailyRecordQuestionAnswer',
+	})
+
+	//Added missing associations for CommonQuestions, AnimalQuestions, AnimalQuestionAnswer
+	AnimalQuestionAnswer.belongsTo(CommonQuestions, {
+		foreignKey: 'question_id',
+		as: 'CommonQuestion',
+	})
+	CommonQuestions.hasMany(AnimalQuestionAnswer, {
+		foreignKey: 'question_id',
+		as: 'Answers',
+	})
+
+	AnimalQuestions.belongsTo(CommonQuestions, {
+		foreignKey: 'question_id',
+		as: 'CommonQuestion',
+	})
+	CommonQuestions.hasMany(AnimalQuestions, {
+		foreignKey: 'question_id',
+		as: 'AnimalQuestions',
+	})
+	AnimalQuestions.hasMany(AnimalQuestionAnswer, {
+		foreignKey: 'question_id',
+		as: 'answers',
 	})
 
 	return {
@@ -385,6 +591,11 @@ export const initModels = (sequelize: Sequelize): Models => {
 		AnimalMotherCalf,
 		AnimalImage,
 		DailyRecordQuestionAnswer,
+		ArticleCategory,
+		FarmType,
+		PasswordReset,
+		UserOffers,
+		FcmNotifications,
 	}
 }
 

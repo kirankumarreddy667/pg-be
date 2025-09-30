@@ -1,9 +1,12 @@
-import Joi from 'joi';
+import Joi from 'joi'
 
 export const formTypeSchema = Joi.object({
-  name: Joi.string().required().messages({
-    'any.required': 'Form type name is required',
-    'string.empty': 'Form type name cannot be empty',
-  }),
-  description: Joi.string().allow(null, '').optional(),
-});
+	name: Joi.string().required().messages({
+		'any.required': 'The name field is required.',
+		'string.empty': 'The name field is required.',
+	}),
+	description: Joi.string().required().messages({
+		'any.required': 'The description field is required.',
+		'string.empty': 'The description field is required.',
+	}),
+}).unknown(false)

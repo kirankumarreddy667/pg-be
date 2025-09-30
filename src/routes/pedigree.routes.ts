@@ -3,6 +3,12 @@ import { authenticate } from '@/middlewares/auth.middleware'
 import { wrapAsync } from '@/utils/asyncHandler'
 import { PedigreeController } from '@/controllers/pedigree.controller'
 
+/**
+ * @swagger
+ * tags:
+ *   name: Pedigree
+ *   description: Pedigree management endpoints
+ */
 const router: Router = Router()
 
 /**
@@ -34,8 +40,6 @@ const router: Router = Router()
  *             schema:
  *               type: object
  *               properties:
- *                 message:
- *                   type: string
  *                 data:
  *                   type: object
  *                   properties:
@@ -45,7 +49,8 @@ const router: Router = Router()
  *                         tag_no:
  *                           type: string
  *                         milk_yield:
- *                           type: number
+ *                           type: string
+ *                           example: "0.0"
  *                     father:
  *                       type: object
  *                       properties:
@@ -54,15 +59,50 @@ const router: Router = Router()
  *                         semen_co_name:
  *                           type: string
  *                         sire_dam_yield:
- *                           type: number
+ *                           type: string
+ *                           example: "0.0"
  *                         daughter_yield:
  *                           type: string
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User not found
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 data:
+ *                   items:
+ *                      type: array
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 data:
+ *                   items:
+ *                     type: array
+ *                   example: []
  */
 router.get(
 	'/animal_pedigree/:animal_id/:animal_number',
@@ -99,8 +139,6 @@ router.get(
  *             schema:
  *               type: object
  *               properties:
- *                 message:
- *                   type: string
  *                 data:
  *                   type: object
  *                   properties:
@@ -124,12 +162,46 @@ router.get(
  *                             type: integer
  *                           calf_number:
  *                             type: string
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 status:
+ *                   type: integer
+ *                   example: 200
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User not found
+ *                 status:
+ *                   type: integer
+ *                   example: 401
+ *                 data:
+ *                   type: array
+ *                   items: array
+ *                   example: []
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 data:
+ *                   type:
+ *                     items: array
+ *                   example: []
  */
 router.get(
 	'/animal_family_record/:animal_id/:animal_number',

@@ -22,6 +22,14 @@ export interface SuccessResponse<T = unknown> {
 	message: string
 	data?: T
 	status?: number
+	pagination?: {
+		currentPage: number
+		totalPages: number
+		totalItems: number
+		itemsPerPage: number
+		hasNextPage: boolean
+		hasPrevPage: boolean
+	}
 }
 
 export interface ErrorResponse {
@@ -75,4 +83,13 @@ export type TokenCreationAttributes = Omit<
 
 export interface UserWithLanguage extends UserAttributes {
 	Language?: LanguageAttributes | null
+}
+
+export interface pagination {
+	currentPage: number
+	totalPages: number
+	totalItems: number
+	itemsPerPage: number
+	hasNextPage: boolean
+	hasPrevPage: boolean
 }

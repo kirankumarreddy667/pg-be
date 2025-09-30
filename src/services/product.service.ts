@@ -47,38 +47,35 @@ export class ProductService {
 				product_category_id: category_id,
 				language: language_id,
 				id: ids,
+				deleted_at: null,
 			},
 		})
+
 		return data.map((value) => {
-			// product_images
 			let productImage: string[] = []
-			if (value.product_images) {
-				productImage = value.product_images
+			if (value.get('product_images')) {
+				productImage = value
+					.get('product_images')
 					.split(',')
-					.map((img) => `/Images/${img}`)
+					.map((img) => `${process.env.APP_URL}/Images/${img}`)
 			}
-			// product_variants
-			let productVariants: string[] = []
-			if (value.product_variants) {
-				productVariants = value.product_variants.split(',')
-			}
-			// product_specifications
-			let productSpecifications: string[] = []
-			if (value.product_specifications) {
-				productSpecifications = value.product_specifications.split(',')
-			}
+			const productVariants: string[] =
+				(value.get('product_variants') as string | null)?.split(',') ?? []
+			const productSpecifications: string[] =
+				(value.get('product_specifications') as string | null)?.split(',') ?? []
+
 			return {
-				product_id: value.id,
-				product_category_id: value.product_category_id,
-				language: value.language,
-				product_title: value.product_title,
+				product_id: value.get('id'),
+				product_category_id: value.get('product_category_id'),
+				language: value.get('language'),
+				product_title: value.get('product_title'),
 				product_images: productImage,
-				product_amount: value.product_amount,
-				product_description: value.product_description,
+				product_amount: value.get('product_amount'),
+				product_description: value.get('product_description'),
 				product_variants: productVariants,
-				product_delivery_to: value.product_delivery_to,
+				product_delivery_to: value.get('product_delivery_to'),
 				product_specifications: productSpecifications,
-				thumbnail: `/Images/${value.thumbnail}`,
+				thumbnail: `${process.env.APP_URL}/Images/${value.get('thumbnail')}`,
 			}
 		})
 	}

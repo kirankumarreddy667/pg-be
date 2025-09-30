@@ -7,13 +7,13 @@ export interface DailyRecordQuestionAttributes {
 	question: string
 	validation_rule_id: number
 	form_type_id: number
-	date?: boolean
-	created_at?: Date
-	updated_at?: Date
+	date: boolean
+	created_at?: Date | null
+	updated_at?: Date | null
 	question_tag: number
 	question_unit: number
 	form_type_value?: string | null
-	delete_status?: boolean
+	delete_status: boolean
 	sequence_number: number
 	hint?: string | null
 }
@@ -26,38 +26,36 @@ export class DailyRecordQuestion
 			| 'id'
 			| 'category_id'
 			| 'sub_category_id'
-			| 'date'
 			| 'created_at'
 			| 'updated_at'
 			| 'form_type_value'
-			| 'delete_status'
 			| 'hint'
 		>
 	>
 	implements DailyRecordQuestionAttributes
 {
 	public id!: number
-	public category_id!: number | null
-	public sub_category_id!: number | null
+	public category_id?: number | null
+	public sub_category_id?: number | null
 	public question!: string
 	public validation_rule_id!: number
 	public form_type_id!: number
 	public date!: boolean
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
 	public question_tag!: number
 	public question_unit!: number
-	public form_type_value!: string | null
+	public form_type_value?: string | null
 	public delete_status!: boolean
 	public sequence_number!: number
-	public hint!: string | null
+	public hint?: string | null
 }
 
 export default (sequelize: Sequelize): typeof DailyRecordQuestion => {
 	DailyRecordQuestion.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -82,9 +80,9 @@ export default (sequelize: Sequelize): typeof DailyRecordQuestion => {
 				allowNull: false,
 			},
 			date: {
-				type: DataTypes.BOOLEAN,
+				type: DataTypes.TINYINT,
 				allowNull: false,
-				defaultValue: false,
+				defaultValue: 0,
 			},
 			question_tag: {
 				type: DataTypes.INTEGER,
@@ -95,13 +93,13 @@ export default (sequelize: Sequelize): typeof DailyRecordQuestion => {
 				allowNull: false,
 			},
 			form_type_value: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			delete_status: {
-				type: DataTypes.BOOLEAN,
+				type: DataTypes.TINYINT,
 				allowNull: false,
-				defaultValue: false,
+				defaultValue: 0,
 			},
 			sequence_number: {
 				type: DataTypes.INTEGER,
@@ -111,16 +109,6 @@ export default (sequelize: Sequelize): typeof DailyRecordQuestion => {
 				type: DataTypes.TEXT,
 				allowNull: true,
 			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
 		},
 		{
 			sequelize,
@@ -128,34 +116,10 @@ export default (sequelize: Sequelize): typeof DailyRecordQuestion => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
-
-	// Associations
-	DailyRecordQuestion.belongsTo(sequelize.models.Category, {
-		foreignKey: 'category_id',
-		as: 'Category',
-	})
-	DailyRecordQuestion.belongsTo(sequelize.models.Subcategory, {
-		foreignKey: 'sub_category_id',
-		as: 'Subcategory',
-	})
-	DailyRecordQuestion.belongsTo(sequelize.models.ValidationRule, {
-		foreignKey: 'validation_rule_id',
-		as: 'ValidationRule',
-	})
-	DailyRecordQuestion.belongsTo(sequelize.models.FormType, {
-		foreignKey: 'form_type_id',
-		as: 'FormType',
-	})
-	DailyRecordQuestion.belongsTo(sequelize.models.QuestionUnit, {
-		foreignKey: 'question_unit',
-		as: 'QuestionUnit',
-	})
-	DailyRecordQuestion.belongsTo(sequelize.models.QuestionTag, {
-		foreignKey: 'question_tag',
-		as: 'QuestionTag',
-	})
 
 	return DailyRecordQuestion
 }

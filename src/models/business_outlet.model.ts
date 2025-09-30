@@ -4,9 +4,9 @@ export interface BusinessOutletAttributes {
 	id?: number
 	business_name: string
 	business_address: string
-	assign_to?: number
-	created_at?: Date
-	updated_at?: Date
+	assign_to: number
+	created_at?: Date | null
+	updated_at?: Date | null
 	deleted_at?: Date | null
 }
 
@@ -15,7 +15,7 @@ export class BusinessOutlet
 		BusinessOutletAttributes,
 		Optional<
 			BusinessOutletAttributes,
-			'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'assign_to'
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
 		>
 	>
 	implements BusinessOutletAttributes
@@ -23,9 +23,9 @@ export class BusinessOutlet
 	public id!: number
 	public business_name!: string
 	public business_address!: string
-	public assign_to?: number
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public assign_to!: number
+	public readonly created_at!: Date | null
+	public readonly updated_at!: Date | null
 	public readonly deleted_at!: Date | null
 }
 
@@ -33,33 +33,21 @@ export default (sequelize: Sequelize): typeof BusinessOutlet => {
 	BusinessOutlet.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
 			business_name: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 				unique: true,
 			},
 			business_address: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			assign_to: {
 				type: DataTypes.INTEGER,
-				allowNull: true,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-			},
-			deleted_at: {
-				type: DataTypes.DATE,
 				allowNull: true,
 			},
 		},
@@ -71,6 +59,8 @@ export default (sequelize: Sequelize): typeof BusinessOutlet => {
 			updatedAt: 'updated_at',
 			paranoid: true,
 			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return BusinessOutlet

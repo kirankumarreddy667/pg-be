@@ -5,19 +5,23 @@ export const createVaccinationDetailSchema = Joi.object({
 		.items(Joi.number().integer())
 		.required()
 		.messages({
-			'any.required': 'Vaccination type IDs are required',
-			'array.base': 'Vaccination type IDs must be an array',
+			'any.required': 'The vaccination type ids field is required.',
+			'array.base': 'The vaccination type ids field is invalid.',
 		}),
 	expense: Joi.number().required().messages({
-		'any.required': 'Expense is required',
-		'number.base': 'Expense must be a number',
+		'any.required': 'The expense field is required.',
+		'number.base': 'The expense field is invalid.',
 	}),
-	record_date: Joi.date().required().messages({
-		'any.required': 'Record date is required',
-		'date.base': 'Record date must be a valid date',
-	}),
+	record_date: Joi.string()
+		.regex(/^\d{4}-\d{2}-\d{2}$/)
+		.required()
+		.messages({
+			'string.pattern.base': 'Record date must be in YYYY-MM-DD format',
+			'any.required': 'The record date field is required.',
+		}),
+
 	animal_numbers: Joi.array().items(Joi.string()).required().messages({
-		'any.required': 'Animal numbers are required',
-		'array.base': 'Animal numbers must be an array',
+		'any.required': 'The animal numbers field is required.',
+		'array.base': 'The animal numbers field is invalid.',
 	}),
 })

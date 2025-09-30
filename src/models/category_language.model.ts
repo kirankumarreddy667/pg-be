@@ -5,14 +5,18 @@ export interface CategoryLanguageAttributes {
 	category_id: number
 	language_id: number
 	category_language_name: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class CategoryLanguage
 	extends Model<
 		CategoryLanguageAttributes,
-		Optional<CategoryLanguageAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			CategoryLanguageAttributes,
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
+		>
 	>
 	implements CategoryLanguageAttributes
 {
@@ -20,15 +24,16 @@ export class CategoryLanguage
 	public category_id!: number
 	public language_id!: number
 	public category_language_name!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof CategoryLanguage => {
 	CategoryLanguage.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -44,14 +49,6 @@ export default (sequelize: Sequelize): typeof CategoryLanguage => {
 				type: DataTypes.TEXT,
 				allowNull: false,
 			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-			},
 		},
 		{
 			sequelize,
@@ -59,12 +56,10 @@ export default (sequelize: Sequelize): typeof CategoryLanguage => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
-			indexes: [
-				{
-					unique: true,
-					fields: ['category_id', 'language_id'],
-				},
-			],
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return CategoryLanguage

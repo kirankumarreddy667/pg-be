@@ -4,8 +4,8 @@ import { wrapAsync } from '@/utils/asyncHandler'
 import { authenticate, authorize } from '@/middlewares/auth.middleware'
 import { validateRequest } from '@/middlewares/validateRequest'
 import {
-	categoryLanguageSchema,
-	updateCategoryLanguageSchema,
+  categoryLanguageSchema,
+  updateCategoryLanguageSchema,
 } from '@/validations/category_language.validation'
 
 /**
@@ -14,6 +14,8 @@ import {
  *   name: CategoryLanguage
  *   description: Category language management endpoints
  */
+
+const categoryLanguageRouter: ExpressRouter = Router()
 
 /**
  * @swagger
@@ -40,28 +42,58 @@ import {
  *               - category_id
  *               - language_id
  *               - category_language_name
+ *           example:
+ *             category_id: 2
+ *             language_id: 1
+ *             category_language_name: "Breeding Details"
  *     responses:
- *       201:
+ *       200:
  *         description: Category language added successfully
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       422:
- *         description: Validation error
+ *             example:
+ *               data: []
+ *               message: "success"
+ *               status: 200
+ *       404:
+ *         description: Category or Language not found
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               data: []
+ *               message: "Category not found."
+ *               status: 404
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Unauthorized"
+ *               status: 401
+ *       422:
+ *         description: Validation error (duplicate translation)
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "The given data was invalid."
+ *               errors:
+ *                 category_id: ["This category already has a translation in this language."]
+ *               status: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Internal Server Error"
+ *               status: 500
  */
-const categoryLanguageRouter: ExpressRouter = Router()
-
 categoryLanguageRouter.post(
-	'/add_category_in_other_language',
-	authenticate,
-	wrapAsync(authorize(['SuperAdmin'])),
-	validateRequest(categoryLanguageSchema),
-	wrapAsync(CategoryLanguageController.add),
+  '/add_category_in_other_language',
+  authenticate,
+  wrapAsync(authorize(['SuperAdmin'])),
+  validateRequest(categoryLanguageSchema),
+  wrapAsync(CategoryLanguageController.add),
 )
 
 /**
@@ -78,25 +110,50 @@ categoryLanguageRouter.post(
  *         schema:
  *           type: integer
  *         required: true
- *         description: Language ID
  *     responses:
  *       200:
  *         description: List of categories by language
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               data:
+ *                 - category_id: 2
+ *                   category_language_name: "Breeding Details"
+ *                   category_name: "Breeding Details"
+ *                   category_language_id: 2
+ *                   created_at: "2018-11-02 11:43:05"
+ *                   updated_at: "2018-11-02 11:43:05"
+ *                   deleted_at: null
+ *               message: "success"
+ *               status: 200
  *       401:
- *         description: Unauthorized
+ *         description : Unauthorized
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               message: "Unauthorized"
+ *               data: []
+ *               status: 401
+ *       404:
+ *         description: Language not found
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Not found."
+ *               status: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Internal Server Error"
+ *               status: 500
  */
 categoryLanguageRouter.get(
-	'/all_category_by_language/:language_id',
-	authenticate,
-	wrapAsync(CategoryLanguageController.getAll),
+  '/all_category_by_language/:language_id',
+  authenticate,
+  wrapAsync(CategoryLanguageController.getAll),
 )
 
 /**
@@ -113,31 +170,55 @@ categoryLanguageRouter.get(
  *         schema:
  *           type: integer
  *         required: true
- *         description: Category ID
  *       - in: path
  *         name: language_id
  *         schema:
  *           type: integer
  *         required: true
- *         description: Language ID
  *     responses:
  *       200:
  *         description: Category details by language
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       404:
- *         description: Category language not found
+ *             example:
+ *               data:
+ *                 category_id: 2
+ *                 category_language_name: "Breeding Details"
+ *                 category_name: null
+ *                 created_at: "2018-11-02 11:43:05"
+ *                 updated_at: "2018-11-02 11:43:05"
+ *                 deleted_at: null
+ *               message: "success"
+ *               status: 200
+ *       401:
+ *         description: Unauthorized
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               message: "Unauthorized"
+ *               data: []
+ *               status: 401
+ *    
+ *       404:
+ *         description: Category or Language not found
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: []
+ *               message: "Not found."
+ *               status: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Internal Server Error"
+ *               status: 500
  */
 categoryLanguageRouter.get(
-	'/get_category_details_by_language/:category_id/:language_id',
-	authenticate,
-	wrapAsync(CategoryLanguageController.getById),
+  '/get_category_details_by_language/:category_id/:language_id',
+  authenticate,
+  wrapAsync(CategoryLanguageController.getById),
 )
 
 /**
@@ -174,21 +255,49 @@ categoryLanguageRouter.get(
  *         description: Category language updated successfully
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               data: []
+ *               message: "success"
+ *               status: 200
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *            application/json:
+ *              example:
+ *                message: "Unauthorized"
+ *                data: []
+ *                status: 401
  *       404:
  *         description: Category language not found
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/FailureResponse'
+ *             example:
+ *               data: []
+ *               message: "Not found."
+ *               status: 404
+ *       422:
+ *         description: Validation error (duplicate name)
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "The given data was invalid."
+ *               errors:
+ *                 category_language_name: ["This name already exists for this language."]
+ *               status: 422
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Internal Server Error"
+ *               status: 500
  */
 categoryLanguageRouter.put(
-	'/update_category_in_other_language/:id',
-	authenticate,
-	wrapAsync(authorize(['SuperAdmin'])),
-	validateRequest(updateCategoryLanguageSchema),
-	wrapAsync(CategoryLanguageController.update),
+  '/update_category_in_other_language/:id',
+  authenticate,
+  wrapAsync(authorize(['SuperAdmin'])),
+  validateRequest(updateCategoryLanguageSchema),
+  wrapAsync(CategoryLanguageController.update),
 )
 
 export default categoryLanguageRouter

@@ -1,0 +1,17 @@
+import { QueryInterface } from 'sequelize'
+
+module.exports = {
+	up: async (queryInterface: QueryInterface) => {
+		await queryInterface.sequelize.query(`
+      ALTER TABLE \`user_payment_history\`
+      ADD COLUMN \`offer_id\` int DEFAULT NULL AFTER \`updated_at\`;
+    `)
+	},
+
+	down: async (queryInterface: QueryInterface) => {
+		await queryInterface.sequelize.query(`
+      ALTER TABLE \`user_payment_history\`
+      DROP COLUMN \`offer_id\`;
+    `)
+	},
+}

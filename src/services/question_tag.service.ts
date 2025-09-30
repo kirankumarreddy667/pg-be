@@ -3,13 +3,11 @@ import { QuestionTag } from '@/models/question_tag.model'
 
 export class QuestionTagService {
 	static async getAll(): Promise<QuestionTag[]> {
-		return await db.QuestionTag.findAll()
+		return await db.QuestionTag.findAll({ where: { deleted_at: null } })
 	}
 
-	static async create(data: {
-		name: string
-		description?: string | null
-	}): Promise<QuestionTag> {
-		return await db.QuestionTag.create(data)
+	static async create(tags: string[]): Promise<QuestionTag[]> {
+		if (tags.length === 0) return []
+		return await db.QuestionTag.bulkCreate(tags.map((tag) => ({ name: tag })))
 	}
 }

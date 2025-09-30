@@ -6,8 +6,9 @@ export interface DailyRecordQuestionAnswerAttributes {
 	user_id: number
 	answer: string
 	answer_date: Date
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class DailyRecordQuestionAnswer
@@ -15,7 +16,7 @@ export class DailyRecordQuestionAnswer
 		DailyRecordQuestionAnswerAttributes,
 		Optional<
 			DailyRecordQuestionAnswerAttributes,
-			'id' | 'created_at' | 'updated_at'
+			'id' | 'created_at' | 'updated_at' | 'deleted_at'
 		>
 	>
 	implements DailyRecordQuestionAnswerAttributes
@@ -25,15 +26,16 @@ export class DailyRecordQuestionAnswer
 	public user_id!: number
 	public answer!: string
 	public answer_date!: Date
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof DailyRecordQuestionAnswer => {
 	DailyRecordQuestionAnswer.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 			},
@@ -52,15 +54,6 @@ export default (sequelize: Sequelize): typeof DailyRecordQuestionAnswer => {
 			answer_date: {
 				type: DataTypes.DATE,
 				allowNull: false,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
 				defaultValue: DataTypes.NOW,
 			},
 		},
@@ -70,6 +63,15 @@ export default (sequelize: Sequelize): typeof DailyRecordQuestionAnswer => {
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
+			paranoid: true,
+			indexes: [
+				{
+					fields: ['user_id'],
+				},
+			],
 		},
 	)
 	return DailyRecordQuestionAnswer

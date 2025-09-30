@@ -34,8 +34,8 @@ export class CouponController {
 			const result = await CouponService.createFromCSV(req.file)
 
 			if (result) {
-				RESPONSE.SuccessResponse(res, 201, {
-					message: 'Coupons created successfully',
+				RESPONSE.SuccessResponse(res, 200, {
+					message: 'Success',
 				})
 			} else {
 				RESPONSE.FailureResponse(res, 500, {
@@ -58,12 +58,12 @@ export class CouponController {
 
 			if (coupon) {
 				RESPONSE.SuccessResponse(res, 200, {
-					message: 'Valid coupon',
+					message: 'Valid Coupon',
 					data: coupon,
 				})
 			} else {
-				RESPONSE.FailureResponse(res, 404, {
-					message: 'Invalid coupon',
+				RESPONSE.FailureResponse(res, 400, {
+					message: 'Invalid Coupon',
 				})
 			}
 		} catch (error) {

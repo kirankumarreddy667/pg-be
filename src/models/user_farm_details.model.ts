@@ -10,8 +10,9 @@ export interface UserFarmDetailsAttributes {
 	silage?: string | null
 	azzola?: string | null
 	hydroponics?: string | null
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class UserFarmDetails
@@ -27,6 +28,7 @@ export class UserFarmDetails
 			| 'hydroponics'
 			| 'created_at'
 			| 'updated_at'
+			| 'deleted_at'
 		>
 	>
 	implements UserFarmDetailsAttributes
@@ -40,15 +42,16 @@ export class UserFarmDetails
 	public silage?: string | null
 	public azzola?: string | null
 	public hydroponics?: string | null
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at?: Date | null
+	public updated_at?: Date | null
+	public deleted_at?: Date | null
 }
 
 export default (sequelize: Sequelize): typeof UserFarmDetails => {
 	UserFarmDetails.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 				allowNull: false,
@@ -58,11 +61,11 @@ export default (sequelize: Sequelize): typeof UserFarmDetails => {
 				allowNull: false,
 			},
 			farm_name: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			farm_type: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			farm_type_id: {
@@ -70,40 +73,32 @@ export default (sequelize: Sequelize): typeof UserFarmDetails => {
 				allowNull: true,
 			},
 			loose_housing: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			silage: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			azzola: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			hydroponics: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
 			},
 		},
 		{
 			sequelize,
-			modelName: 'UserFarmDetails',
 			tableName: 'user_farm_details',
-			underscored: true,
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return UserFarmDetails

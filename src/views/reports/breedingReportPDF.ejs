@@ -1,79 +1,110 @@
 <!DOCTYPE html>
-
 <html>
-
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-<meta charset="UTF-8">
-<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-<style>
-
-table,
-table th,
-table td{
-	text-align: center;
-}
-
-</style>
-<center><h1>Breeding Report</h1></center> <br>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+        table,
+        table th,
+        table td {
+            text-align: center;
+        }
+        
+        .report-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .no-data {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
 </head>
-
 <body>
-<div class="container">
-	<h4>Pregnant Animals</h4>
-	<table class="table table-bordered">
-		<thead>
-			<tr>
-				<th>Date Of AI</th>
-				<th>Animal Number</th>
-				<th>Date Of Pregnancy Detection</th>
-				<th>Bull No.</th>
-				<th>Expected Month Of Delivery</th>
-				<th>Status (Lactating/Dry)</th>
-			</tr>
-		</thead>
-		<tbody>
-			@foreach ($responseData['pregnant'] as $value)
-			<tr>
-				<td>{{ $value['date_of_AI'] }}</td>
-				<td>{{ $value['animal_num'] }}</td>
-				<td>{{ $value['date_of_pregnancy_detection'] }}</td>
-				<td>{{ $value['bull_no'] }}</td>
-				<td>{{ $value['expected_month_of_delevry'] }}</td>
-				<td>{{ $value['status_milking_dry'] }}</td>
+    <div class="container">
+        <div class="report-title">
+            <h1>Breeding Report</h1>
+        </div>
 
-			</tr>
-			@endforeach
-		</tbody>
-	</table>
+        <!-- Pregnant Animals Section -->
+        <h4 class="section-title">Pregnant Animals</h4>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Date Of AI</th>
+                    <th>Animal Number</th>
+                    <th>Date Of Pregnancy Detection</th>
+                    <th>Bull No.</th>
+                    <th>Expected Month Of Delivery</th>
+                    <th>Status (Lactating/Dry)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (responseData && responseData.pregnant && Object.keys(responseData.pregnant).length > 0) { %>
+                    <% Object.keys(responseData.pregnant).forEach(function(animalName) { %>
+                        <% responseData.pregnant[animalName].forEach(function(animal) { %>
+                            <tr>
+                                <td><%= animal.date_of_AI || 'N/A' %></td>
+                                <td><%= animal.animal_num || 'N/A' %></td>
+                                <td><%= animal.date_of_pregnancy_detection || 'N/A' %></td>
+                                <td><%= animal.bull_no || 'N/A' %></td>
+                                <td><%= animal.expected_month_of_delivery || 'N/A' %></td>
+                                <td><%= animal.status_milking_dry || 'N/A' %></td>
+                            </tr>
+                        <% }); %>
+                    <% }); %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="6" class="no-data">No pregnant animals found</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
 
-    <h4>Non Pregnant Animals</h4>
-	<table class="table table-bordered">
-		<thead>
-			<tr>
-				<th>Animal Number</th>
-				<th>Date Of Last Delivery</th>
-				<th>Date Of Last AI</th>
-				<th>Bull No.</th>
-				<th>Date Of Pregnancy Detection</th>
-				<th>Status (Lactating/Dry)</th>
-			</tr>
-		</thead>
-		<tbody>
-			@foreach ($responseData['non_pregnant'] as $value)
-			<tr>
-				<td>{{ $value['animal_num'] }}</td>
-				<td>{{ $value['date_of_last_delivery'] }}</td>
-				<td>{{ $value['date_of_last_AI'] }}</td>
-				<td>{{ $value['bull_no'] }}</td>
-				<td>{{ $value['date_of_pregnancy_detection'] }}</td>
-				<td>{{ $value['status_milking_dry'] }}</td>
-			</tr>
-			@endforeach
-		</tbody>
-	</table>
-</div>
-
+        <!-- Non Pregnant Animals Section -->
+        <h4 class="section-title">Non Pregnant Animals</h4>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Animal Number</th>
+                    <th>Date Of Last Delivery</th>
+                    <th>Date Of Last AI</th>
+                    <th>Bull No.</th>
+                    <th>Date Of Pregnancy Detection</th>
+                    <th>Status (Lactating/Dry)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (responseData && responseData.non_pregnant && Object.keys(responseData.non_pregnant).length > 0) { %>
+                    <% Object.keys(responseData.non_pregnant).forEach(function(animalName) { %>
+                        <% responseData.non_pregnant[animalName].forEach(function(animal) { %>
+                            <tr>
+                                <td><%= animal.animal_num || 'N/A' %></td>
+                                <td><%= animal.date_of_last_delivery || 'N/A' %></td>
+                                <td><%= animal.date_of_last_AI || 'N/A' %></td>
+                                <td><%= animal.bull_no || 'N/A' %></td>
+                                <td><%= animal.date_of_pregnancy_detection || 'N/A' %></td>
+                                <td><%= animal.status_milking_dry || 'N/A' %></td>
+                            </tr>
+                        <% }); %>
+                    <% }); %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="6" class="no-data">No non-pregnant animals found</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
 </body>
-
 </html>

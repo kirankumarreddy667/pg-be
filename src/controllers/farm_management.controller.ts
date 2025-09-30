@@ -2,6 +2,8 @@ import { RequestHandler } from 'express'
 import RESPONSE from '@/utils/response'
 import { User } from '@/models/user.model'
 import { FarmManagementService } from '@/services/farm_management.service'
+import { Transaction } from 'sequelize'
+import db from '@/config/database'
 
 export interface FarmDetails {
 	user_id?: number
@@ -64,10 +66,12 @@ export class FarmManagementController {
 		next,
 	) => {
 		try {
+			const transaction: Transaction = await db.sequelize.transaction()
 			const userId = Number(req.params.id)
 			const result = await FarmManagementService.updateFarmDetails(
 				userId,
 				req.body as FarmDetails,
+				transaction,
 			)
 			RESPONSE.SuccessResponse(res, result.status, {
 				message: result.message,
@@ -181,7 +185,7 @@ export class FarmManagementController {
 		next,
 	) => {
 		try {
-			const userId = Number(req.params.id)
+			const userId = Number(req.params.user_id)
 			const result = await FarmManagementService.investmentDetailsReport(userId)
 			RESPONSE.SuccessResponse(res, result.status, {
 				message: result.message,

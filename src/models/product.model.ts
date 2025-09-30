@@ -1,7 +1,7 @@
 import { DataTypes, Model, Sequelize, Optional } from 'sequelize'
 
 export interface ProductAttributes {
-	id: number
+	id?: number
 	product_category_id: number
 	language: number
 	product_title: string
@@ -12,14 +12,26 @@ export interface ProductAttributes {
 	product_delivery_to?: string | null
 	product_specifications?: string | null
 	thumbnail: string
-	created_at?: Date
-	updated_at?: Date
+	created_at?: Date | null
+	updated_at?: Date | null
+	deleted_at?: Date | null
 }
 
 export class Product
 	extends Model<
 		ProductAttributes,
-		Optional<ProductAttributes, 'id' | 'created_at' | 'updated_at'>
+		Optional<
+			ProductAttributes,
+			| 'id'
+			| 'product_amount'
+			| 'product_description'
+			| 'product_variants'
+			| 'product_delivery_to'
+			| 'product_specifications'
+			| 'created_at'
+			| 'updated_at'
+			| 'deleted_at'
+		>
 	>
 	implements ProductAttributes
 {
@@ -34,15 +46,16 @@ export class Product
 	public product_delivery_to?: string | null
 	public product_specifications?: string | null
 	public thumbnail!: string
-	public readonly created_at!: Date
-	public readonly updated_at!: Date
+	public created_at!: Date | null
+	public updated_at!: Date | null
+	public deleted_at!: Date | null
 }
 
 export default (sequelize: Sequelize): typeof Product => {
 	Product.init(
 		{
 			id: {
-				type: DataTypes.INTEGER,
+				type: DataTypes.INTEGER.UNSIGNED,
 				autoIncrement: true,
 				primaryKey: true,
 				allowNull: false,
@@ -56,7 +69,7 @@ export default (sequelize: Sequelize): typeof Product => {
 				allowNull: false,
 			},
 			product_title: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
 			},
 			product_images: {
@@ -68,7 +81,7 @@ export default (sequelize: Sequelize): typeof Product => {
 				allowNull: true,
 			},
 			product_description: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			product_variants: {
@@ -76,7 +89,7 @@ export default (sequelize: Sequelize): typeof Product => {
 				allowNull: true,
 			},
 			product_delivery_to: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: true,
 			},
 			product_specifications: {
@@ -84,28 +97,20 @@ export default (sequelize: Sequelize): typeof Product => {
 				allowNull: true,
 			},
 			thumbnail: {
-				type: DataTypes.STRING,
+				type: DataTypes.STRING(191),
 				allowNull: false,
-			},
-			created_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				type: DataTypes.DATE,
-				allowNull: false,
-				defaultValue: DataTypes.NOW,
 			},
 		},
 		{
 			sequelize,
-			modelName: 'Product',
 			tableName: 'products',
-			underscored: true,
 			timestamps: true,
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
+			paranoid: true,
+			deletedAt: 'deleted_at',
+			charset: 'utf8mb4',
+			collate: 'utf8mb4_unicode_ci',
 		},
 	)
 	return Product

@@ -67,19 +67,6 @@ export class SummernoteService {
 		}
 	}
 
-	public static async getLatest(): Promise<Summernote | null> {
-		try {
-			const article = await db.Summernote.findOne({
-				order: [['created_at', 'DESC']],
-			})
-			return article
-		} catch (error) {
-			throw new Error(
-				`Failed to fetch latest summernote article: ${error instanceof Error ? error.message : String(error)}`,
-			)
-		}
-	}
-
 	public static async getByCategoryAndLanguage(
 		categoryId: number,
 		languageId: number,
@@ -95,8 +82,11 @@ export class SummernoteService {
 	> {
 		try {
 			const articles = await db.Summernote.findAll({
-				where: { article_category_id: categoryId, language_id: languageId },
-				order: [['created_at', 'DESC']],
+				where: {
+					article_category_id: categoryId,
+					language_id: languageId,
+					deleted_at: null,
+				},
 			})
 
 			if (articles.length === 0) {
@@ -104,19 +94,19 @@ export class SummernoteService {
 			}
 			const resData = articles.map((value) => {
 				const abc = JSON.parse(
-					value.article_images || '[]',
+					value.get('article_images') || '[]',
 				) as unknown as ArticleImage[]
 				const img = abc.map((value1) => ({
-					img: `/Images/${value1.img}`,
+					img: `${process.env.APP_URL}/Images/${value1.img}`,
 					name: value1.name,
 				}))
 				return {
-					article_id: value.id,
-					article_thumb: `/Images/${value.article_thumb}`,
-					article_header: value.article_header,
-					article_summary: value.article_summary,
+					article_id: value.get('id'),
+					article_thumb: `${process.env.APP_URL}/Images/${value.get('article_thumb')}`,
+					article_header: value.get('article_header'),
+					article_summary: value.get('article_summary'),
 					article_images: img,
-					article_body: value.content,
+					article_body: value.get('content'),
 				}
 			})
 			return resData
@@ -141,7 +131,7 @@ export class SummernoteService {
 	> {
 		try {
 			const articles = await db.Summernote.findAll({
-				order: [['created_at', 'DESC']],
+				where: { deleted_at: null },
 			})
 
 			if (articles.length === 0) {
@@ -149,21 +139,21 @@ export class SummernoteService {
 			}
 			const resData = articles.map((value) => {
 				const abc = JSON.parse(
-					value.article_images || '[]',
+					value.get('article_images') || '[]',
 				) as unknown as ArticleImage[]
 				const img = abc.map((value1) => ({
-					img: `/Images/${value1.img}`,
+					img: `${process.env.APP_URL}/Images/${value1.img}`,
 					name: value1.name,
 				}))
 				return {
-					article_id: value.id,
-					article_thumb: `/Images/${value.article_thumb}`,
-					article_header: value.article_header,
-					article_summary: value.article_summary,
+					article_id: value.get('id'),
+					article_thumb: `${process.env.APP_URL}/Images/${value.get('article_thumb')}`,
+					article_header: value.get('article_header'),
+					article_summary: value.get('article_summary'),
 					article_images: img,
-					article_body: value.content,
-					article_category_id: value.article_category_id,
-					language_id: value.language_id,
+					article_body: value.get('content'),
+					article_category_id: value.get('article_category_id'),
+					language_id: value.get('language_id'),
 				}
 			})
 			return resData

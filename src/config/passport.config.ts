@@ -18,21 +18,19 @@ passport.use(
 				})
 				if (!user) {
 					user = await db.User.create({
-						googleId: profile.id,
+						google_id: profile.id,
 						name: profile.displayName,
 						email: profile.emails?.[0]?.value || '',
 						provider: ['google'],
 						avatar: profile.photos?.[0]?.value,
-						emailVerified: true,
 						otp_status: false,
 						phone_number: '',
 					})
 				} else {
 					await db.User.update(
 						{
-							googleId: profile.id,
+							google_id: profile.id,
 							avatar: profile.photos?.[0]?.value,
-							emailVerified: true,
 							provider: ['google'],
 						},
 						{ where: { id: user.id } },
@@ -60,21 +58,19 @@ passport.use(
 				const email = profile.emails?.[0]?.value || ''
 				if (!user) {
 					user = await db.User.create({
-						facebookId: profile.id,
+						facebook_id: profile.id,
 						name: profile.displayName || '',
 						email,
 						provider: ['facebook'],
 						avatar: profile.photos?.[0]?.value,
-						emailVerified: true,
 						otp_status: false,
 						phone_number: email,
 					})
 				} else {
 					await db.User.update(
 						{
-							facebookId: profile.id,
+							facebook_id: profile.id,
 							avatar: profile.photos?.[0]?.value,
-							emailVerified: true,
 							provider: ['facebook'],
 						},
 						{ where: { id: user.id } },
