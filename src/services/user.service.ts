@@ -3,7 +3,7 @@ import db from '@/config/database'
 import type { User } from '@/models/user.model'
 import type { Role } from '@/models/role.model'
 import type { RoleUser } from '@/models/role_user.model'
-import type { pagination, UserWithLanguage } from '@/types'
+import type { Pagination, UserWithLanguage } from '@/types'
 import { Transaction, QueryTypes } from 'sequelize'
 import { ValidationError, ValidationRequestError } from '@/utils/errors'
 import moment from 'moment-timezone'
@@ -81,7 +81,7 @@ export interface FilteredUser {
 	language_name: string
 }
 
-interface user {
+interface UserAttributes {
 	id: number
 	name: string
 	email: string
@@ -165,7 +165,7 @@ export class UserService {
 		page: number,
 		limit: number,
 		totalItems: number,
-	): pagination {
+	): Pagination {
 		const totalPages = Math.ceil(totalItems / limit)
 		const hasNextPage = page < totalPages
 		const hasPrevPage = page > 1
@@ -272,7 +272,7 @@ export class UserService {
 			offset,
 			raw: true,
 			nest: true,
-		})) as unknown as user[]
+		})) as unknown as UserAttributes[]
 
 		const mappedUsers: UserMapped[] = users.map((user) => {
 			let expDate = user.expDate
@@ -323,7 +323,7 @@ export class UserService {
 		limit_number: number
 	}): Promise<{
 		data: FilteredUser[]
-		pagination: pagination
+		pagination: Pagination
 	}> {
 		const { page, limit, offset } = this.normalizePaginationParams(
 			page_number,
@@ -465,9 +465,12 @@ export class UserService {
 		}
 		queryParams.push(limit, offset)
 		if (type !== 'all_time' && start_date && end_date) {
-			queryParams.push(filterStartDate, filterEndDate)
-			queryParams.push(filterStartDate)
-			queryParams.push(filterEndDate)
+			queryParams.push(
+				filterStartDate,
+				filterEndDate,
+				filterStartDate,
+				filterEndDate,
+			)
 		}
 
 		const users = (await db.sequelize.query(query, {
@@ -476,7 +479,7 @@ export class UserService {
 			raw: true,
 			nest: false,
 			logging: false,
-		})) as unknown as (user & {
+		})) as unknown as (UserAttributes & {
 			language_name: string
 			latest_exp_date: string
 			daily_record_update_count: number
@@ -582,7 +585,7 @@ export class UserService {
 		limit_number: number
 	}): Promise<{
 		data: UserSortResult[]
-		pagination: pagination
+		pagination: Pagination
 	}> {
 		const status = payment_status.toLowerCase()
 		const sortBy = sort_by.toLowerCase()
@@ -629,7 +632,7 @@ export class UserService {
 		end_date?: string,
 	): Promise<{
 		data: UserSortResult[]
-		pagination: pagination
+		pagination: Pagination
 	}> {
 		let answerDateCondition = ''
 		if (type === 'all_time') {
@@ -701,7 +704,7 @@ export class UserService {
 				COUNT(DISTINCT DATE(dra.answer_date)) as answer_count
 			FROM daily_record_question_answer dra
 			INNER JOIN users u2 ON u2.id = dra.user_id
-			WHERE 1=1 ${answerDateCondition.replace(/u\./g, 'u2.')}
+			WHERE 1=1 ${answerDateCondition.replaceAll(/u\./g, 'u2.')}
 			AND deleted_at IS NULL
 			GROUP BY dra.user_id
 		) filtered_answers ON filtered_answers.user_id = u.id
@@ -713,7 +716,7 @@ export class UserService {
 
 		const users = (await db.sequelize.query(query, {
 			type: QueryTypes.SELECT,
-		})) as unknown as (user & {
+		})) as unknown as (UserAttributes & {
 			latest_exp_date: string
 			daily_record_update_count: number
 			answer_days_count: number
@@ -742,7 +745,7 @@ export class UserService {
 		end_date?: string,
 	): Promise<{
 		data: UserSortResult[]
-		pagination: pagination
+		pagination: Pagination
 	}> {
 		let answerDateCondition = ''
 		if (type === 'all_time') {
@@ -803,7 +806,7 @@ export class UserService {
 				COUNT(DISTINCT DATE(dra.answer_date)) as answer_count
 			FROM daily_record_question_answer dra
 			INNER JOIN users u2 ON u2.id = dra.user_id
-			WHERE 1=1 ${answerDateCondition.replace(/u\./g, 'u2.')}
+			WHERE 1=1 ${answerDateCondition.replaceAll(/u\./g, 'u2.')}
 			AND deleted_at IS NULL
 			GROUP BY dra.user_id
 		) filtered_answers ON filtered_answers.user_id = u.id
@@ -815,7 +818,7 @@ export class UserService {
 
 		const users = (await db.sequelize.query(query, {
 			type: QueryTypes.SELECT,
-		})) as unknown as (user & {
+		})) as unknown as (UserAttributes & {
 			plan_exp_date: string
 			daily_record_update_count: number
 			answer_days_count: number
@@ -835,7 +838,7 @@ export class UserService {
 	}
 
 	private static processUsersData(
-		users: (user & {
+		users: (UserAttributes & {
 			latest_exp_date: string
 			daily_record_update_count: number
 			answer_days_count: number
@@ -854,10 +857,10 @@ export class UserService {
 				expDate = user.latest_exp_date || ''
 			}
 
-			const answer = parseInt(user.answer_days_count.toString()) || 0
+			const answer = Number.parseInt(user.answer_days_count.toString()) || 0
 
 			const calcTotalDaysAllTime = (
-				created_at: Date | string | undefined,
+				created_at: Date | string,
 				now: Date | string,
 			): number => {
 				const start = moment.tz(created_at, 'Asia/Kolkata')
@@ -930,7 +933,7 @@ export class UserService {
 				payment_status: String(user.payment_status || ''),
 				expDate: String(expDate),
 				Daily_record_update_count: Number(
-					parseInt(user.daily_record_update_count.toString()) || 0,
+					Number.parseInt(user.daily_record_update_count.toString()) || 0,
 				),
 				registration_date: user.created_at || null,
 				total_days: Number(finalTotalDays),
@@ -941,7 +944,7 @@ export class UserService {
 	}
 
 	private static processUsersDataWithExpDate(
-		users: (user & {
+		users: (UserAttributes & {
 			plan_exp_date: string
 			daily_record_update_count: number
 			answer_days_count: number
@@ -953,10 +956,10 @@ export class UserService {
 		const now = new Date()
 
 		return users.map((user): UserSortResult => {
-			const answer = parseInt(user.answer_days_count.toString()) || 0
+			const answer = Number.parseInt(user.answer_days_count.toString()) || 0
 
 			const calcTotalDaysAllTime = (
-				created_at: Date | string | undefined,
+				created_at: Date | string,
 				now: Date | string,
 			): number => {
 				const start = moment.tz(created_at, 'Asia/Kolkata')
@@ -1027,7 +1030,7 @@ export class UserService {
 				payment_status: String(user.payment_status || ''),
 				expDate: String(user.plan_exp_date || ''),
 				Daily_record_update_count: Number(
-					parseInt(user.daily_record_update_count.toString()) || 0,
+					Number.parseInt(user.daily_record_update_count.toString()) || 0,
 				),
 				registration_date: user.created_at || null,
 				total_days: Number(finalTotalDays),
@@ -1093,7 +1096,7 @@ export class UserService {
 		}[]
 
 		const calcTotalDaysAllTime = (
-			created_at: Date | string | undefined,
+			created_at: Date | string,
 			now: Date,
 		): number => {
 			if (!created_at) return 1
@@ -1135,7 +1138,7 @@ export class UserService {
 		return users.map((user) => {
 			const registration_date = user.registration_date ?? ''
 			let total_days = 0
-			const answer_days_count = parseInt(user.answer_days_count) || 0
+			const answer_days_count = Number.parseInt(user.answer_days_count) || 0
 
 			if (type === 'all_time') {
 				total_days = calcTotalDaysAllTime(user.registration_date, now)

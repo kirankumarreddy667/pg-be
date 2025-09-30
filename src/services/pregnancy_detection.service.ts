@@ -81,30 +81,34 @@ export class PregnancyDetectionService {
 			if (value.question_id === 56 && value.answer.toLowerCase() === 'yes') {
 				updateBasic = true
 				pregnancy_detected_status = value.answer
-				answers.push({
-					question_id: 8,
-					answer: 'Yes',
-					user_id,
-					animal_id,
-					created_at: date,
-					updated_at: date,
-					animal_number,
-					logic_value: null,
-					status: false,
-					id: 0,
-				})
-				answers.push({
-					question_id: 9,
-					answer: lastLactation?.answer ?? '',
-					user_id,
-					animal_id,
-					created_at: date,
-					updated_at: date,
-					animal_number,
-					logic_value: null,
-					status: false,
-					id: 0,
-				})
+				answers.push(
+					...[
+						{
+							question_id: 8,
+							answer: 'Yes',
+							user_id,
+							animal_id,
+							created_at: date,
+							updated_at: date,
+							animal_number,
+							logic_value: null,
+							status: false,
+							id: 0,
+						},
+						{
+							question_id: 9,
+							answer: lastLactation?.answer ?? '',
+							user_id,
+							animal_id,
+							created_at: date,
+							updated_at: date,
+							animal_number,
+							logic_value: null,
+							status: false,
+							id: 0,
+						},
+					],
+				)
 			}
 			if (value.question_id === 57) {
 				date_of_pregnancy_detected = value.answer

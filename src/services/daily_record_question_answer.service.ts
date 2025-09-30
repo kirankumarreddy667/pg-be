@@ -166,7 +166,7 @@ export class DailyRecordQuestionAnswerService {
 		const cases = answers
 			.map(
 				(answer) =>
-					`WHEN id = ${answer.daily_record_answer_id} THEN '${JSON.stringify(answer.answer).replace(/'/g, "''")}'`,
+					`WHEN id = ${answer.daily_record_answer_id} THEN '${JSON.stringify(answer.answer).replaceAll(/'/g, "''")}'`,
 			)
 			.join(' ')
 

@@ -193,30 +193,30 @@ export class DeliveryRecordService {
 				status: false,
 			}
 		})
-		// Add milking state
-		answers.push({
-			question_id: 9,
-			answer: 'Yes',
-			user_id: userId,
-			animal_id: data.animal_id,
-			created_at: now,
-			updated_at: now,
-			animal_number,
-			logic_value: null,
-			status: false,
-		})
-		// Add pregnancy state
-		answers.push({
-			question_id: 8,
-			answer: 'No',
-			user_id: userId,
-			animal_id: data.animal_id,
-			created_at: now,
-			updated_at: now,
-			animal_number,
-			logic_value: null,
-			status: false,
-		})
+		answers.push(
+			{
+				question_id: 9,
+				answer: 'Yes',
+				user_id: userId,
+				animal_id: data.animal_id,
+				created_at: now,
+				updated_at: now,
+				animal_number,
+				logic_value: null,
+				status: false,
+			},
+			{
+				question_id: 8,
+				answer: 'No',
+				user_id: userId,
+				animal_id: data.animal_id,
+				created_at: now,
+				updated_at: now,
+				animal_number,
+				logic_value: null,
+				status: false,
+			},
+		)
 		await db.AnimalQuestionAnswer.bulkCreate(answers)
 		// Insert lactation yield
 		await db.AnimalLactationYieldHistory.create({
@@ -428,7 +428,7 @@ export class DeliveryRecordService {
 
 		// 6. Otherwise, return grouped object
 		const key = category_language_name
-			? category_language_name.toLowerCase().replace(/ /g, '_')
+			? category_language_name.toLowerCase().replaceAll(/ /g, '_')
 			: 'unknown'
 
 		return { [key]: attachedCalfWithDates }

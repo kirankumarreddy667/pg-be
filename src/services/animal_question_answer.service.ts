@@ -259,13 +259,13 @@ export class AnimalQuestionAnswerService {
 						? gestation.date
 						: new Date(gestation.date ?? answerDate),
 				pregnancy_status:
-					gestation.pregnancy_status != null
-						? String(gestation.pregnancy_status)
-						: null,
+					gestation.pregnancy_status == null
+						? null
+						: String(gestation.pregnancy_status),
 				lactating_status:
-					gestation.lactating_status != null
-						? String(gestation.lactating_status)
-						: null,
+					gestation.lactating_status == null
+						? null
+						: String(gestation.lactating_status),
 			},
 			{ transaction },
 		)
@@ -1064,86 +1064,93 @@ export class AnimalQuestionAnswerService {
 
 		for (const { type, date, dateStr } of notificationTypes) {
 			for (const daysBefore of [7, 2, 0]) {
-				// English
-				languages.push({
-					user_id: userId,
-					langauge_message:
-						type === 'pregnancy_detection'
-							? NOTIFICATION_TEMPLATES.pregnancy_detection.en(
-									dateStr,
-									animalNumber,
-								)
-							: type === 'pregnancy_update'
-								? NOTIFICATION_TEMPLATES.pregnancy_update.en(animalNumber)
-								: type === 'drying_off'
-									? NOTIFICATION_TEMPLATES.drying_off.en(animalNumber, dateStr)
-									: NOTIFICATION_TEMPLATES.delivery.en(animalNumber, dateStr),
-					heading:
-						NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
-							.en,
-					language_id: NOTIFICATION_LANGUAGES.ENGLISH,
-					animal_id: animalId,
-					animal_number: animalNumber,
-					send_notification_date: date,
-					status: 0,
-					days_before: daysBefore,
-					created_at: now,
-				})
-
-				// Hindi
-				languages.push({
-					user_id: userId,
-					langauge_message:
-						type === 'pregnancy_detection'
-							? NOTIFICATION_TEMPLATES.pregnancy_detection.hi(
-									dateStr,
-									animalNumber,
-								)
-							: type === 'pregnancy_update'
-								? NOTIFICATION_TEMPLATES.pregnancy_update.hi(
+				const languageEntries = [
+					{
+						user_id: userId,
+						langauge_message:
+							type === 'pregnancy_detection'
+								? NOTIFICATION_TEMPLATES.pregnancy_detection.en(
 										dateStr,
 										animalNumber,
 									)
-								: type === 'drying_off'
-									? NOTIFICATION_TEMPLATES.drying_off.hi(dateStr, animalNumber)
-									: NOTIFICATION_TEMPLATES.delivery.hi(dateStr, animalNumber),
-					heading:
-						NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
-							.hi,
-					language_id: NOTIFICATION_LANGUAGES.HINDI,
-					animal_id: animalId,
-					animal_number: animalNumber,
-					send_notification_date: date,
-					status: 0,
-					days_before: daysBefore,
-					created_at: now,
-				})
-
-				// Marathi
-				languages.push({
-					user_id: userId,
-					langauge_message:
-						type === 'pregnancy_detection'
-							? NOTIFICATION_TEMPLATES.pregnancy_detection.mr(
-									dateStr,
-									animalNumber,
-								)
-							: type === 'pregnancy_update'
-								? NOTIFICATION_TEMPLATES.pregnancy_update.mr(animalNumber)
-								: type === 'drying_off'
-									? NOTIFICATION_TEMPLATES.drying_off.mr(animalNumber, dateStr)
-									: NOTIFICATION_TEMPLATES.delivery.mr(dateStr, animalNumber),
-					heading:
-						NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
-							.mr,
-					language_id: NOTIFICATION_LANGUAGES.MARATHI,
-					animal_id: animalId,
-					animal_number: animalNumber,
-					send_notification_date: date,
-					status: 0,
-					days_before: daysBefore,
-					created_at: now,
-				})
+								: type === 'pregnancy_update'
+									? NOTIFICATION_TEMPLATES.pregnancy_update.en(animalNumber)
+									: type === 'drying_off'
+										? NOTIFICATION_TEMPLATES.drying_off.en(
+												animalNumber,
+												dateStr,
+											)
+										: NOTIFICATION_TEMPLATES.delivery.en(animalNumber, dateStr),
+						heading:
+							NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
+								.en,
+						language_id: NOTIFICATION_LANGUAGES.ENGLISH,
+						animal_id: animalId,
+						animal_number: animalNumber,
+						send_notification_date: date,
+						status: 0,
+						days_before: daysBefore,
+						created_at: now,
+					},
+					{
+						user_id: userId,
+						langauge_message:
+							type === 'pregnancy_detection'
+								? NOTIFICATION_TEMPLATES.pregnancy_detection.hi(
+										dateStr,
+										animalNumber,
+									)
+								: type === 'pregnancy_update'
+									? NOTIFICATION_TEMPLATES.pregnancy_update.hi(
+											dateStr,
+											animalNumber,
+										)
+									: type === 'drying_off'
+										? NOTIFICATION_TEMPLATES.drying_off.hi(
+												dateStr,
+												animalNumber,
+											)
+										: NOTIFICATION_TEMPLATES.delivery.hi(dateStr, animalNumber),
+						heading:
+							NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
+								.hi,
+						language_id: NOTIFICATION_LANGUAGES.HINDI,
+						animal_id: animalId,
+						animal_number: animalNumber,
+						send_notification_date: date,
+						status: 0,
+						days_before: daysBefore,
+						created_at: now,
+					},
+					{
+						user_id: userId,
+						langauge_message:
+							type === 'pregnancy_detection'
+								? NOTIFICATION_TEMPLATES.pregnancy_detection.mr(
+										dateStr,
+										animalNumber,
+									)
+								: type === 'pregnancy_update'
+									? NOTIFICATION_TEMPLATES.pregnancy_update.mr(animalNumber)
+									: type === 'drying_off'
+										? NOTIFICATION_TEMPLATES.drying_off.mr(
+												animalNumber,
+												dateStr,
+											)
+										: NOTIFICATION_TEMPLATES.delivery.mr(dateStr, animalNumber),
+						heading:
+							NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
+								.mr,
+						language_id: NOTIFICATION_LANGUAGES.MARATHI,
+						animal_id: animalId,
+						animal_number: animalNumber,
+						send_notification_date: date,
+						status: 0,
+						days_before: daysBefore,
+						created_at: now,
+					},
+				]
+				languages.push(...languageEntries)
 			}
 		}
 
@@ -1793,7 +1800,7 @@ export class AnimalQuestionAnswerService {
 			string,
 			Record<string, GroupedAnimalQuestionAnswer[]>
 		> = {}
-		languageQuestions.forEach((value) => {
+		for (const value of languageQuestions) {
 			const categoryName = value.category_language_name || ''
 			const subCategoryName = value.sub_category_language_name || ''
 
@@ -1823,7 +1830,7 @@ export class AnimalQuestionAnswerService {
 				animal_number: value.animal_number,
 				hint: value.language_hint,
 			})
-		})
+		}
 
 		return resData
 	}
@@ -1956,9 +1963,9 @@ export class AnimalQuestionAnswerService {
 
 		const resData: Record<string, GroupedAnimalQuestionAnswer[]> = {}
 
-		languageQuestions.forEach((value) => {
+		for (const value of languageQuestions) {
 			const categoryName = value.category_language_name || ''
-			const categoryKey = categoryName.toLowerCase().replace(/ /g, '_')
+			const categoryKey = categoryName.toLowerCase().replaceAll(/ /g, '_')
 
 			if (!resData[categoryKey]) {
 				resData[categoryKey] = []
@@ -1982,7 +1989,7 @@ export class AnimalQuestionAnswerService {
 				animal_number: value.animal_number,
 				hint: value.language_hint,
 			})
-		})
+		}
 
 		return resData
 	}

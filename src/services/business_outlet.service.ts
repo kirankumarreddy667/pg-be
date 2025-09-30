@@ -367,7 +367,7 @@ async function getFarmers(
 
 	if (data.start_date || data.end_date) {
 		userWhere.created_at = {
-			...(userWhere.created_at || {}),
+			...((userWhere.created_at as Record<string, unknown>) || {}),
 			...(data.start_date
 				? { [Op.gte as unknown as string]: new Date(data.start_date) }
 				: {}),
@@ -1361,8 +1361,6 @@ export class BusinessOutletService {
 		})
 
 		await db.UserBusinessOutlet.bulkCreate(mappingData)
-
-		return
 	}
 
 	public static async businessOutletFarmers(
@@ -1432,7 +1430,7 @@ export class BusinessOutletService {
 
 		if (start_date || end_date) {
 			userWhere.created_at = {
-				...(userWhere.created_at || {}),
+				...(userWhere.created_at as Record<string, unknown>),
 				...(start_date
 					? { [Op.gte as unknown as string]: new Date(start_date) }
 					: {}),
