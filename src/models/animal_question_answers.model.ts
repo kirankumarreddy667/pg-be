@@ -37,7 +37,9 @@ export class AnimalQuestionAnswer
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof AnimalQuestionAnswer => {
+export default function AnimalQuestionAnswerModel(
+	sequelize: Sequelize,
+): typeof AnimalQuestionAnswer {
 	AnimalQuestionAnswer.init(
 		{
 			id: {

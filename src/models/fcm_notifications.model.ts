@@ -33,7 +33,9 @@ export class FcmNotifications
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof FcmNotifications => {
+export default function FcmNotificationsModel(
+	sequelize: Sequelize,
+): typeof FcmNotifications {
 	FcmNotifications.init(
 		{
 			id: {

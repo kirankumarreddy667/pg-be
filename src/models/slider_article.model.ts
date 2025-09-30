@@ -35,7 +35,9 @@ export class SliderArticle
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof SliderArticle => {
+export default function SliderArticleModel(
+	sequelize: Sequelize,
+): typeof SliderArticle {
 	SliderArticle.init(
 		{
 			id: {

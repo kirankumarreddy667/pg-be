@@ -22,7 +22,9 @@ export class VaccinationType extends Model<
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof VaccinationType => {
+export default function VaccinationTypeModel(
+	sequelize: Sequelize,
+): typeof VaccinationType {
 	VaccinationType.init(
 		{
 			id: {

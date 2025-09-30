@@ -27,7 +27,9 @@ export class QuestionUnit
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof QuestionUnit => {
+export default function QuestionUnitModel(
+	sequelize: Sequelize,
+): typeof QuestionUnit {
 	QuestionUnit.init(
 		{
 			id: {

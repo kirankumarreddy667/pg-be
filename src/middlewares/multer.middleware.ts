@@ -18,10 +18,10 @@ export const uploadCSV = multer({
 		fileSize: MAX_CSV_SIZE,
 	},
 	fileFilter: (_req, file, cb) => {
-		if (file.mimetype !== 'text/csv') {
-			cb(new Error('Only CSV files are allowed'))
-		} else {
+		if (file.mimetype === 'text/csv') {
 			cb(null, true)
+		} else {
+			cb(new Error('Only CSV files are allowed'))
 		}
 	},
 })
@@ -43,10 +43,10 @@ export const uploadAnimalImage = multer({
 		fileSize: MAX_IMAGE_SIZE,
 	},
 	fileFilter: (_req, file, cb) => {
-		if (!file.mimetype.startsWith('image/')) {
-			cb(new Error('Only image files are allowed'))
-		} else {
+		if (file.mimetype.startsWith('image/')) {
 			cb(null, true)
+		} else {
+			cb(new Error('Only image files are allowed'))
 		}
 	},
 })

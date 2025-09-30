@@ -27,7 +27,7 @@ export class Language
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof Language => {
+export default function LanguageModel(sequelize: Sequelize): typeof Language {
 	Language.init(
 		{
 			id: {

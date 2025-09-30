@@ -35,7 +35,9 @@ export class UserPayment
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof UserPayment => {
+export default function UserPaymentModel(
+	sequelize: Sequelize,
+): typeof UserPayment {
 	UserPayment.init(
 		{
 			id: {

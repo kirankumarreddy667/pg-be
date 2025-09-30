@@ -51,7 +51,9 @@ export class Notification
 	public doctor_message?: string | null
 }
 
-export default (sequelize: Sequelize): typeof Notification => {
+export default function NotificationModel(
+	sequelize: Sequelize,
+): typeof Notification {
 	Notification.init(
 		{
 			id: {

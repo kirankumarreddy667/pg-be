@@ -29,7 +29,9 @@ export class InvestmentTypesLanguage
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof InvestmentTypesLanguage => {
+export default function InvestmentTypesLanguageModel(
+	sequelize: Sequelize,
+): typeof InvestmentTypesLanguage {
 	InvestmentTypesLanguage.init(
 		{
 			id: {

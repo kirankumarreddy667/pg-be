@@ -24,7 +24,7 @@ export class PlanType
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof PlanType => {
+export default function PlanTypeModel(sequelize: Sequelize): typeof PlanType {
 	PlanType.init(
 		{
 			id: {

@@ -27,7 +27,7 @@ export class Animal
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof Animal => {
+export default function AnimalModel(sequelize: Sequelize): typeof Animal {
 	Animal.init(
 		{
 			id: {

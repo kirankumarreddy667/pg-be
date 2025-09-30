@@ -32,7 +32,7 @@ export class EnquireUs
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof EnquireUs => {
+export default function EnquireUsModel(sequelize: Sequelize): typeof EnquireUs {
 	EnquireUs.init(
 		{
 			id: {

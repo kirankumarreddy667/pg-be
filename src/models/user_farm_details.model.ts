@@ -47,7 +47,9 @@ export class UserFarmDetails
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof UserFarmDetails => {
+export default function UserFarmDetailsModel(
+	sequelize: Sequelize,
+): typeof UserFarmDetails {
 	UserFarmDetails.init(
 		{
 			id: {
