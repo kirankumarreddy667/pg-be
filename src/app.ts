@@ -6,7 +6,7 @@ import express, {
 	Response,
 } from 'express'
 import cors from 'cors'
-import path from 'node:path'
+import path from 'path'
 import helmet from 'helmet'
 import swaggerjsdoc from 'swagger-jsdoc'
 import swaggerui from 'swagger-ui-express'
@@ -25,7 +25,7 @@ import { xssProtection } from './middlewares/auth.middleware'
 import { helmetOptions } from './utils/helmet'
 import '../src/schedules/user_notifications'
 import '../src/schedules/fcm_notifications'
-import cookieParser from 'cookie-parser'
+import cookieParser from "cookie-parser"
 
 // Validate environment variables before starting the app
 try {
@@ -70,7 +70,7 @@ class Server {
 
 	constructor() {
 		this.app = express()
-		this.port = Number.parseInt(process.env.PORT as string, 10) || 3000
+		this.port = parseInt(process.env.PORT as string, 10) || 3000
 		this.config()
 		this.routes()
 	}
@@ -206,16 +206,17 @@ class Server {
 	}
 
 	private handleGracefulShutdown(): void {
-		const shutdown = (): void => {
-			logger.info('Received shutdown signal. Shutting down gracefully.')
-			this.server?.close(() => {
-				logger.info('Server closed')
-				process.exit(0)
-			})
-		}
+		const signals = ['SIGINT', 'SIGTERM'] as const
 
-		process.once('SIGINT', shutdown)
-		process.once('SIGTERM', shutdown)
+		signals.forEach((signal) => {
+			process.on(signal, (): void => {
+				logger.info(`Received ${signal}. Shutting down gracefully.`)
+				this.server?.close(() => {
+					logger.info('Server closed')
+					process.exit(0)
+				})
+			})
+		})
 	}
 }
 

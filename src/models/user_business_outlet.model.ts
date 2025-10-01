@@ -27,9 +27,7 @@ export class UserBusinessOutlet
 	public deleted_at?: Date | null
 }
 
-export default function UserBusinessOutletModel(
-	sequelize: Sequelize,
-): typeof UserBusinessOutlet {
+export default (sequelize: Sequelize): typeof UserBusinessOutlet => {
 	UserBusinessOutlet.init(
 		{
 			id: {

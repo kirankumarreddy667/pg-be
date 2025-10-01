@@ -25,9 +25,7 @@ export class ProductsCategory
 	public deleted_at?: Date | null
 }
 
-export default function ProductsCategoryModel(
-	sequelize: Sequelize,
-): typeof ProductsCategory {
+export default (sequelize: Sequelize): typeof ProductsCategory => {
 	ProductsCategory.init(
 		{
 			id: {

@@ -27,9 +27,7 @@ export class QuestionTag
 	public deleted_at?: Date | null
 }
 
-export default function QuestionTagModel(
-	sequelize: Sequelize,
-): typeof QuestionTag {
+export default (sequelize: Sequelize): typeof QuestionTag => {
 	QuestionTag.init(
 		{
 			id: {

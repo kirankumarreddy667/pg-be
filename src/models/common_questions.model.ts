@@ -69,9 +69,7 @@ export class CommonQuestions
 	public SubCategoryLanguage?: SubCategoryLanguage
 }
 
-export default function CommonQuestionsModel(
-	sequelize: Sequelize,
-): typeof CommonQuestions {
+export default (sequelize: Sequelize): typeof CommonQuestions => {
 	CommonQuestions.init(
 		{
 			id: {

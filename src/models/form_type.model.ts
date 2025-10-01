@@ -27,7 +27,7 @@ export class FormType
 	public deleted_at?: Date | null
 }
 
-export default function FormTypeModel(sequelize: Sequelize): typeof FormType {
+export default (sequelize: Sequelize): typeof FormType => {
 	FormType.init(
 		{
 			id: {

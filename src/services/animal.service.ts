@@ -1,8 +1,8 @@
 import db from '@/config/database'
 import sharp from 'sharp'
-import fs from 'node:fs'
-import path from 'node:path'
-import crypto from 'node:crypto'
+import fs from 'fs'
+import path from 'path'
+import crypto from 'crypto'
 import { Animal, AnimalType } from '@/models'
 import { Op, QueryTypes, Transaction } from 'sequelize'
 import { AnimalImage } from '@/models/animal_image.model'
@@ -1807,11 +1807,11 @@ export class AnimalService {
 			lastDeliveryDate,
 			BullNoForAI,
 		] = await fetchLactationStatsAnswers(user, animal_id, animal_number)
-		const m_fat = Number.parseFloat(morning_fat?.answer ?? '0')
-		const e_fat = Number.parseFloat(evening_fat?.answer ?? '0')
+		const m_fat = parseFloat(morning_fat?.answer ?? '0')
+		const e_fat = parseFloat(evening_fat?.answer ?? '0')
 		const last_known_fat = m_fat + e_fat
-		const m_snf = Number.parseFloat(morning_snf?.answer ?? '0')
-		const e_snf = Number.parseFloat(evening_snf?.answer ?? '0')
+		const m_snf = parseFloat(morning_snf?.answer ?? '0')
+		const e_snf = parseFloat(evening_snf?.answer ?? '0')
 		const last_known_snf = m_snf + e_snf
 
 		const lactationHistory = await db.AnimalLactationYieldHistory.findAll({
@@ -2028,7 +2028,7 @@ export class AnimalService {
 				tag_no: motherBullNoUsedForAI,
 				semen_co_name: semen_co_name,
 				sire_dam_yield: sire_dam_yield
-					? Number.parseFloat(sire_dam_yield).toFixed(1)
+					? Number(parseFloat(sire_dam_yield).toFixed(1))
 					: '',
 				daughter_yield: '',
 			},
@@ -2067,7 +2067,7 @@ export class AnimalService {
 		const breed = general.breeding?.answer ?? ''
 		const age =
 			general.dateOfBirth?.answer &&
-			!Number.isNaN(new Date(general.dateOfBirth.answer).getFullYear())
+			!isNaN(new Date(general.dateOfBirth.answer).getFullYear())
 				? Math.max(
 						0,
 						new Date().getFullYear() -
@@ -2176,11 +2176,11 @@ function updateCurrentPeriod(
 	currentPeriod: { start: date; end: date } | undefined,
 	currentRow: LactationHistoryRow,
 ): { start: date; end: date } {
-	if (currentPeriod) {
+	if (!currentPeriod) {
+		return { start: currentRow.date || '', end: '' }
+	} else {
 		currentPeriod.end = currentRow.date || ''
 		return currentPeriod
-	} else {
-		return { start: currentRow.date || '', end: '' }
 	}
 }
 
@@ -2319,8 +2319,7 @@ async function calculateLastLactationYield(
 	if (lactationHistory.length <= 1) return 0
 	const periods = getLactationPeriods(lactationHistory)
 	if (!periods.length) return 0
-	const lastPeriod = periods.at(-1)
-	if (!lastPeriod) return 0
+	const lastPeriod = periods[periods.length - 1]
 	return sumMilkForPeriod(user, animal_id, animal_number, lastPeriod)
 }
 
@@ -2332,9 +2331,7 @@ async function calculateCurrentLactationYield(
 ): Promise<{ days_in_milk1: number; current_lactation_milk_yield: number }> {
 	if (!lactationHistory.length)
 		return { days_in_milk1: 0, current_lactation_milk_yield: 0 }
-	const lastLactation = lactationHistory.at(-1)
-	if (!lastLactation)
-		return { days_in_milk1: 0, current_lactation_milk_yield: 0 }
+	const lastLactation = lactationHistory[lactationHistory.length - 1]
 	if (
 		!lastLactation.lactating_status ||
 		lastLactation.lactating_status.toLowerCase() !== 'yes' ||

@@ -24,9 +24,7 @@ export class AnimalType extends Model<
 	public deleted_at?: Date | null
 }
 
-export default function AnimalTypeModel(
-	sequelize: Sequelize,
-): typeof AnimalType {
+export default (sequelize: Sequelize): typeof AnimalType => {
 	AnimalType.init(
 		{
 			id: {

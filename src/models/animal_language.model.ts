@@ -29,9 +29,7 @@ export class AnimalLanguage
 	public deleted_at?: Date | null
 }
 
-export default function AnimalLanguageModel(
-	sequelize: Sequelize,
-): typeof AnimalLanguage {
+export default (sequelize: Sequelize): typeof AnimalLanguage => {
 	AnimalLanguage.init(
 		{
 			id: {

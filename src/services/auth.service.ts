@@ -362,8 +362,8 @@ export class AuthService {
 		}
 
 		const userId = Number(sub)
-		if (Number.isNaN(userId)) {
-			throw new TypeError('Invalid user ID in token')
+		if (isNaN(userId)) {
+			throw new Error('Invalid user ID in token')
 		}
 
 		// Find user with matching remember_token

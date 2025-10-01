@@ -28,9 +28,7 @@ export class VaccinationDetail
 	public deleted_at?: Date | null
 }
 
-export default function VaccinationDetailModel(
-	sequelize: Sequelize,
-): typeof VaccinationDetail {
+export default (sequelize: Sequelize): typeof VaccinationDetail => {
 	VaccinationDetail.init(
 		{
 			id: {

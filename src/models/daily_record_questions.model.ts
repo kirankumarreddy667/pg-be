@@ -51,9 +51,7 @@ export class DailyRecordQuestion
 	public hint?: string | null
 }
 
-export default function DailyRecordQuestionModel(
-	sequelize: Sequelize,
-): typeof DailyRecordQuestion {
+export default (sequelize: Sequelize): typeof DailyRecordQuestion => {
 	DailyRecordQuestion.init(
 		{
 			id: {

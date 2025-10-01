@@ -255,7 +255,7 @@ export interface MilkProductionRow {
 	totaleveningSNF: string
 }
 
-interface ProfitLossData {
+interface profitLossData {
 	answer_date: string
 	answer: string
 }
@@ -580,7 +580,7 @@ export class ReportService {
 			// Save file
 			const reportDir = path.resolve(__dirname, '../../storage/reports')
 			await fs.mkdir(reportDir, { recursive: true })
-			const filename = `${config.emailSubject.replaceAll(' ', '_')}-${user_id}-${Date.now()}.pdf`
+			const filename = `${config.emailSubject.replace(/ /g, '_')}-${user_id}-${Date.now()}.pdf`
 			const filePath = path.join(reportDir, filename)
 			await fs.writeFile(filePath, pdfBuffer)
 
@@ -896,8 +896,8 @@ export class ReportService {
 					month: 'short',
 					year: 'numeric',
 				})
-				.replaceAll(/(\d+)/, (match) => {
-					const day = Number.parseInt(match)
+				.replace(/(\d+)/, (match) => {
+					const day = parseInt(match)
 					const suffix =
 						day === 1 || day === 21 || day === 31
 							? 'st'
@@ -1002,8 +1002,8 @@ export class ReportService {
 						month: 'short',
 						year: 'numeric',
 					})
-					.replaceAll(/(\d+)/, (match) => {
-						const day = Number.parseInt(match)
+					.replace(/(\d+)/, (match) => {
+						const day = parseInt(match)
 						const suffix =
 							day === 1 || day === 21 || day === 31
 								? 'st'
@@ -1026,10 +1026,10 @@ export class ReportService {
 			.filter(
 				(item) =>
 					// Only include records with non-zero values (same as PHP logic)
-					Number.parseFloat(item.totalMorningFat) !== 0 ||
-					Number.parseFloat(item.totalMorningSNF) !== 0 ||
-					Number.parseFloat(item.totaleveningFat) !== 0 ||
-					Number.parseFloat(item.totaleveningSNF) !== 0,
+					parseFloat(item.totalMorningFat) !== 0 ||
+					parseFloat(item.totalMorningSNF) !== 0 ||
+					parseFloat(item.totaleveningFat) !== 0 ||
+					parseFloat(item.totaleveningSNF) !== 0,
 			)
 
 		return result
@@ -1142,8 +1142,8 @@ export class ReportService {
 						month: 'short',
 						year: 'numeric',
 					})
-					.replaceAll(/(\d+)/, (match) => {
-						const day = Number.parseInt(match)
+					.replace(/(\d+)/, (match) => {
+						const day = parseInt(match)
 						const suffix =
 							day === 1 || day === 21 || day === 31
 								? 'st'
@@ -1235,32 +1235,32 @@ export class ReportService {
 			db.sequelize.query(incomeQuery, {
 				replacements: [start_date, end_date, user_id],
 				type: QueryTypes.SELECT,
-			}) as unknown as Promise<ProfitLossData[]>,
+			}) as unknown as Promise<profitLossData[]>,
 			db.sequelize.query(expenseQuery, {
 				replacements: [start_date, end_date, user_id],
 				type: QueryTypes.SELECT,
-			}) as unknown as Promise<ProfitLossData[]>,
+			}) as unknown as Promise<profitLossData[]>,
 		])
 
 		// Group data by date using reduce
-		const incomeByDate: Record<string, ProfitLossData[]> = incomeData.reduce(
-			(acc: Record<string, ProfitLossData[]>, record: ProfitLossData) => {
+		const incomeByDate: Record<string, profitLossData[]> = incomeData.reduce(
+			(acc: Record<string, profitLossData[]>, record: profitLossData) => {
 				const date = record.answer_date
 				if (!acc[date]) acc[date] = []
 				acc[date].push(record)
 				return acc
 			},
-			{} as Record<string, ProfitLossData[]>,
+			{} as Record<string, profitLossData[]>,
 		)
 
-		const expenseByDate: Record<string, ProfitLossData[]> = expenseData.reduce(
-			(acc: Record<string, ProfitLossData[]>, record: ProfitLossData) => {
+		const expenseByDate: Record<string, profitLossData[]> = expenseData.reduce(
+			(acc: Record<string, profitLossData[]>, record: profitLossData) => {
 				const date = record.answer_date
 				if (!acc[date]) acc[date] = []
 				acc[date].push(record)
 				return acc
 			},
-			{} as Record<string, ProfitLossData[]>,
+			{} as Record<string, profitLossData[]>,
 		)
 
 		// Process all dates using map and filter
@@ -1272,7 +1272,7 @@ export class ReportService {
 
 				// Calculate total income for this date
 				const totalIncomeWithSellingPrice = (incomeByDate[date] || []).reduce(
-					(total: number, record: ProfitLossData) => {
+					(total: number, record: profitLossData) => {
 						const answer = JSON.parse(record.answer) as {
 							price: number
 							amount?: number
@@ -1291,7 +1291,7 @@ export class ReportService {
 				// Calculate total expense for this date
 				const totalExpenseWithPurchasePrice = (
 					expenseByDate[date] || []
-				).reduce((total: number, record: ProfitLossData) => {
+				).reduce((total: number, record: profitLossData) => {
 					const answer = JSON.parse(record.answer) as {
 						price: number
 						amount?: number
@@ -1338,15 +1338,15 @@ export class ReportService {
 		decPoint: string,
 		thousandsSep: string,
 	): string {
-		const n = Number.isFinite(+number) ? +number : 0
-		const prec = Number.isFinite(+decimals) ? Math.abs(decimals) : 0
-		const sep = thousandsSep === undefined ? ',' : thousandsSep
-		const dec = decPoint === undefined ? '.' : decPoint
+		const n = !isFinite(+number) ? 0 : +number
+		const prec = !isFinite(+decimals) ? 0 : Math.abs(decimals)
+		const sep = typeof thousandsSep === 'undefined' ? ',' : thousandsSep
+		const dec = typeof decPoint === 'undefined' ? '.' : decPoint
 
 		const s = (prec ? n.toFixed(prec) : Math.round(n).toString()).split('.')
 
 		if (s[0].length > 3) {
-			s[0] = s[0].replaceAll(/\B(?=(?:\d{3})+(?!\d))/g, sep)
+			s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep)
 		}
 
 		if ((s[1] || '').length < prec) {
@@ -1412,32 +1412,32 @@ export class ReportService {
 			db.sequelize.query(incomeQuery, {
 				replacements: [start_date, end_date, user_id],
 				type: QueryTypes.SELECT,
-			}) as unknown as Promise<ProfitLossData[]>,
+			}) as unknown as Promise<profitLossData[]>,
 			db.sequelize.query(expenseQuery, {
 				replacements: [start_date, end_date, user_id],
 				type: QueryTypes.SELECT,
-			}) as unknown as Promise<ProfitLossData[]>,
+			}) as unknown as Promise<profitLossData[]>,
 		])
 
 		// Group data by date using reduce (no loops)
-		const incomeByDate: Record<string, ProfitLossData[]> = incomeData.reduce(
-			(acc: Record<string, ProfitLossData[]>, record: ProfitLossData) => {
+		const incomeByDate: Record<string, profitLossData[]> = incomeData.reduce(
+			(acc: Record<string, profitLossData[]>, record: profitLossData) => {
 				const date = record.answer_date
 				if (!acc[date]) acc[date] = []
 				acc[date].push(record)
 				return acc
 			},
-			{} as Record<string, ProfitLossData[]>,
+			{} as Record<string, profitLossData[]>,
 		)
 
-		const expenseByDate: Record<string, ProfitLossData[]> = expenseData.reduce(
-			(acc: Record<string, ProfitLossData[]>, record: ProfitLossData) => {
+		const expenseByDate: Record<string, profitLossData[]> = expenseData.reduce(
+			(acc: Record<string, profitLossData[]>, record: profitLossData) => {
 				const date = record.answer_date
 				if (!acc[date]) acc[date] = []
 				acc[date].push(record)
 				return acc
 			},
-			{} as Record<string, ProfitLossData[]>,
+			{} as Record<string, profitLossData[]>,
 		)
 
 		const resData = dateList
@@ -1450,7 +1450,7 @@ export class ReportService {
 				let totalExpenseWithoutPurchasePrice = 0
 
 				totalIncomeWithoutSellingPrice = (incomeByDate[date] || []).reduce(
-					(total: number, record: ProfitLossData) => {
+					(total: number, record: profitLossData) => {
 						const answer = JSON.parse(record.answer) as AnswerItem[]
 						return (
 							total +
@@ -1465,7 +1465,7 @@ export class ReportService {
 				)
 
 				totalExpenseWithoutPurchasePrice = (expenseByDate[date] || []).reduce(
-					(total: number, record: ProfitLossData) => {
+					(total: number, record: profitLossData) => {
 						const answer = JSON.parse(record.answer) as AnswerItem[]
 						return (
 							total +
@@ -1704,14 +1704,14 @@ export class ReportService {
 		},
 		dailyData: IncomeExpenseRow,
 	): void {
-		totals.t_expense += Number.parseFloat(dailyData.Expense)
-		totals.t_income += Number.parseFloat(dailyData.Income)
-		totals.t_profit += Number.parseFloat(dailyData.Profit)
-		totals.t_greenFeed += Number.parseFloat(dailyData.GreenFeed)
-		totals.t_cattleFeed += Number.parseFloat(dailyData.CattleFeed)
-		totals.t_dryFeed += Number.parseFloat(dailyData.DryFeed)
-		totals.t_otherExpense += Number.parseFloat(dailyData.OtherExpense)
-		totals.t_supplement += Number.parseFloat(dailyData.Supplement)
+		totals.t_expense += parseFloat(dailyData.Expense)
+		totals.t_income += parseFloat(dailyData.Income)
+		totals.t_profit += parseFloat(dailyData.Profit)
+		totals.t_greenFeed += parseFloat(dailyData.GreenFeed)
+		totals.t_cattleFeed += parseFloat(dailyData.CattleFeed)
+		totals.t_dryFeed += parseFloat(dailyData.DryFeed)
+		totals.t_otherExpense += parseFloat(dailyData.OtherExpense)
+		totals.t_supplement += parseFloat(dailyData.Supplement)
 	}
 
 	private static formatTotals(totals: {
@@ -2030,11 +2030,11 @@ export class ReportService {
 				const ageInYears: number = currentDate.diff(purchaseDate, 'days') / 365
 
 				// Accumulate total in the same loop
-				total += Number.parseFloat(String(item.amount_in_rs)) || 0
+				total += parseFloat(String(item.amount_in_rs)) || 0
 
 				return {
 					type_of_investment: item.investment_type,
-					amount_in_rs: Number.parseFloat(String(item.amount_in_rs)).toFixed(2),
+					amount_in_rs: parseFloat(String(item.amount_in_rs)).toFixed(2),
 					date_of_installation_or_purchase: purchaseDate.format('Do MMM YYYY'),
 					age_in_year: ageInYears.toFixed(1),
 				}
@@ -2533,7 +2533,7 @@ export class ReportService {
 				raw: true,
 			})) as unknown as { total_milk: string }
 
-			mother_milk_yield = Number.parseFloat(motherMilkResult?.total_milk || '0')
+			mother_milk_yield = parseFloat(motherMilkResult?.total_milk || '0')
 
 			// Get AI date for mother
 			const dateOfAI = await db.AnimalQuestionAnswer.findOne({
@@ -2633,7 +2633,7 @@ export class ReportService {
 			father: {
 				tag_no: motherBullNoUsedForAI,
 				semen_co_name: semen_co_name,
-				sire_dam_yield: Number.parseFloat(sire_dam_yield).toFixed(1) || '',
+				sire_dam_yield: parseFloat(sire_dam_yield).toFixed(1) || '',
 				daughter_yield: '',
 			},
 		}
@@ -2702,8 +2702,8 @@ export class ReportService {
 		morning: { answer?: string } | null,
 		evening: { answer?: string } | null,
 	): number {
-		const m_value = Number.parseFloat(morning?.answer || '0') || 0
-		const e_value = Number.parseFloat(evening?.answer || '0') || 0
+		const m_value = parseFloat(morning?.answer || '0') || 0
+		const e_value = parseFloat(evening?.answer || '0') || 0
 		return m_value + e_value
 	}
 
@@ -2795,7 +2795,7 @@ export class ReportService {
 					raw: true,
 				})) as unknown as { total_milk: string }
 
-				return Number.parseFloat(milkResult?.total_milk || '0')
+				return parseFloat(milkResult?.total_milk || '0')
 			}
 		}
 
@@ -2856,7 +2856,9 @@ export class ReportService {
 				if (
 					historyData[i].lactating_status !== historyData[k].lactating_status
 				) {
-					result.push(historyData[i], historyData[k])
+					result.push(historyData[i])
+					result.push(historyData[k])
+					i = k
 				}
 			}
 		}
@@ -2905,7 +2907,7 @@ export class ReportService {
 								raw: true,
 							})) as unknown as { total_milk: string }
 
-							return Number.parseFloat(milkResult?.total_milk || '0')
+							return parseFloat(milkResult?.total_milk || '0')
 						}
 					}
 					startDate = ''
@@ -3388,7 +3390,12 @@ export class ReportService {
 				try {
 					const answer = JSON.parse(value1?.answer || '[]') as AnswerItem[]
 					for (const value of answer) {
-						const amount = value?.amount ?? 1
+						let amount: number
+						if (!value.amount) {
+							amount = 1
+						} else {
+							amount = value.amount
+						}
 
 						const price = value.price * amount
 						totalIncomeWithoutSellingPrice =
@@ -3401,7 +3408,7 @@ export class ReportService {
 
 			const breedingRecords = breedingMap.get(date) || []
 			for (const value1 of breedingRecords) {
-				const answer = Number.parseFloat(value1.answer)
+				const answer = parseFloat(value1.answer)
 				totalbreedingExpense = totalbreedingExpense + answer
 			}
 
@@ -3410,9 +3417,14 @@ export class ReportService {
 				try {
 					const answer = JSON.parse(value3?.answer || '[]') as AnswerItem[]
 
-					for (const value of answer) {
-						const amount = value?.amount ?? 1
-						const price = value.price * amount
+					for (const valuea of answer) {
+						let amount: number
+						if (!valuea.amount) {
+							amount = 1
+						} else {
+							amount = valuea.amount
+						}
+						const price = valuea.price * amount
 						totalExpenseWithoutPurchasePrice =
 							totalExpenseWithoutPurchasePrice + price
 					}
@@ -3556,9 +3568,14 @@ export class ReportService {
 			for (const value1 of incomeRecords) {
 				try {
 					const answer = JSON.parse(value1?.answer || '[]') as AnswerItem[]
-					for (const value of answer) {
-						const amount = value?.amount ?? 1
-						const price = value.price * amount
+					for (const valuew of answer) {
+						let amount: number
+						if (!valuew.amount) {
+							amount = 1
+						} else {
+							amount = valuew.amount
+						}
+						const price = valuew.price * amount
 						totalIncomeWithoutSellingPrice =
 							totalIncomeWithoutSellingPrice + price
 					}
@@ -3569,7 +3586,7 @@ export class ReportService {
 
 			const breedingRecords = breedingMap.get(date) || []
 			for (const value1 of breedingRecords) {
-				const answer = Number.parseFloat(value1.answer)
+				const answer = parseFloat(value1.answer)
 				totalbreedingExpense = totalbreedingExpense + answer
 			}
 
@@ -3682,7 +3699,7 @@ export class ReportService {
 			try {
 				const answer = JSON.parse(record?.answer || '[]') as MilkAnswerItem[]
 				if (Array.isArray(answer) && answer.length > 0 && answer[0]) {
-					const amount = Number.parseFloat(answer[0]?.amount || '0') || 0
+					const amount = parseFloat(answer[0]?.amount || '0') || 0
 					milkMap.set(date, (milkMap.get(date) || 0) + amount)
 				}
 			} catch {
@@ -4111,13 +4128,13 @@ export class ReportService {
 							typeof rawAmount === 'number'
 								? rawAmount
 								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
+									? parseFloat(rawAmount) || 1
 									: 1
 						const price =
 							typeof rawPrice === 'number'
 								? rawPrice
 								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
+									? parseFloat(rawPrice) || 0
 									: 0
 
 						totalExpense += price * amount
@@ -4141,13 +4158,13 @@ export class ReportService {
 							typeof rawAmount === 'number'
 								? rawAmount
 								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
+									? parseFloat(rawAmount) || 1
 									: 1
 						const price =
 							typeof rawPrice === 'number'
 								? rawPrice
 								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
+									? parseFloat(rawPrice) || 0
 									: 0
 						totalGreenFeed += price * amount
 						greenFeedQty += amount
@@ -4171,13 +4188,13 @@ export class ReportService {
 							typeof rawAmount === 'number'
 								? rawAmount
 								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
+									? parseFloat(rawAmount) || 1
 									: 1
 						const price =
 							typeof rawPrice === 'number'
 								? rawPrice
 								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
+									? parseFloat(rawPrice) || 0
 									: 0
 						totalCattleFeed += price * amount
 						cattleFeedQty += amount
@@ -4201,13 +4218,13 @@ export class ReportService {
 							typeof rawAmount === 'number'
 								? rawAmount
 								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
+									? parseFloat(rawAmount) || 1
 									: 1
 						const price =
 							typeof rawPrice === 'number'
 								? rawPrice
 								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
+									? parseFloat(rawPrice) || 0
 									: 0
 						totalDryFeed += price * amount
 						dryFeedQty += amount
@@ -4231,13 +4248,13 @@ export class ReportService {
 							typeof rawAmount === 'number'
 								? rawAmount
 								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
+									? parseFloat(rawAmount) || 1
 									: 1
 						const price =
 							typeof rawPrice === 'number'
 								? rawPrice
 								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
+									? parseFloat(rawPrice) || 0
 									: 0
 						totalSupplement += price * amount
 						supplementQty += amount
@@ -4334,7 +4351,7 @@ export class ReportService {
 						typeof rawAmount === 'number'
 							? rawAmount
 							: typeof rawAmount === 'string'
-								? Number.parseFloat(rawAmount) || 1
+								? parseFloat(rawAmount) || 1
 								: 1
 					expenseForPurchaseAnimals += amount
 				})
@@ -4353,7 +4370,7 @@ export class ReportService {
 						typeof rawAmount === 'number'
 							? rawAmount
 							: typeof rawAmount === 'string'
-								? Number.parseFloat(rawAmount) || 1
+								? parseFloat(rawAmount) || 1
 								: 1
 					incomeForSaleAnimals += amount
 				})
@@ -4470,7 +4487,7 @@ export class ReportService {
 
 		// Format numbers to 2 decimal places (matching PHP's number_format)
 		const formatNumber = (num: number): string => {
-			return Number.parseFloat(num.toFixed(2)).toString()
+			return parseFloat(num.toFixed(2)).toString()
 		}
 
 		return {
@@ -4671,13 +4688,13 @@ export class ReportService {
 					typeof firstItem?.amount === 'number'
 						? firstItem.amount
 						: typeof firstItem?.amount === 'string'
-							? Number.parseFloat(firstItem.amount) || 0
+							? parseFloat(firstItem.amount) || 0
 							: 0
 				const price =
 					typeof firstItem?.price === 'number'
 						? firstItem.price
 						: typeof firstItem?.price === 'string'
-							? Number.parseFloat(firstItem.price) || 0
+							? parseFloat(firstItem.price) || 0
 							: 0
 
 				TotalLitresInMorning += amount
@@ -4697,13 +4714,13 @@ export class ReportService {
 					typeof firstItem?.amount === 'number'
 						? firstItem.amount
 						: typeof firstItem?.amount === 'string'
-							? Number.parseFloat(firstItem.amount) || 0
+							? parseFloat(firstItem.amount) || 0
 							: 0
 				const price =
 					typeof firstItem?.price === 'number'
 						? firstItem.price
 						: typeof firstItem?.price === 'string'
-							? Number.parseFloat(firstItem.price) || 0
+							? parseFloat(firstItem.price) || 0
 							: 0
 
 				TotalLitresInEvening += amount
@@ -4723,13 +4740,13 @@ export class ReportService {
 					typeof firstItem?.amount === 'number'
 						? firstItem.amount
 						: typeof firstItem?.amount === 'string'
-							? Number.parseFloat(firstItem.amount) || 0
+							? parseFloat(firstItem.amount) || 0
 							: 0
 				const price =
 					typeof firstItem?.price === 'number'
 						? firstItem.price
 						: typeof firstItem?.price === 'string'
-							? Number.parseFloat(firstItem.price) || 0
+							? parseFloat(firstItem.price) || 0
 							: 0
 
 				totalmanureProduction += amount
@@ -4750,13 +4767,13 @@ export class ReportService {
 							typeof rawAmount === 'number'
 								? rawAmount
 								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
+									? parseFloat(rawAmount) || 1
 									: 1
 						const price =
 							typeof rawPrice === 'number'
 								? rawPrice
 								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
+									? parseFloat(rawPrice) || 0
 									: 0
 
 						totalsellingPrice += price * amount
@@ -4778,13 +4795,13 @@ export class ReportService {
 							typeof rawAmount === 'number'
 								? rawAmount
 								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
+									? parseFloat(rawAmount) || 1
 									: 1
 						const price =
 							typeof rawPrice === 'number'
 								? rawPrice
 								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
+									? parseFloat(rawPrice) || 0
 									: 0
 
 						totalIncome += price * amount
@@ -4807,7 +4824,7 @@ export class ReportService {
 
 		// Format numbers to match PHP's number_format behavior
 		const formatNumber = (num: number): string => {
-			return Number.parseFloat(num.toFixed(2)).toString()
+			return parseFloat(num.toFixed(2)).toString()
 		}
 
 		const aggregate = {

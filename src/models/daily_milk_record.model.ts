@@ -35,9 +35,7 @@ export class DailyMilkRecord
 	public deleted_at?: Date | null
 }
 
-export default function DailyMilkRecordModel(
-	sequelize: Sequelize,
-): typeof DailyMilkRecord {
+export default (sequelize: Sequelize): typeof DailyMilkRecord => {
 	DailyMilkRecord.init(
 		{
 			id: {

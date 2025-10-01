@@ -29,9 +29,7 @@ export class AppAboutContent
 	public deleted_at?: Date | null
 }
 
-export default function AppAboutContentModel(
-	sequelize: Sequelize,
-): typeof AppAboutContent {
+export default (sequelize: Sequelize): typeof AppAboutContent => {
 	AppAboutContent.init(
 		{
 			id: {

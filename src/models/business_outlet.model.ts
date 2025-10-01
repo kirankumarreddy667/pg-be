@@ -29,9 +29,7 @@ export class BusinessOutlet
 	public readonly deleted_at!: Date | null
 }
 
-export default function BusinessOutletModel(
-	sequelize: Sequelize,
-): typeof BusinessOutlet {
+export default (sequelize: Sequelize): typeof BusinessOutlet => {
 	BusinessOutlet.init(
 		{
 			id: {

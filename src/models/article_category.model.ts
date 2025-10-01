@@ -25,9 +25,7 @@ export class ArticleCategory
 	public deleted_at?: Date | null
 }
 
-export default function ArticleCategoryModel(
-	sequelize: Sequelize,
-): typeof ArticleCategory {
+export default (sequelize: Sequelize): typeof ArticleCategory => {
 	ArticleCategory.init(
 		{
 			id: {

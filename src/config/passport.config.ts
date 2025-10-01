@@ -16,16 +16,7 @@ passport.use(
 				let user = await db.User.findOne({
 					where: { email: profile.emails?.[0]?.value },
 				})
-				if (user) {
-					await db.User.update(
-						{
-							google_id: profile.id,
-							avatar: profile.photos?.[0]?.value,
-							provider: ['google'],
-						},
-						{ where: { id: user.id } },
-					)
-				} else {
+				if (!user) {
 					user = await db.User.create({
 						google_id: profile.id,
 						name: profile.displayName,
@@ -35,8 +26,16 @@ passport.use(
 						otp_status: false,
 						phone_number: '',
 					})
+				} else {
+					await db.User.update(
+						{
+							google_id: profile.id,
+							avatar: profile.photos?.[0]?.value,
+							provider: ['google'],
+						},
+						{ where: { id: user.id } },
+					)
 				}
-
 				return done(null, user)
 			})().catch((err) => done(err, false))
 		},
@@ -57,16 +56,7 @@ passport.use(
 					where: { email: profile.emails?.[0]?.value },
 				})
 				const email = profile.emails?.[0]?.value || ''
-				if (user) {
-					await db.User.update(
-						{
-							facebook_id: profile.id,
-							avatar: profile.photos?.[0]?.value,
-							provider: ['facebook'],
-						},
-						{ where: { id: user.id } },
-					)
-				} else {
+				if (!user) {
 					user = await db.User.create({
 						facebook_id: profile.id,
 						name: profile.displayName || '',
@@ -76,6 +66,15 @@ passport.use(
 						otp_status: false,
 						phone_number: email,
 					})
+				} else {
+					await db.User.update(
+						{
+							facebook_id: profile.id,
+							avatar: profile.photos?.[0]?.value,
+							provider: ['facebook'],
+						},
+						{ where: { id: user.id } },
+					)
 				}
 				return done(null, user)
 			})().catch((err) => done(err, false))
@@ -98,4 +97,5 @@ passport.deserializeUser((id: number, done) => {
 		.catch((err: unknown) => done(err as Error, null))
 })
 
+//sonar-ignore-next-line
 export default passport

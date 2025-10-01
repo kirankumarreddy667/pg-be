@@ -30,7 +30,7 @@ export class Plan
 	public deleted_at?: Date | null
 }
 
-export default function PlanModel(sequelize: Sequelize): typeof Plan {
+export default (sequelize: Sequelize): typeof Plan => {
 	Plan.init(
 		{
 			id: {

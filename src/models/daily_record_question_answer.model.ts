@@ -31,9 +31,7 @@ export class DailyRecordQuestionAnswer
 	public deleted_at?: Date | null
 }
 
-export default function DailyRecordQuestionAnswerModel(
-	sequelize: Sequelize,
-): typeof DailyRecordQuestionAnswer {
+export default (sequelize: Sequelize): typeof DailyRecordQuestionAnswer => {
 	DailyRecordQuestionAnswer.init(
 		{
 			id: {

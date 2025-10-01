@@ -2,8 +2,8 @@ import { Transaction } from 'sequelize'
 import db from '@/config/database'
 import { Advertisement, AdvertisementImage } from '@/models'
 import { saveBase64Image } from '@/utils/image'
-import fs from 'node:fs'
-import path from 'node:path'
+import fs from 'fs'
+import path from 'path'
 
 const { sequelize } = db
 

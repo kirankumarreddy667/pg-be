@@ -32,7 +32,7 @@ export class PlanController {
 		try {
 			const language_id = Number(req.params.language_id)
 
-			if (Number.isNaN(language_id)) {
+			if (isNaN(language_id)) {
 				return RESPONSE.FailureResponse(res, 400, {
 					message: 'Invalid language_id',
 				})

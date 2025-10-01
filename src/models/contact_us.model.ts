@@ -29,7 +29,7 @@ export class ContactUs
 	public deleted_at?: Date | null
 }
 
-export default function ContactUsModel(sequelize: Sequelize): typeof ContactUs {
+export default (sequelize: Sequelize): typeof ContactUs => {
 	ContactUs.init(
 		{
 			id: {

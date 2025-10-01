@@ -38,9 +38,7 @@ export class DailyRecordQuestionLanguage
 	public deleted_at?: Date | null
 }
 
-export default function DailyRecordQuestionLanguageModel(
-	sequelize: Sequelize,
-): typeof DailyRecordQuestionLanguage {
+export default (sequelize: Sequelize): typeof DailyRecordQuestionLanguage => {
 	DailyRecordQuestionLanguage.init(
 		{
 			id: {

@@ -27,9 +27,7 @@ export class AdvertisementImage
 	public deleted_at!: Date | null
 }
 
-export default function AdvertisementImageModel(
-	sequelize: Sequelize,
-): typeof AdvertisementImage {
+export default (sequelize: Sequelize): typeof AdvertisementImage => {
 	AdvertisementImage.init(
 		{
 			id: {

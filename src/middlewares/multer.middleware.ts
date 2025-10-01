@@ -1,6 +1,6 @@
 import multer from 'multer'
-import path from 'node:path'
-import crypto from 'node:crypto'
+import path from 'path'
+import crypto from 'crypto'
 
 const storage = multer.diskStorage({
 	destination: function (_req, _file, cb) {
@@ -18,10 +18,10 @@ export const uploadCSV = multer({
 		fileSize: MAX_CSV_SIZE,
 	},
 	fileFilter: (_req, file, cb) => {
-		if (file.mimetype === 'text/csv') {
-			cb(null, true)
-		} else {
+		if (file.mimetype !== 'text/csv') {
 			cb(new Error('Only CSV files are allowed'))
+		} else {
+			cb(null, true)
 		}
 	},
 })
@@ -43,10 +43,10 @@ export const uploadAnimalImage = multer({
 		fileSize: MAX_IMAGE_SIZE,
 	},
 	fileFilter: (_req, file, cb) => {
-		if (file.mimetype.startsWith('image/')) {
-			cb(null, true)
-		} else {
+		if (!file.mimetype.startsWith('image/')) {
 			cb(new Error('Only image files are allowed'))
+		} else {
+			cb(null, true)
 		}
 	},
 })

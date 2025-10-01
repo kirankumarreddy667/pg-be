@@ -51,7 +51,7 @@ export class Product
 	public deleted_at!: Date | null
 }
 
-export default function ProductModel(sequelize: Sequelize): typeof Product {
+export default (sequelize: Sequelize): typeof Product => {
 	Product.init(
 		{
 			id: {

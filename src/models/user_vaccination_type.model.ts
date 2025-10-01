@@ -5,9 +5,7 @@ export class UserVaccinationType extends Model {
 	public type_id!: number
 }
 
-export default function UserVaccinationTypeModel(
-	sequelize: Sequelize,
-): typeof UserVaccinationType {
+export default (sequelize: Sequelize): typeof UserVaccinationType => {
 	UserVaccinationType.init(
 		{
 			vaccination_id: {

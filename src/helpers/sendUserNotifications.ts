@@ -32,9 +32,9 @@ export class SendUserNotifications {
 		})
 
 		const userPhoneMap = new Map()
-		for (const user of users) {
+		users.forEach((user) => {
 			userPhoneMap.set(user.get('id'), user.get('phone_number'))
-		}
+		})
 
 		for (const notification of notifications) {
 			const notificationDate = moment(notification.send_notification_date)

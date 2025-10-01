@@ -27,7 +27,7 @@ export class Category
 	public deleted_at!: Date | null
 }
 
-export default function CategoryModel(sequelize: Sequelize): typeof Category {
+export default (sequelize: Sequelize): typeof Category => {
 	Category.init(
 		{
 			id: {

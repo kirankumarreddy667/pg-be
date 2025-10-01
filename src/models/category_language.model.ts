@@ -29,9 +29,7 @@ export class CategoryLanguage
 	public deleted_at?: Date | null
 }
 
-export default function CategoryLanguageModel(
-	sequelize: Sequelize,
-): typeof CategoryLanguage {
+export default (sequelize: Sequelize): typeof CategoryLanguage => {
 	CategoryLanguage.init(
 		{
 			id: {

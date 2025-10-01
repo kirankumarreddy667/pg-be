@@ -18,9 +18,7 @@ export class PasswordReset
 	public created_at?: Date | null
 }
 
-export default function PasswordResetModel(
-	sequelize: Sequelize,
-): typeof PasswordReset {
+export default (sequelize: Sequelize): typeof PasswordReset => {
 	PasswordReset.init(
 		{
 			email: {

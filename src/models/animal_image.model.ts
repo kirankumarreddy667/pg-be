@@ -31,9 +31,7 @@ export class AnimalImage
 	public deleted_at?: Date | null
 }
 
-export default function AnimalImageModel(
-	sequelize: Sequelize,
-): typeof AnimalImage {
+export default (sequelize: Sequelize): typeof AnimalImage => {
 	AnimalImage.init(
 		{
 			id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

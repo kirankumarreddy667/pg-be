@@ -31,9 +31,7 @@ export class FixedInvestmentDetails
 	public deleted_at?: Date | null
 }
 
-export default function FixedInvestmentDetailsModel(
-	sequelize: Sequelize,
-): typeof FixedInvestmentDetails {
+export default (sequelize: Sequelize): typeof FixedInvestmentDetails => {
 	FixedInvestmentDetails.init(
 		{
 			id: {

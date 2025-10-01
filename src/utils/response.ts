@@ -17,14 +17,16 @@ interface ResponseData<T = unknown> {
 	message: string
 	data?: T
 	status?: number
-	pagination?: {
-		currentPage: number
-		totalPages: number
-		totalItems: number
-		itemsPerPage: number
-		hasNextPage: boolean
-		hasPrevPage: boolean
-	}
+	pagination?:
+		| {
+				currentPage: number
+				totalPages: number
+				totalItems: number
+				itemsPerPage: number
+				hasNextPage: boolean
+				hasPrevPage: boolean
+		  }
+		| undefined
 }
 
 const RESPONSE = {

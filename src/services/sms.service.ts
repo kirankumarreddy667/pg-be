@@ -1,7 +1,7 @@
 import axios, { isAxiosError } from 'axios'
 import { logger } from '@/config/logger'
 import { msg91Config } from '@/config/msg91.config'
-import https from 'node:https'
+import https from 'https'
 
 // Define the shape of the MSG91 API response for type safety
 interface Msg91Response {

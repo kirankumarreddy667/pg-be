@@ -38,7 +38,7 @@ export class UserPaymentController {
 			}
 
 			const planAmountRaw = Number(plan.get('amount'))
-			if (Number.isNaN(planAmountRaw) || planAmountRaw <= 0) {
+			if (isNaN(planAmountRaw) || planAmountRaw <= 0) {
 				return RESPONSE.FailureResponse(res, 400, {
 					message: 'Invalid plan amount',
 					data: [],

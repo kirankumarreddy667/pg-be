@@ -162,32 +162,32 @@ export class DryingRecordService {
 			status: false,
 			id: 0,
 		}))
-		result.push(
-			{
-				question_id: 9,
-				answer: 'No',
-				user_id,
-				animal_id,
-				created_at: now,
-				updated_at: now,
-				animal_number,
-				logic_value: null,
-				status: false,
-				id: 0,
-			},
-			{
-				question_id: 8,
-				answer: lastPregnancy?.answer ? lastPregnancy.answer : '',
-				user_id,
-				animal_id,
-				created_at: now,
-				updated_at: now,
-				animal_number,
-				logic_value: null,
-				status: false,
-				id: 0,
-			},
-		)
+		// Add question_id 9 (No)
+		result.push({
+			question_id: 9,
+			answer: 'No',
+			user_id,
+			animal_id,
+			created_at: now,
+			updated_at: now,
+			animal_number,
+			logic_value: null,
+			status: false,
+			id: 0,
+		})
+		// Add question_id 8 (last pregnancy answer)
+		result.push({
+			question_id: 8,
+			answer: lastPregnancy?.answer ? lastPregnancy.answer : '',
+			user_id,
+			animal_id,
+			created_at: now,
+			updated_at: now,
+			animal_number,
+			logic_value: null,
+			status: false,
+			id: 0,
+		})
 		return result
 	}
 

@@ -25,9 +25,7 @@ export class Subcategory
 	public deleted_at!: Date | null
 }
 
-export default function SubCategoryModel(
-	sequelize: Sequelize,
-): typeof Subcategory {
+export default (sequelize: Sequelize): typeof Subcategory => {
 	Subcategory.init(
 		{
 			id: {

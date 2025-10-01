@@ -22,7 +22,7 @@ export class Type
 	public deleted_at?: Date | null
 }
 
-export default function TypeModel(sequelize: Sequelize): typeof Type {
+export default (sequelize: Sequelize): typeof Type => {
 	Type.init(
 		{
 			id: {

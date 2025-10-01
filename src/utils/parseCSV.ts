@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import fs from 'fs'
 import csvParser from 'csv-parser'
 
 export async function parseCSV<T = Record<string, string>>(

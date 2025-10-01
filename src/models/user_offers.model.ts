@@ -28,9 +28,7 @@ export class UserOffers extends Model<
 	public deleted_at?: Date | null
 }
 
-export default function UserOffersModel(
-	sequelize: Sequelize,
-): typeof UserOffers {
+export default (sequelize: Sequelize): typeof UserOffers => {
 	UserOffers.init(
 		{
 			id: {

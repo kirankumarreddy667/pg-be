@@ -146,7 +146,7 @@ export class PedigreeService {
 				tag_no: motherBullNoUsedForAI,
 				semen_co_name: semen_co_name,
 				sire_dam_yield: sire_dam_yield
-					? Number.parseFloat(sire_dam_yield).toFixed(1)
+					? Number(parseFloat(sire_dam_yield).toFixed(1))
 					: '',
 				daughter_yield: '',
 			},

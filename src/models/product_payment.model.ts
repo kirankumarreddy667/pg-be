@@ -51,9 +51,7 @@ export class ProductPayment
 	public address!: string
 }
 
-export default function ProductPaymentModel(
-	sequelize: Sequelize,
-): typeof ProductPayment {
+export default (sequelize: Sequelize): typeof ProductPayment => {
 	ProductPayment.init(
 		{
 			id: {

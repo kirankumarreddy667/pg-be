@@ -20,6 +20,15 @@ export class QuestionTagController {
 			const { tags } = req.body as {
 				tags: string[]
 			}
+			// const existing = await QuestionTagService.getAll()
+			// if (existing.some((tag) => tag.name === name)) {
+			// 	return RESPONSE.FailureResponse(res, 422, {
+			// 		message: 'The given data was invalid.',
+			// 		errors: {
+			// 			name: ['The question tag name has already been taken.'],
+			// 		},
+			// 	})
+			// }
 			await QuestionTagService.create(tags)
 			return RESPONSE.SuccessResponse(res, 200, {
 				data: [],
