@@ -60,7 +60,10 @@ export class TokenService {
 		})
 	}
 
-	static async generateRefreshToken(payload: UserPayload, expiresInSec: number = 30 * 24 * 60 * 60): Promise<string> {
+	static async generateRefreshToken(
+		payload: UserPayload,
+		expiresInSec: number = 30 * 24 * 60 * 60,
+	): Promise<string> {
 		return new Promise((resolve, reject) => {
 			const now = Math.floor(Date.now() / 1000)
 			const tokenPayload = {
@@ -71,10 +74,15 @@ export class TokenService {
 				exp: now + expiresInSec,
 				type: 'refresh',
 			}
-			sign(tokenPayload, env.JWT_REFRESH_SECRET, { algorithm: 'HS256' }, (err, token) => {
-				if (err) reject(err instanceof Error ? err : new Error(String(err)))
-				else resolve(token as string)
-			})
+			sign(
+				tokenPayload,
+				env.JWT_REFRESH_SECRET,
+				{ algorithm: 'HS256' },
+				(err, token) => {
+					if (err) reject(err instanceof Error ? err : new Error(String(err)))
+					else resolve(token as string)
+				},
+			)
 		})
 	}
 
@@ -84,8 +92,8 @@ export class TokenService {
 				if (err) reject(err instanceof Error ? err : new Error(String(err)))
 				else {
 					const payload = decoded as JwtPayload
-					if (payload.type !== 'refresh') reject(new Error('Invalid token type'))
-					else resolve(payload)
+					if (payload.type === 'refresh') resolve(payload)
+					else reject(new Error('Invalid token type'))
 				}
 			})
 		})
@@ -94,5 +102,4 @@ export class TokenService {
 	static revokeRefreshToken(token: string): void {
 		this.blacklistToken(token)
 	}
-
 }

@@ -1,7 +1,7 @@
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 import sharp from 'sharp'
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 
 const AD_IMAGES_DIR = path.join(process.cwd(), 'public', 'ad_images')
 const THUMB_DIR = path.join(AD_IMAGES_DIR, 'thumb')
@@ -11,7 +11,6 @@ export async function saveBase64Image(base64: string): Promise<string> {
 		fs.mkdirSync(AD_IMAGES_DIR, { recursive: true })
 	if (!fs.existsSync(THUMB_DIR)) fs.mkdirSync(THUMB_DIR, { recursive: true })
 
-		
 	// Extract mime and data
 	const regex = /^data:(image\/(png|jpeg|jpg));base64,(.+)$/
 	const matches = regex.exec(base64)

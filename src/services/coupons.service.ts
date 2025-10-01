@@ -54,8 +54,8 @@ export class CouponService {
 					throw new Error(`Missing required field(s) in row ${index + 2}`) // +2 because of header + 1-based index
 				}
 
-				if (isNaN(Number(row.amount))) {
-					throw new Error(`Invalid amount in row ${index + 2}`)
+				if (Number.isNaN(Number(row.amount))) {
+					throw new TypeError(`Invalid amount in row ${index + 2}`)
 				}
 
 				return {

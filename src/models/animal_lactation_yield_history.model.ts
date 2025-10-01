@@ -40,7 +40,9 @@ export class AnimalLactationYieldHistory
 	public readonly updated_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof AnimalLactationYieldHistory => {
+export default function AnimalLactationYieldHistoryModel(
+	sequelize: Sequelize,
+): typeof AnimalLactationYieldHistory {
 	AnimalLactationYieldHistory.init(
 		{
 			id: {

@@ -27,7 +27,9 @@ export class QuestionTagMapping
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof QuestionTagMapping => {
+export default function QuestionTagMappingModel(
+	sequelize: Sequelize,
+): typeof QuestionTagMapping {
 	QuestionTagMapping.init(
 		{
 			id: {

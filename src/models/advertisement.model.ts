@@ -42,7 +42,9 @@ export class Advertisement
 	public deleted_at!: Date | null
 }
 
-export default (sequelize: Sequelize): typeof Advertisement => {
+export default function AdvertisementModel(
+	sequelize: Sequelize,
+): typeof Advertisement {
 	Advertisement.init(
 		{
 			id: {

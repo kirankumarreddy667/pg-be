@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 import { PaymentData, PaymentVerify } from '@/types/payment'
 import razorpay from '@/utils/razorpay'
 import { UserPaymentHistory } from '@/models/userPaymentHistory.model'
@@ -132,7 +132,7 @@ export class UserPaymentService {
 			)
 
 			// Validate order belongs to user
-			if (parseInt(notes.user_id) !== user_id) {
+			if (Number.parseInt(notes.user_id) !== user_id) {
 				return { success: false, message: 'Invalid order', data: [] }
 			}
 
@@ -396,32 +396,34 @@ export class UserPaymentService {
 					user_id,
 					user_payment_status,
 					{
-						user_id: parseInt(notes.user_id),
-						plan_id: parseInt(notes.plan_id),
-						amount: parseInt(notes.amount),
-						quantity: parseInt(notes.quantity),
+						user_id: Number.parseInt(notes.user_id),
+						plan_id: Number.parseInt(notes.plan_id),
+						amount: Number.parseInt(notes.amount),
+						quantity: Number.parseInt(notes.quantity),
 						name: notes.name,
 						email: notes.email,
 						phone: notes.phone,
-						offer_id: notes.offer_id ? parseInt(notes.offer_id) : null,
-						coupon_id: notes.coupon_id ? parseInt(notes.coupon_id) : null,
+						offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+						coupon_id: notes.coupon_id
+							? Number.parseInt(notes.coupon_id)
+							: null,
 					},
 				)
 
 				// Prepare payment data
 				const insertPaymentData = {
 					user_id: user_id,
-					plan_id: parseInt(notes.plan_id),
+					plan_id: Number.parseInt(notes.plan_id),
 					amount: Number(payment.amount) / 100,
 					payment_id: payment.id,
 					order_id: order_id,
-					num_of_valid_years: parseInt(notes.quantity) || 1,
+					num_of_valid_years: Number.parseInt(notes.quantity) || 1,
 					plan_exp_date: planExpDate,
 					email: notes.email,
 					phone: notes.phone,
 					billing_instrument: payment.method,
-					offer_id: notes.offer_id ? parseInt(notes.offer_id) : null,
-					coupon_id: notes.coupon_id ? parseInt(notes.coupon_id) : null,
+					offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+					coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
 					status: '1',
 				}
 
@@ -460,7 +462,7 @@ export class UserPaymentService {
 							plan_exp_date: planExpDate,
 							payment_history_id: paymentDetails.id,
 							amount: insertPaymentData.amount,
-							plan_id: parseInt(notes.plan_id),
+							plan_id: Number.parseInt(notes.plan_id),
 							updated_at: new Date(),
 						},
 						{ where: { user_id }, transaction },
@@ -469,7 +471,7 @@ export class UserPaymentService {
 					await db.UserPayment.create(
 						{
 							user_id: user_id,
-							plan_id: parseInt(notes.plan_id) || 1,
+							plan_id: Number.parseInt(notes.plan_id) || 1,
 							amount: insertPaymentData.amount,
 							payment_history_id: paymentDetails.id,
 							num_of_valid_years: insertPaymentData.num_of_valid_years,
@@ -489,15 +491,15 @@ export class UserPaymentService {
 
 				// Queue emails asynchronously
 				this.queuePaymentEmails({
-					user_id: parseInt(notes.user_id),
-					plan_id: parseInt(notes.plan_id),
-					amount: parseInt(notes.amount),
-					quantity: parseInt(notes.quantity),
+					user_id: Number.parseInt(notes.user_id),
+					plan_id: Number.parseInt(notes.plan_id),
+					amount: Number.parseInt(notes.amount),
+					quantity: Number.parseInt(notes.quantity),
 					name: notes.name,
 					email: notes.email,
 					phone: notes.phone,
-					offer_id: notes.offer_id ? parseInt(notes.offer_id) : null,
-					coupon_id: notes.coupon_id ? parseInt(notes.coupon_id) : null,
+					offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+					coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
 				}).catch((error) => console.error('Email queue error:', error))
 
 				return {
@@ -553,7 +555,7 @@ export class UserPaymentService {
 		}
 	}> {
 		const currentDate = moment()
-		const quantity = parseInt(notes.quantity) || 1
+		const quantity = Number.parseInt(notes.quantity) || 1
 		const planExpDate = currentDate.add(quantity, 'years').toDate()
 
 		const existingPayment = await db.UserPaymentHistory.findOne({
@@ -578,7 +580,7 @@ export class UserPaymentService {
 
 		const insertPaymentData = {
 			user_id: user_id,
-			plan_id: parseInt(notes.plan_id) || 1,
+			plan_id: Number.parseInt(notes.plan_id) || 1,
 			amount: Number(payment.amount) / 100,
 			payment_id: payment.id,
 			num_of_valid_years: quantity,
@@ -586,8 +588,8 @@ export class UserPaymentService {
 			email: notes.email,
 			phone: notes.phone,
 			billing_instrument: payment.method || '',
-			offer_id: notes.offer_id ? parseInt(notes.offer_id) : null,
-			coupon_id: notes.coupon_id ? parseInt(notes.coupon_id) : null,
+			offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+			coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
 			status: '0',
 		}
 
@@ -631,7 +633,7 @@ export class UserPaymentService {
 					coupon_id: string
 				},
 			)
-			const user_id = parseInt(notes.user_id)
+			const user_id = Number.parseInt(notes.user_id)
 
 			if (!user_id) {
 				return
@@ -679,7 +681,7 @@ export class UserPaymentService {
 					coupon_id: string
 				},
 			)
-			const user_id = parseInt(notes.user_id)
+			const user_id = Number.parseInt(notes.user_id)
 
 			if (!user_id) {
 				return
@@ -752,8 +754,8 @@ export class UserPaymentService {
 		offer_id: number | null
 		coupon_id: number | null
 	}): Promise<{ emailData: EmailData; adminEmailData: AdminEmailData }> {
-		let quantity,
-			monthYear = 'Year'
+		let quantity
+		let monthYear = 'Year'
 
 		const [offerData, couponData] = await Promise.all([
 			data.offer_id
@@ -773,11 +775,12 @@ export class UserPaymentService {
 		if (offerData) {
 			if (offerData.additional_months && offerData.additional_months > 0) {
 				quantity = offerData.additional_months
+				monthYear = 'Months'
 			}
 			if (offerData.additional_years && offerData.additional_years > 0) {
 				quantity = offerData.additional_years
+				monthYear = 'Months'
 			}
-			monthYear = 'Months'
 		} else {
 			quantity = data.quantity || 1
 			monthYear = 'Year'

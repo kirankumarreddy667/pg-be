@@ -45,7 +45,9 @@ export class NotificationLanguage
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof NotificationLanguage => {
+export default function NotificationLanguageModel(
+	sequelize: Sequelize,
+): typeof NotificationLanguage {
 	NotificationLanguage.init(
 		{
 			id: {

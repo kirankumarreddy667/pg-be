@@ -18,7 +18,8 @@ export class SubCategoryLanguage
 			'id' | 'created_at' | 'updated_at' | 'deleted_at'
 		>
 	>
-	implements SubCategoryLanguageAttributes {
+	implements SubCategoryLanguageAttributes
+{
 	public id!: number
 	public sub_category_id!: number
 	public language_id!: number
@@ -28,7 +29,9 @@ export class SubCategoryLanguage
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof SubCategoryLanguage => {
+export default function SubCategoryLanguageModel(
+	sequelize: Sequelize,
+): typeof SubCategoryLanguage {
 	SubCategoryLanguage.init(
 		{
 			id: {

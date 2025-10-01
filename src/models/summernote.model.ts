@@ -37,7 +37,9 @@ export class Summernote
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof Summernote => {
+export default function SummernoteModel(
+	sequelize: Sequelize,
+): typeof Summernote {
 	Summernote.init(
 		{
 			id: {

@@ -85,7 +85,7 @@ export interface UserWithLanguage extends UserAttributes {
 	Language?: LanguageAttributes | null
 }
 
-export interface pagination {
+export interface Pagination {
 	currentPage: number
 	totalPages: number
 	totalItems: number

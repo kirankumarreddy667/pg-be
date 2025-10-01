@@ -38,39 +38,7 @@ export const addToEmailQueue = (email: Email): void => {
 		})
 }
 
-// emailQueue
-// 	.process(
-// 		async <K extends keyof EmailTemplateMap>(
-// 			job: Job<{
-// 				to: string
-// 				subject: string
-// 				template: K
-// 				data: EmailTemplateMap[K]
-// 				text?: string
-// 				attachments?: { filename: string; path: string }[]
-// 			}> & {
-// 				data: {
-// 					to: string
-// 					subject: string
-// 					template: K
-// 					data: EmailTemplateMap[K]
-// 					text?: string
-// 					attachments?: { filename: string; path: string }[]
-// 				}
-// 			},
-// 		) => {
-// 			try {
-// 				await sendEmail(job.data)
-// 			} catch (error) {
-// 				console.error('Failed to send email:', error)
-// 				throw error
-// 			}
-// 		},
-// 	)
-// 	.catch((err) => {
-// 		console.error('Failed to register email queue processor:', err)
-// 	})
-
+// Initialize email queue processor
 void (async () => {
 	try {
 		await emailQueue.process(
@@ -82,9 +50,23 @@ void (async () => {
 					data: EmailTemplateMap[K]
 					text?: string
 					attachments?: { filename: string; path: string }[]
-				}>,
+				}> & {
+					data: {
+						to: string
+						subject: string
+						template: K
+						data: EmailTemplateMap[K]
+						text?: string
+						attachments?: { filename: string; path: string }[]
+					}
+				},
 			) => {
-				await sendEmail(job.data)
+				try {
+					await sendEmail(job.data)
+				} catch (error) {
+					console.error('Failed to send email:', error)
+					throw error
+				}
 			},
 		)
 	} catch (err) {

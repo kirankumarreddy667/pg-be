@@ -33,7 +33,9 @@ export class AnimalMotherCalf
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof AnimalMotherCalf => {
+export default function AnimalMotherCalfModel(
+	sequelize: Sequelize,
+): typeof AnimalMotherCalf {
 	AnimalMotherCalf.init(
 		{
 			id: {

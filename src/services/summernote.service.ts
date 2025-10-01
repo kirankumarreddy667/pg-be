@@ -1,7 +1,7 @@
 import { Summernote } from '@/models/summernote.model'
 import db from '@/config/database'
-import path from 'path'
-import fs from 'fs'
+import path from 'node:path'
+import fs from 'node:fs'
 import { JSDOM } from 'jsdom'
 
 // Type for parsed article_images

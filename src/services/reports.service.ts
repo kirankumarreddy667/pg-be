@@ -813,8 +813,8 @@ export class ReportsService {
 		}, 0)
 
 		const breedingTotal = data.breedingExpense.reduce((total, record) => {
-			const value = parseFloat(record.answer)
-			return total + (isNaN(value) ? 0 : value)
+			const value = Number.parseFloat(record.answer)
+			return total + (Number.isNaN(value) ? 0 : value)
 		}, 0)
 
 		const totalExpenseWithoutPurchasePrice = data.expense.reduce(
@@ -864,17 +864,16 @@ export class ReportsService {
 			totalIncomeWithoutSellingPrice -
 			(totalExpenseWithoutPurchasePrice + breedingTotal)
 
-		const profit = total > 0 ? total : 0
-		const loss = total < 0 ? Math.abs(total) : 0
-
-		const profitWithoutSellingAndPurchasePrice =
-			totalWithoutSellingAndPurchasePrice > 0
-				? totalWithoutSellingAndPurchasePrice
-				: 0
-		const lossWithoutSellingAndPurchasePrice =
-			totalWithoutSellingAndPurchasePrice < 0
-				? Math.abs(totalWithoutSellingAndPurchasePrice)
-				: 0
+		const profit = Math.max(total, 0)
+		const loss = Math.max(-total, 0)
+		const profitWithoutSellingAndPurchasePrice = Math.max(
+			totalWithoutSellingAndPurchasePrice,
+			0,
+		)
+		const lossWithoutSellingAndPurchasePrice = Math.max(
+			-totalWithoutSellingAndPurchasePrice,
+			0,
+		)
 
 		return {
 			totalIncome,
@@ -1441,8 +1440,8 @@ export class ReportsService {
 	private static calculateBreedingTotal(data: { answer: string }[]): number {
 		let total = 0
 		for (const value of data) {
-			const val = parseFloat(value.answer)
-			if (!isNaN(val)) total += val
+			const val = Number.parseFloat(value.answer)
+			if (!Number.isNaN(val)) total += val
 		}
 		return total
 	}
@@ -1970,7 +1969,7 @@ export class ReportsService {
 	): number {
 		return breedingRecords.reduce((total, record) => {
 			try {
-				return total + parseFloat(record.answer)
+				return total + Number.parseFloat(record.answer)
 			} catch {
 				return total
 			}
@@ -2667,8 +2666,8 @@ export class ReportsService {
 		}
 		for (const row of result) {
 			resData[row.animal_name] = {
-				lactating_animal: parseInt(row.lactating_animal),
-				non_lactating_Animal: parseInt(row.non_lactating_animal),
+				lactating_animal: Number.parseInt(row.lactating_animal),
+				non_lactating_Animal: Number.parseInt(row.non_lactating_animal),
 			}
 		}
 		return resData

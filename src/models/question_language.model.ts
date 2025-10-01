@@ -40,7 +40,9 @@ export class QuestionLanguage
 	public CommonQuestion?: CommonQuestions
 }
 
-export default (sequelize: Sequelize): typeof QuestionLanguage => {
+export default function QuestionLanguageModel(
+	sequelize: Sequelize,
+): typeof QuestionLanguage {
 	QuestionLanguage.init(
 		{
 			id: {

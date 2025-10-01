@@ -27,7 +27,7 @@ export class FarmType
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof FarmType => {
+export default function FarmTypeModel(sequelize: Sequelize): typeof FarmType {
 	FarmType.init(
 		{
 			id: {

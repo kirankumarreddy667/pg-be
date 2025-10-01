@@ -29,7 +29,9 @@ export class FarmTypesLanguage
 	public deleted_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof FarmTypesLanguage => {
+export default function FarmTypesLanguageModel(
+	sequelize: Sequelize,
+): typeof FarmTypesLanguage {
 	FarmTypesLanguage.init(
 		{
 			id: {

@@ -30,7 +30,7 @@ export class Coupon
 	public updated_at?: Date | null
 }
 
-export default (sequelize: Sequelize): typeof Coupon => {
+export default function CouponModel(sequelize: Sequelize): typeof Coupon {
 	Coupon.init(
 		{
 			id: {
