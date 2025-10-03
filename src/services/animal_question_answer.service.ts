@@ -956,6 +956,207 @@ export class AnimalQuestionAnswerService {
 		}
 	}
 
+	// private static createMultilingualNotifications(
+	// 	userId: number,
+	// 	animalId: number,
+	// 	animalNumber: string,
+	// 	dates: {
+	// 		detection: Date
+	// 		drying: Date
+	// 		delivery: Date
+	// 		detectionFormatted: string
+	// 		dryingFormatted: string
+	// 		deliveryFormatted: string
+	// 	},
+	// 	docNum: string | null,
+	// 	farmName: string | null,
+	// ): {
+	// 	notifications: NotificationRecord[]
+	// 	languages: NotificationLanguageRecord[]
+	// } {
+	// 	const now = new Date()
+	// 	const {
+	// 		detection,
+	// 		drying,
+	// 		delivery,
+	// 		detectionFormatted,
+	// 		dryingFormatted,
+	// 		deliveryFormatted,
+	// 	} = dates
+
+	// 	// Main notifications
+	// 	const notifications: NotificationRecord[] = [
+	// 		{
+	// 			user_id: userId,
+	// 			animal_id: animalId,
+	// 			animal_number: animalNumber,
+	// 			message: NOTIFICATION_TEMPLATES.pregnancy_detection.en(
+	// 				detectionFormatted,
+	// 				animalNumber,
+	// 			),
+	// 			heading: NOTIFICATION_HEADINGS.pregnancy_detection.en,
+	// 			send_notification_date: detection,
+	// 			type: 'Animal',
+	// 			doctor_num: docNum,
+	// 			doctor_message: `Pregancy Detaction due on ${detectionFormatted} Farm name : ${farmName} Animal No : ${animalNumber}`,
+	// 			created_at: now,
+	// 		},
+	// 		{
+	// 			user_id: userId,
+	// 			animal_id: animalId,
+	// 			animal_number: animalNumber,
+	// 			message: NOTIFICATION_TEMPLATES.pregnancy_update.en(animalNumber),
+	// 			heading: NOTIFICATION_HEADINGS.pregnancy_update.en,
+	// 			type: 'Animal',
+	// 			send_notification_date: detection,
+	// 			doctor_num: docNum,
+	// 			doctor_message: null,
+	// 			created_at: now,
+	// 		},
+	// 		{
+	// 			user_id: userId,
+	// 			animal_id: animalId,
+	// 			animal_number: animalNumber,
+	// 			message: NOTIFICATION_TEMPLATES.drying_off.en(
+	// 				animalNumber,
+	// 				dryingFormatted,
+	// 			),
+	// 			heading: NOTIFICATION_HEADINGS.drying_off.en,
+	// 			send_notification_date: drying,
+	// 			type: 'Animal',
+	// 			doctor_num: docNum,
+	// 			doctor_message: null,
+	// 			created_at: now,
+	// 		},
+	// 		{
+	// 			user_id: userId,
+	// 			animal_id: animalId,
+	// 			animal_number: animalNumber,
+	// 			message: NOTIFICATION_TEMPLATES.delivery.en(
+	// 				animalNumber,
+	// 				deliveryFormatted,
+	// 			),
+	// 			heading: NOTIFICATION_HEADINGS.delivery.en,
+	// 			type: 'Animal',
+	// 			send_notification_date: delivery,
+	// 			doctor_num: docNum,
+	// 			doctor_message: null,
+	// 			created_at: now,
+	// 		},
+	// 	]
+
+	// 	// Language notifications for all three languages and both day intervals
+	// 	const languages: NotificationLanguageRecord[] = []
+	// 	const notificationTypes = [
+	// 		{
+	// 			type: 'pregnancy_detection',
+	// 			date: detection,
+	// 			dateStr: detectionFormatted,
+	// 		},
+	// 		{
+	// 			type: 'pregnancy_update',
+	// 			date: detection,
+	// 			dateStr: detectionFormatted,
+	// 		},
+	// 		{ type: 'drying_off', date: drying, dateStr: dryingFormatted },
+	// 		{ type: 'delivery', date: delivery, dateStr: deliveryFormatted },
+	// 	]
+
+	// 	for (const { type, date, dateStr } of notificationTypes) {
+	// 		for (const daysBefore of [7, 2, 0]) {
+	// 			const languageEntries = [
+	// 				{
+	// 					user_id: userId,
+	// 					langauge_message:
+	// 						type === 'pregnancy_detection'
+	// 							? NOTIFICATION_TEMPLATES.pregnancy_detection.en(
+	// 									dateStr,
+	// 									animalNumber,
+	// 								)
+	// 							: type === 'pregnancy_update'
+	// 								? NOTIFICATION_TEMPLATES.pregnancy_update.en(animalNumber)
+	// 								: type === 'drying_off'
+	// 									? NOTIFICATION_TEMPLATES.drying_off.en(
+	// 											animalNumber,
+	// 											dateStr,
+	// 										)
+	// 									: NOTIFICATION_TEMPLATES.delivery.en(animalNumber, dateStr),
+	// 					heading:
+	// 						NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
+	// 							.en,
+	// 					language_id: NOTIFICATION_LANGUAGES.ENGLISH,
+	// 					animal_id: animalId,
+	// 					animal_number: animalNumber,
+	// 					send_notification_date: date,
+	// 					status: 0,
+	// 					days_before: daysBefore,
+	// 					created_at: now,
+	// 				},
+	// 				{
+	// 					user_id: userId,
+	// 					langauge_message:
+	// 						type === 'pregnancy_detection'
+	// 							? NOTIFICATION_TEMPLATES.pregnancy_detection.hi(
+	// 									dateStr,
+	// 									animalNumber,
+	// 								)
+	// 							: type === 'pregnancy_update'
+	// 								? NOTIFICATION_TEMPLATES.pregnancy_update.hi(
+	// 										dateStr,
+	// 										animalNumber,
+	// 									)
+	// 								: type === 'drying_off'
+	// 									? NOTIFICATION_TEMPLATES.drying_off.hi(
+	// 											dateStr,
+	// 											animalNumber,
+	// 										)
+	// 									: NOTIFICATION_TEMPLATES.delivery.hi(dateStr, animalNumber),
+	// 					heading:
+	// 						NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
+	// 							.hi,
+	// 					language_id: NOTIFICATION_LANGUAGES.HINDI,
+	// 					animal_id: animalId,
+	// 					animal_number: animalNumber,
+	// 					send_notification_date: date,
+	// 					status: 0,
+	// 					days_before: daysBefore,
+	// 					created_at: now,
+	// 				},
+	// 				{
+	// 					user_id: userId,
+	// 					langauge_message:
+	// 						type === 'pregnancy_detection'
+	// 							? NOTIFICATION_TEMPLATES.pregnancy_detection.mr(
+	// 									dateStr,
+	// 									animalNumber,
+	// 								)
+	// 							: type === 'pregnancy_update'
+	// 								? NOTIFICATION_TEMPLATES.pregnancy_update.mr(animalNumber)
+	// 								: type === 'drying_off'
+	// 									? NOTIFICATION_TEMPLATES.drying_off.mr(
+	// 											animalNumber,
+	// 											dateStr,
+	// 										)
+	// 									: NOTIFICATION_TEMPLATES.delivery.mr(dateStr, animalNumber),
+	// 					heading:
+	// 						NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
+	// 							.mr,
+	// 					language_id: NOTIFICATION_LANGUAGES.MARATHI,
+	// 					animal_id: animalId,
+	// 					animal_number: animalNumber,
+	// 					send_notification_date: date,
+	// 					status: 0,
+	// 					days_before: daysBefore,
+	// 					created_at: now,
+	// 				},
+	// 			]
+	// 			languages.push(...languageEntries)
+	// 		}
+	// 	}
+
+	// 	return { notifications, languages }
+	// }
+
 	private static createMultilingualNotifications(
 		userId: number,
 		animalId: number,
@@ -984,7 +1185,7 @@ export class AnimalQuestionAnswerService {
 			deliveryFormatted,
 		} = dates
 
-		// Main notifications
+		// ----------- Main notifications -----------
 		const notifications: NotificationRecord[] = [
 			{
 				user_id: userId,
@@ -998,7 +1199,7 @@ export class AnimalQuestionAnswerService {
 				send_notification_date: detection,
 				type: 'Animal',
 				doctor_num: docNum,
-				doctor_message: `Pregancy Detaction due on ${detectionFormatted} Farm name : ${farmName} Animal No : ${animalNumber}`,
+				doctor_message: `Pregnancy Detection due on ${detectionFormatted} Farm name: ${farmName} Animal No: ${animalNumber}`,
 				created_at: now,
 			},
 			{
@@ -1007,8 +1208,8 @@ export class AnimalQuestionAnswerService {
 				animal_number: animalNumber,
 				message: NOTIFICATION_TEMPLATES.pregnancy_update.en(animalNumber),
 				heading: NOTIFICATION_HEADINGS.pregnancy_update.en,
-				type: 'Animal',
 				send_notification_date: detection,
+				type: 'Animal',
 				doctor_num: docNum,
 				doctor_message: null,
 				created_at: now,
@@ -1037,16 +1238,17 @@ export class AnimalQuestionAnswerService {
 					deliveryFormatted,
 				),
 				heading: NOTIFICATION_HEADINGS.delivery.en,
-				type: 'Animal',
 				send_notification_date: delivery,
+				type: 'Animal',
 				doctor_num: docNum,
 				doctor_message: null,
 				created_at: now,
 			},
 		]
 
-		// Language notifications for all three languages and both day intervals
+		// ----------- Multilingual notifications -----------
 		const languages: NotificationLanguageRecord[] = []
+
 		const notificationTypes = [
 			{
 				type: 'pregnancy_detection',
@@ -1064,23 +1266,70 @@ export class AnimalQuestionAnswerService {
 
 		for (const { type, date, dateStr } of notificationTypes) {
 			for (const daysBefore of [7, 2, 0]) {
-				const languageEntries = [
+				// Extract messages for each language
+				let messageEn: string
+				let messageHi: string
+				let messageMr: string
+
+				switch (type) {
+					case 'pregnancy_detection':
+						messageEn = NOTIFICATION_TEMPLATES.pregnancy_detection.en(
+							dateStr,
+							animalNumber,
+						)
+						messageHi = NOTIFICATION_TEMPLATES.pregnancy_detection.hi(
+							dateStr,
+							animalNumber,
+						)
+						messageMr = NOTIFICATION_TEMPLATES.pregnancy_detection.mr(
+							dateStr,
+							animalNumber,
+						)
+						break
+					case 'pregnancy_update':
+						messageEn = NOTIFICATION_TEMPLATES.pregnancy_update.en(animalNumber)
+						messageHi = NOTIFICATION_TEMPLATES.pregnancy_update.hi(
+							dateStr,
+							animalNumber,
+						)
+						messageMr = NOTIFICATION_TEMPLATES.pregnancy_update.mr(animalNumber)
+						break
+					case 'drying_off':
+						messageEn = NOTIFICATION_TEMPLATES.drying_off.en(
+							animalNumber,
+							dateStr,
+						)
+						messageHi = NOTIFICATION_TEMPLATES.drying_off.hi(
+							dateStr,
+							animalNumber,
+						)
+						messageMr = NOTIFICATION_TEMPLATES.drying_off.mr(
+							animalNumber,
+							dateStr,
+						)
+						break
+					case 'delivery':
+						messageEn = NOTIFICATION_TEMPLATES.delivery.en(
+							animalNumber,
+							dateStr,
+						)
+						messageHi = NOTIFICATION_TEMPLATES.delivery.hi(
+							dateStr,
+							animalNumber,
+						)
+						messageMr = NOTIFICATION_TEMPLATES.delivery.mr(
+							dateStr,
+							animalNumber,
+						)
+						break
+					default:
+						messageEn = messageHi = messageMr = ''
+				}
+
+				const languageEntries: NotificationLanguageRecord[] = [
 					{
 						user_id: userId,
-						langauge_message:
-							type === 'pregnancy_detection'
-								? NOTIFICATION_TEMPLATES.pregnancy_detection.en(
-										dateStr,
-										animalNumber,
-									)
-								: type === 'pregnancy_update'
-									? NOTIFICATION_TEMPLATES.pregnancy_update.en(animalNumber)
-									: type === 'drying_off'
-										? NOTIFICATION_TEMPLATES.drying_off.en(
-												animalNumber,
-												dateStr,
-											)
-										: NOTIFICATION_TEMPLATES.delivery.en(animalNumber, dateStr),
+						langauge_message: messageEn,
 						heading:
 							NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
 								.en,
@@ -1094,23 +1343,7 @@ export class AnimalQuestionAnswerService {
 					},
 					{
 						user_id: userId,
-						langauge_message:
-							type === 'pregnancy_detection'
-								? NOTIFICATION_TEMPLATES.pregnancy_detection.hi(
-										dateStr,
-										animalNumber,
-									)
-								: type === 'pregnancy_update'
-									? NOTIFICATION_TEMPLATES.pregnancy_update.hi(
-											dateStr,
-											animalNumber,
-										)
-									: type === 'drying_off'
-										? NOTIFICATION_TEMPLATES.drying_off.hi(
-												dateStr,
-												animalNumber,
-											)
-										: NOTIFICATION_TEMPLATES.delivery.hi(dateStr, animalNumber),
+						langauge_message: messageHi,
 						heading:
 							NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
 								.hi,
@@ -1124,20 +1357,7 @@ export class AnimalQuestionAnswerService {
 					},
 					{
 						user_id: userId,
-						langauge_message:
-							type === 'pregnancy_detection'
-								? NOTIFICATION_TEMPLATES.pregnancy_detection.mr(
-										dateStr,
-										animalNumber,
-									)
-								: type === 'pregnancy_update'
-									? NOTIFICATION_TEMPLATES.pregnancy_update.mr(animalNumber)
-									: type === 'drying_off'
-										? NOTIFICATION_TEMPLATES.drying_off.mr(
-												animalNumber,
-												dateStr,
-											)
-										: NOTIFICATION_TEMPLATES.delivery.mr(dateStr, animalNumber),
+						langauge_message: messageMr,
 						heading:
 							NOTIFICATION_HEADINGS[type as keyof typeof NOTIFICATION_HEADINGS]
 								.mr,
@@ -1150,6 +1370,7 @@ export class AnimalQuestionAnswerService {
 						created_at: now,
 					},
 				]
+
 				languages.push(...languageEntries)
 			}
 		}
@@ -2002,6 +2223,26 @@ export class AnimalQuestionAnswerService {
 	): { delivery_date: string }[] {
 		const resData: { delivery_date: string }[] = []
 
+		// if (mappedDate.length > 0 && animalAnswers.length > 0) {
+		// 	for (const [date, count] of Object.entries(answerCount)) {
+		// 		if (mappedDate.includes(date)) {
+		// 			if (mappedDateCount[date] < count) {
+		// 				addMappedDeliveryDates(resData, date, count, mappedDateCount[date])
+		// 			}
+		// 		} else {
+		// 			addUnmappedDeliveryDates(resData, date, count)
+		// 		}
+		// 	}
+		// } else {
+		// 	// If no mapped dates but we have animal answers, add all animal answers
+		// 	if (animalAnswers.length > 0) {
+		// 		for (const date of animalAnswers) {
+		// 			resData.push({ delivery_date: date })
+		// 		}
+		// 	}
+		// }
+
+		// Only proceed if we have either mapped dates or animal answers
 		if (mappedDate.length > 0 && animalAnswers.length > 0) {
 			for (const [date, count] of Object.entries(answerCount)) {
 				if (mappedDate.includes(date)) {
@@ -2012,12 +2253,10 @@ export class AnimalQuestionAnswerService {
 					addUnmappedDeliveryDates(resData, date, count)
 				}
 			}
-		} else {
-			// If no mapped dates but we have animal answers, add all animal answers
-			if (animalAnswers.length > 0) {
-				for (const date of animalAnswers) {
-					resData.push({ delivery_date: date })
-				}
+		} else if (animalAnswers.length > 0) {
+			// No mapped dates but we have animal answers
+			for (const date of animalAnswers) {
+				resData.push({ delivery_date: date })
 			}
 		}
 

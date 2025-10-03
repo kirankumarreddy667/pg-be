@@ -722,9 +722,17 @@ export class AnimalService {
 		for (const animal of femaleAnimals) {
 			const heiferLogicValue = animal.heifer_logic_value?.toLowerCase()
 
-			if (!heiferLogicValue || heiferLogicValue === '') {
-				cowCount++
-			} else if (heiferLogicValue === 'cow' || heiferLogicValue === 'buffalo') {
+			// if (!heiferLogicValue || heiferLogicValue === '') {
+			// 	cowCount++
+			// } else if (heiferLogicValue === 'cow' || heiferLogicValue === 'buffalo') {
+			// 	cowCount++
+			// }
+
+			if (
+				!heiferLogicValue ||
+				heiferLogicValue === 'cow' ||
+				heiferLogicValue === 'buffalo'
+			) {
 				cowCount++
 			}
 		}
@@ -1231,10 +1239,10 @@ export class AnimalService {
 			this.getWeight(userId, animalId, animalNumber),
 			includeReproductiveStatus
 				? this.getMilkingStatus(userId, animalId, animalNumber)
-				: null,
+				:Promise.resolve(null), //: null
 			includeReproductiveStatus
 				? this.getPregnancyStatus(userId, animalId, animalNumber)
-				: null,
+				:Promise.resolve(null), //: null
 		])
 
 		return {
@@ -2157,18 +2165,39 @@ export class AnimalService {
 			created_at: Date
 		}[]
 
-		return results.map((record) => ({
-			animal_number: record.animal_number,
-			type: record.selling_price
-				? 'Sold'
-				: record.death_reason
-					? 'Died'
-					: 'Removed',
-			reason: record.reason || '',
-			date: record.date || '',
-			...(record.selling_price && { selling_price: record.selling_price }),
-			...(record.death_reason && { death_reason: record.death_reason }),
-		}))
+		// return results.map((record) => ({
+		// 	animal_number: record.animal_number,
+		// 	type: record.selling_price
+		// 		? 'Sold'
+		// 		: record.death_reason
+		// 			? 'Died'
+		// 			: 'Removed',
+		// 	reason: record.reason || '',
+		// 	date: record.date || '',
+		// 	...(record.selling_price && { selling_price: record.selling_price }),
+		// 	...(record.death_reason && { death_reason: record.death_reason }),
+		// }))
+
+		return results.map((record) => {
+			// Extract type in a separate statement
+			let type: 'Sold' | 'Died' | 'Removed'
+			if (record.selling_price) {
+				type = 'Sold'
+			} else if (record.death_reason) {
+				type = 'Died'
+			} else {
+				type = 'Removed'
+			}
+
+			return {
+				animal_number: record.animal_number,
+				type,
+				reason: record.reason || '',
+				date: record.date || '',
+				...(record.selling_price && { selling_price: record.selling_price }),
+				...(record.death_reason && { death_reason: record.death_reason }),
+			}
+		})
 	}
 }
 

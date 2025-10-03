@@ -452,11 +452,17 @@ export class AnimalQuestionsBasedOnCategoryService {
 			raw: true,
 		})) as unknown as { id: number; name: string; count: number }[]
 
-		basicAnimals.forEach((animal) => {
+		// basicAnimals.forEach((animal) => {
+		// 	resData.push({
+		// 		[animal.name]: animal.count,
+		// 	})
+		// })
+
+		for (const animal of basicAnimals) {
 			resData.push({
 				[animal.name]: animal.count,
 			})
-		})
+		}
 
 		const genderQuery = `
             SELECT 
@@ -486,7 +492,25 @@ export class AnimalQuestionsBasedOnCategoryService {
 		let buffaloMaleCount = 0
 		let buffaloFemaleCount = 0
 
-		genderResults.forEach((result) => {
+		// genderResults.forEach((result) => {
+		// 	if (result.animal_id === 1) {
+		// 		// Cow
+		// 		if (result.gender === 'male') {
+		// 			cowMaleCount = result.count
+		// 		} else if (result.gender === 'female') {
+		// 			cowFemaleCount = result.count
+		// 		}
+		// 	} else if (result.animal_id === 2) {
+		// 		// Buffalo
+		// 		if (result.gender === 'male') {
+		// 			buffaloMaleCount = result.count
+		// 		} else if (result.gender === 'female') {
+		// 			buffaloFemaleCount = result.count
+		// 		}
+		// 	}
+		// })
+
+		for (const result of genderResults) {
 			if (result.animal_id === 1) {
 				// Cow
 				if (result.gender === 'male') {
@@ -502,13 +526,21 @@ export class AnimalQuestionsBasedOnCategoryService {
 					buffaloFemaleCount = result.count
 				}
 			}
-		})
+		}
 
-		resData.push({ bull: cowMaleCount + buffaloMaleCount })
-		resData.push({ female_cow: cowFemaleCount })
-		resData.push({ male_cow: cowMaleCount })
-		resData.push({ buffalo_male: buffaloMaleCount })
-		resData.push({ buffalo_female: buffaloFemaleCount })
+		// resData.push({ bull: cowMaleCount + buffaloMaleCount })
+		// resData.push({ female_cow: cowFemaleCount })
+		// resData.push({ male_cow: cowMaleCount })
+		// resData.push({ buffalo_male: buffaloMaleCount })
+		// resData.push({ buffalo_female: buffaloFemaleCount })
+
+		resData.push({
+			bull: cowMaleCount + buffaloMaleCount,
+			female_cow: cowFemaleCount,
+			male_cow: cowMaleCount,
+			buffalo_male: buffaloMaleCount,
+			buffalo_female: buffaloFemaleCount,
+		})
 
 		return resData
 	}

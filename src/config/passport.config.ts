@@ -98,4 +98,5 @@ passport.deserializeUser((id: number, done) => {
 		.catch((err: unknown) => done(err as Error, null))
 })
 
+//sonar-ignore-next-line
 export default passport

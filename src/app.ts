@@ -23,8 +23,8 @@ import { testConnection } from './config/database'
 import { validateEnv, EnvironmentError } from './config/env.validation'
 import { xssProtection } from './middlewares/auth.middleware'
 import { helmetOptions } from './utils/helmet'
-import './schedules/user_notifications'
-import './schedules/fcm_notifications'
+import '../src/schedules/user_notifications'
+import '../src/schedules/fcm_notifications'
 import cookieParser from 'cookie-parser'
 
 // Validate environment variables before starting the app

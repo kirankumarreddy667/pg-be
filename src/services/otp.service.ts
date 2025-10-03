@@ -1,6 +1,7 @@
 import { Otp } from '@/models/otp.model'
 import { Transaction } from 'sequelize'
-import { randomInt } from 'crypto'
+// import { randomInt } from 'crypto'
+import { randomInt } from 'node:crypto'
 import db from '@/config/database'
 
 export class OtpService {

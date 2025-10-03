@@ -274,7 +274,8 @@ export class OfferService {
 				).map((p) => p.get('id')),
 			)
 
-			data.data.forEach((offer, idx) => {
+			// data.data.forEach((offer, idx) => {
+			for (const [idx, offer] of data.data.entries()) {
 				if (existingNames.has(offer.name)) {
 					throw new ValidationRequestError({
 						[`data.${idx}.name`]: [
@@ -296,7 +297,8 @@ export class OfferService {
 						],
 					})
 				}
-			})
+			// })
+			}
 
 			const offerData = data.data.map((o) => ({
 				name: o.name,

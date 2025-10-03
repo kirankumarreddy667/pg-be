@@ -82,7 +82,7 @@ export class PregnancyDetectionService {
 				updateBasic = true
 				pregnancy_detected_status = value.answer
 				answers.push(
-					...[
+					// ...[
 						{
 							question_id: 8,
 							answer: 'Yes',
@@ -107,7 +107,7 @@ export class PregnancyDetectionService {
 							status: false,
 							id: 0,
 						},
-					],
+					// ],
 				)
 			}
 			if (value.question_id === 57) {

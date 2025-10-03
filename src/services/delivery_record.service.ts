@@ -54,11 +54,6 @@ interface AnimalQuestionAnswer {
 	created_at?: Date | null
 }
 
-// interface AnimalQuestionWithAssociations {
-// 	animal_id: number
-// 	CommonQuestion?: CommonQuestion
-// 	Answers?: AnimalQuestionAnswer[]
-// }
 
 interface DeliveryRecordAnswer {
 	question_id: number

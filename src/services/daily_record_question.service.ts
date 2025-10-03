@@ -395,18 +395,26 @@ export class DailyRecordQuestionService {
 				acc[categoryName][subCategoryName] = []
 			}
 
-			let questionTags: QuestionTag[] = []
-			if (row.question_tags_json) {
-				questionTags = row.question_tags_json
-					.filter(
-						(tag: { id: number; name: string }) =>
-							tag !== null && tag.id && tag.name,
-					)
-					.map((tag: { id: number; name: string }) => ({
+			// let questionTags: QuestionTag[] = []
+			// if (row.question_tags_json) {
+			// 	questionTags = row.question_tags_json
+			// 		.filter(
+			// 			(tag: { id: number; name: string }) =>
+			// 				tag !== null && tag.id && tag.name,
+			// 		)
+			// 		.map((tag: { id: number; name: string }) => ({
+			// 			question_tag_id: tag.id,
+			// 			question_tag_name: tag.name,
+			// 		}))
+			// }
+
+			const questionTags: QuestionTag[] =
+				row.question_tags_json
+					?.filter((tag) => tag?.id && tag?.name)
+					.map((tag) => ({
 						question_tag_id: tag.id,
 						question_tag_name: tag.name,
-					}))
-			}
+					})) ?? []
 
 			acc[categoryName][subCategoryName].push({
 				question: row.question,
@@ -701,7 +709,8 @@ export class DailyRecordQuestionService {
 			Record<string, DailyQuestionInLanguage[]>
 		> = {}
 
-		questions.forEach((value) => {
+		// questions.forEach((value) => {
+		for (const value of questions) {
 			const categoryName = value.category_language_name || ''
 			const subCategoryName = value.sub_category_language_name || ''
 
@@ -731,7 +740,8 @@ export class DailyRecordQuestionService {
 				master_hint: value.master_hint,
 				created_at: value.created_at,
 			})
-		})
+		}
+		// })
 
 		return { message: 'Success', data: resData }
 	}

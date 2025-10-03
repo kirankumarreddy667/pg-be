@@ -224,7 +224,18 @@ export class AdvertisementService {
 				const existingUrls: string[] = []
 				const newBase64Images: string[] = []
 
-				data.photos.forEach((photo: string) => {
+				// data.photos.forEach((photo: string) => {
+				// 	if (photo.startsWith('data:image/')) {
+				// 		// Base64 image - new upload
+				// 		newBase64Images.push(photo)
+				// 	} else {
+				// 		// URL - existing image, extract filename
+				// 		const filename = path.basename(new URL(photo).pathname)
+				// 		existingUrls.push(filename)
+				// 	}
+				// })
+
+				for (const photo of data.photos) {
 					if (photo.startsWith('data:image/')) {
 						// Base64 image - new upload
 						newBase64Images.push(photo)
@@ -233,7 +244,7 @@ export class AdvertisementService {
 						const filename = path.basename(new URL(photo).pathname)
 						existingUrls.push(filename)
 					}
-				})
+				}
 
 				// 3. Find images to delete (current images not in existingUrls)
 				const imagesToDelete = currentImages.filter(

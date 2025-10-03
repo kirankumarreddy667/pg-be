@@ -2,9 +2,11 @@ import { Op, QueryTypes, Sequelize } from 'sequelize'
 import db from '../config/database'
 import ejs from 'ejs'
 import puppeteer from 'puppeteer'
-import path from 'path'
+// import path from 'path'
+import path from 'node:path'
 import { addToEmailQueue } from '../queues/email.queue'
-import fs from 'fs/promises'
+// import fs from 'fs/promises'
+import fs from 'node:fs/promises'
 import { AppError, NotFoundError } from '@/utils/errors'
 import moment from 'moment'
 import { addMonths, format } from 'date-fns'
@@ -738,7 +740,8 @@ export class ReportService {
 			}
 		} = {}
 
-		results.forEach((row) => {
+		// results.forEach((row) => {
+		for (const row of results) {
 			const dateKey =
 				typeof row.created_at === 'string'
 					? row.created_at.split(' ')[0]
@@ -754,75 +757,97 @@ export class ReportService {
 			}
 
 			groupedData[key].answers[row.question_tag] = row.answer
-		})
+			// })
+		}
 
 		const resData: HealthReportRow[] = []
 
-		Object.values(groupedData).forEach(
-			(group: {
-				animal_number: string
-				date: string
-				answers: { [questionTag: number]: string }
-			}) => {
-				let answer1 = group.answers[38] || ''
-				const answer2 = group.answers[39] || ''
-				const answer3 = group.answers[40] || ''
-				const answer4 = group.answers[41] || ''
+		// Object.values(groupedData).forEach(
+		// 	(group: {
+		// 		animal_number: string
+		// 		date: string
+		// 		answers: { [questionTag: number]: string }
+		// 	}) => {
+		for (const group of Object.values(groupedData)) {
+			let answer1 = group.answers[38] || ''
+			const answer2 = group.answers[39] || ''
+			const answer3 = group.answers[40] || ''
+			const answer4 = group.answers[41] || ''
 
-				if (answer1) {
-					const dateObj = new Date(answer1)
-					const day = dateObj.getDate()
-					const suffix =
-						day % 10 === 1 && day !== 11
-							? 'st'
-							: day % 10 === 2 && day !== 12
-								? 'nd'
-								: day % 10 === 3 && day !== 13
-									? 'rd'
-									: 'th'
-					const month = dateObj.toLocaleDateString('en-US', { month: 'short' })
-					const year = dateObj.getFullYear()
-					answer1 = `${day}${suffix} ${month} ${year}`
+			if (answer1) {
+				const dateObj = new Date(answer1)
+				const day = dateObj.getDate()
+				// const suffix =
+				// 	day % 10 === 1 && day !== 11
+				// 		? 'st'
+				// 		: day % 10 === 2 && day !== 12
+				// 			? 'nd'
+				// 			: day % 10 === 3 && day !== 13
+				// 				? 'rd'
+				// 				: 'th'
+
+				let suffix: string
+				if (day % 10 === 1 && day !== 11) {
+					suffix = 'st'
+				} else if (day % 10 === 2 && day !== 12) {
+					suffix = 'nd'
+				} else if (day % 10 === 3 && day !== 13) {
+					suffix = 'rd'
+				} else {
+					suffix = 'th'
 				}
+				const month = dateObj.toLocaleDateString('en-US', { month: 'short' })
+				const year = dateObj.getFullYear()
+				answer1 = `${day}${suffix} ${month} ${year}`
+			}
 
-				let font = 'Pothana2000'
+			let font = 'Pothana2000'
 
-				if (answer2) {
-					const end =
-						'A B C D E F G H I J K L M N O P Q R E S U V W X Y Z a b c d e f g h i j k l m n o p q u r s t u v q x y z'
-					const hin =
-						'अ आ इ ई उ ऊ ए ऐ ओ औ अं अः क ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह क़ ग़ ख़ ज़ ड़ ऋ ढ़ फ़'
-					const telu =
-						'మాస్టాటిట్స్ తైలేరియా బాబేసిల్ తివా (3 రోజుల సిక్నెస్) పాలు జ్వరం (కాల్షియం కోల్పోవడం) డిస్టాకిల్ ప్రత్యుత్పత్తి లేకుండుట గర్భస్రావం న్యుమోనియా జ్వరము, దగ్గు విరేచనాలు ఎరుపు మూత్రం ఇతర'
+			if (answer2) {
+				const end =
+					'A B C D E F G H I J K L M N O P Q R E S U V W X Y Z a b c d e f g h i j k l m n o p q u r s t u v q x y z'
+				const hin =
+					'अ आ इ ई उ ऊ ए ऐ ओ औ अं अः क ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह क़ ग़ ख़ ज़ ड़ ऋ ढ़ फ़'
+				const telu =
+					'మాస్టాటిట్స్ తైలేరియా బాబేసిల్ తివా (3 రోజుల సిక్నెస్) పాలు జ్వరం (కాల్షియం కోల్పోవడం) డిస్టాకిల్ ప్రత్యుత్పత్తి లేకుండుట గర్భస్రావం న్యుమోనియా జ్వరము, దగ్గు విరేచనాలు ఎరుపు మూత్రం ఇతర'
 
-					const words = answer2.split(' ')
-					const firstWord = words[0]
+				const words = answer2.split(' ')
+				const firstWord = words[0]
 
-					if (telu.includes(firstWord)) {
-						font = 'Pothana2000'
-					} else if (end.includes(answer2[0])) {
-						font = 'DejaVuSans'
-					} else if (hin.includes(answer2[0])) {
-						font = 'mangal'
-					} else {
-						font = 'Pothana2000'
-					}
+				// if (telu.includes(firstWord)) {
+				// 	font = 'Pothana2000'
+				// } else if (end.includes(answer2[0])) {
+				// 	font = 'DejaVuSans'
+				// } else if (hin.includes(answer2[0])) {
+				// 	font = 'mangal'
+				// } else {
+				// 	font = 'Pothana2000'
+				// }
+
+				if (end.includes(answer2[0])) {
+					font = 'DejaVuSans'
+				} else if (hin.includes(answer2[0])) {
+					font = 'mangal'
+				} else if (telu.includes(firstWord)) {
+					// font already 'Pothana2000', no need to reassign
 				}
+			}
 
-				const abc = {
-					date: answer1,
-					diseasName: answer2,
-					details_of_treatment: answer3,
-					milk_loss_in_litres: answer4,
-					animal_number: group.animal_number,
-					font: font,
-				}
+			const abc = {
+				date: answer1,
+				diseasName: answer2,
+				details_of_treatment: answer3,
+				milk_loss_in_litres: answer4,
+				animal_number: group.animal_number,
+				font: font,
+			}
 
-				if (abc.date) {
-					resData.push(abc)
-				}
-			},
-		)
+			if (abc.date) {
+				resData.push(abc)
+			}
+		}
+		// },
+		// )
 
 		return resData
 	}
@@ -898,14 +923,26 @@ export class ReportService {
 				})
 				.replaceAll(/(\d+)/, (match) => {
 					const day = Number.parseInt(match)
-					const suffix =
-						day === 1 || day === 21 || day === 31
-							? 'st'
-							: day === 2 || day === 22
-								? 'nd'
-								: day === 3 || day === 23
-									? 'rd'
-									: 'th'
+					// const suffix =
+					// 	day === 1 || day === 21 || day === 31
+					// 		? 'st'
+					// 		: day === 2 || day === 22
+					// 			? 'nd'
+					// 			: day === 3 || day === 23
+					// 				? 'rd'
+					// 				: 'th'
+
+					let suffix: string
+					if (day === 1 || day === 21 || day === 31) {
+						suffix = 'st'
+					} else if (day === 2 || day === 22) {
+						suffix = 'nd'
+					} else if (day === 3 || day === 23) {
+						suffix = 'rd'
+					} else {
+						suffix = 'th'
+					}
+
 					return day + suffix
 				})
 
@@ -978,12 +1015,14 @@ export class ReportService {
 		// Create lookup map for O(1) access instead of nested loops
 		const dataMap = new Map<string, Record<number, number>>()
 
-		data.forEach((row) => {
+		// data.forEach((row) => {
+		for (const row of data) {
 			if (!dataMap.has(row.answer_date)) {
 				dataMap.set(row.answer_date, {})
 			}
 			dataMap.get(row.answer_date)![row.question_tag_id] = row.total_amount
-		})
+			// })
+		}
 
 		// Process all dates with single map operation
 		const result = dateArray
@@ -1004,14 +1043,26 @@ export class ReportService {
 					})
 					.replaceAll(/(\d+)/, (match) => {
 						const day = Number.parseInt(match)
-						const suffix =
-							day === 1 || day === 21 || day === 31
-								? 'st'
-								: day === 2 || day === 22
-									? 'nd'
-									: day === 3 || day === 23
-										? 'rd'
-										: 'th'
+						// const suffix =
+						// 	day === 1 || day === 21 || day === 31
+						// 		? 'st'
+						// 		: day === 2 || day === 22
+						// 			? 'nd'
+						// 			: day === 3 || day === 23
+						// 				? 'rd'
+						// 				: 'th'
+
+						let suffix: string
+
+						if (day === 1 || day === 21 || day === 31) {
+							suffix = 'st'
+						} else if (day === 2 || day === 22) {
+							suffix = 'nd'
+						} else if (day === 3 || day === 23) {
+							suffix = 'rd'
+						} else {
+							suffix = 'th'
+						}
 						return day + suffix
 					})
 
@@ -1110,7 +1161,8 @@ export class ReportService {
 			Record<number, { amount: number; value: number }>
 		>()
 
-		data.forEach((row) => {
+		// data.forEach((row) => {
+		for (const row of data) {
 			if (!dataMap.has(row.answer_date)) {
 				dataMap.set(row.answer_date, {})
 			}
@@ -1118,7 +1170,8 @@ export class ReportService {
 				amount: row.total_amount,
 				value: row.total_value,
 			}
-		})
+			// })
+		}
 
 		// Process all dates with single map operation
 		const result = dateArray
@@ -1144,14 +1197,26 @@ export class ReportService {
 					})
 					.replaceAll(/(\d+)/, (match) => {
 						const day = Number.parseInt(match)
-						const suffix =
-							day === 1 || day === 21 || day === 31
-								? 'st'
-								: day === 2 || day === 22
-									? 'nd'
-									: day === 3 || day === 23
-										? 'rd'
-										: 'th'
+						// const suffix =
+						// 	day === 1 || day === 21 || day === 31
+						// 		? 'st'
+						// 		: day === 2 || day === 22
+						// 			? 'nd'
+						// 			: day === 3 || day === 23
+						// 				? 'rd'
+						// 				: 'th'
+
+						let suffix: string
+
+						if (day === 1 || day === 21 || day === 31) {
+							suffix = 'st'
+						} else if (day === 2 || day === 22) {
+							suffix = 'nd'
+						} else if (day === 3 || day === 23) {
+							suffix = 'rd'
+						} else {
+							suffix = 'th'
+						}
 						return day + suffix
 					})
 
@@ -1340,8 +1405,10 @@ export class ReportService {
 	): string {
 		const n = Number.isFinite(+number) ? +number : 0
 		const prec = Number.isFinite(+decimals) ? Math.abs(decimals) : 0
-		const sep = thousandsSep === undefined ? ',' : thousandsSep
-		const dec = decPoint === undefined ? '.' : decPoint
+		// const sep = thousandsSep === undefined ? ',' : thousandsSep
+		// const dec = decPoint === undefined ? '.' : decPoint
+		const sep = thousandsSep ?? ','
+		const dec = decPoint ?? '.'
 
 		const s = (prec ? n.toFixed(prec) : Math.round(n).toString()).split('.')
 
@@ -1635,14 +1702,26 @@ export class ReportService {
 		const year = dateObj.getFullYear()
 
 		// Add ordinal suffix efficiently
-		const suffix =
-			day % 10 === 1 && day !== 11
-				? 'st'
-				: day % 10 === 2 && day !== 12
-					? 'nd'
-					: day % 10 === 3 && day !== 13
-						? 'rd'
-						: 'th'
+		// const suffix =
+		// 	day % 10 === 1 && day !== 11
+		// 		? 'st'
+		// 		: day % 10 === 2 && day !== 12
+		// 			? 'nd'
+		// 			: day % 10 === 3 && day !== 13
+		// 				? 'rd'
+		// 				: 'th'
+
+		let suffix: string
+
+		if (day % 10 === 1 && day !== 11) {
+			suffix = 'st'
+		} else if (day % 10 === 2 && day !== 12) {
+			suffix = 'nd'
+		} else if (day % 10 === 3 && day !== 13) {
+			suffix = 'rd'
+		} else {
+			suffix = 'th'
+		}
 
 		return `${day}${suffix} ${month} ${year}`
 	}
@@ -1936,7 +2015,8 @@ export class ReportService {
 			overall: 0,
 		}
 
-		aggregatedTotals.forEach((item) => {
+		// aggregatedTotals.forEach((item) => {
+		for (const item of aggregatedTotals) {
 			const total = Number(item.total || 0)
 			totals.overall += total
 
@@ -1947,10 +2027,12 @@ export class ReportService {
 				totals.buffalo.morning = Number(item.morning_milk || 0)
 				totals.buffalo.evening = Number(item.evening_milk || 0)
 			}
-		})
+			// })
+		}
 
 		const dayWiseSubTotal: Record<string, DayWiseSubTotalItem> = {}
-		dayWiseTotals.forEach((item) => {
+		// dayWiseTotals.forEach((item) => {
+		for (const item of dayWiseTotals) {
 			const dateKey = String(item.record_date)
 
 			if (!dayWiseSubTotal[dateKey]) {
@@ -1970,7 +2052,8 @@ export class ReportService {
 					buffalo_total: Number(item.total || 0),
 				})
 			}
-		})
+			// })
+		}
 
 		return {
 			animal_number: animal_number || null,
@@ -2120,13 +2203,19 @@ export class ReportService {
 		)) as unknown as { mother_number: string; offspring_dob: string }[]
 
 		const motherOffspringMap = new Map<string, string>()
-		motherOffspringData.forEach(
-			(row: { mother_number: string; offspring_dob: string }) => {
-				if (row.mother_number && row.offspring_dob) {
-					motherOffspringMap.set(row.mother_number, row.offspring_dob)
-				}
-			},
-		)
+		// motherOffspringData.forEach(
+		// 	(row: { mother_number: string; offspring_dob: string }) => {
+		// 		if (row.mother_number && row.offspring_dob) {
+		// 			motherOffspringMap.set(row.mother_number, row.offspring_dob)
+		// 		}
+		// 	},
+		// )
+
+		for (const row of motherOffspringData) {
+			if (row.mother_number && row.offspring_dob) {
+				motherOffspringMap.set(row.mother_number, row.offspring_dob)
+			}
+		}
 
 		const pregnant: Record<string, PregnantAnimal[]> = {}
 		const nonPregnant: Record<string, NonPregnantAnimal[]> = {}
@@ -3909,7 +3998,8 @@ export class ReportService {
 
 		let TotalLitresInMorning = 0
 		let milkProdCostMorning = 0
-		morningRecords.forEach((record: { answer: string }) => {
+		// morningRecords.forEach((record: { answer: string }) => {
+		for (const record of morningRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 
 			if (Array.isArray(answer) && answer.length > 0) {
@@ -3923,10 +4013,12 @@ export class ReportService {
 				TotalLitresInMorning += amount
 				milkProdCostMorning += price * amount
 			}
-		})
+		// })
+		}
 		let TotalLitresInEvening = 0
 		let milkProdCostEvening = 0
-		eveningRecords.forEach((record) => {
+		// eveningRecords.forEach((record) => {
+		for (const record of eveningRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 			if (Array.isArray(answer) && answer.length > 0) {
 				const firstRecord = answer[0] as { amount: number; price: number }
@@ -3939,7 +4031,8 @@ export class ReportService {
 				TotalLitresInEvening += amount
 				milkProdCostEvening += price * amount
 			}
-		})
+		// })
+		}
 		return {
 			aggregate: {
 				milkProdQtyMorning: TotalLitresInMorning.toFixed(2),
@@ -4099,11 +4192,13 @@ export class ReportService {
 
 		// Process expense records
 		let totalExpense = 0
-		expenseRecords.forEach((record) => {
+		// expenseRecords.forEach((record) => {
+		for (const record of expenseRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach(
-					(item: { amount: number | string; price: number | string }) => {
+				// answer.forEach(
+				// 	(item: { amount: number | string; price: number | string }) => {
+				 for (const item of answer as { amount: number | string; price: number | string }[]) {
 						const rawAmount = item?.amount
 						const rawPrice = item?.price
 
@@ -4121,19 +4216,23 @@ export class ReportService {
 									: 0
 
 						totalExpense += price * amount
-					},
-				)
+					// },
+				// )
+				 }
 			}
-		})
+		// })
+		}
 
 		// Process green feed records
 		let totalGreenFeed = 0
 		let greenFeedQty = 0
-		greenFeedRecords.forEach((record) => {
+		// greenFeedRecords.forEach((record) => {
+		for (const record of greenFeedRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach(
-					(item: { amount: string | number; price: string | number }) => {
+				// answer.forEach(
+				// 	(item: { amount: string | number; price: string | number }) => {
+				 for (const item of answer as Array<{ amount: string | number; price: string | number }>) {
 						const rawAmount = item?.amount
 						const rawPrice = item?.price
 
@@ -4151,19 +4250,23 @@ export class ReportService {
 									: 0
 						totalGreenFeed += price * amount
 						greenFeedQty += amount
-					},
-				)
+					// },
+				// )
+				 }
 			}
-		})
+		// })
+		}
 
 		// Process cattle feed records
 		let totalCattleFeed = 0
 		let cattleFeedQty = 0
-		cattleFeedRecords.forEach((record) => {
+		// cattleFeedRecords.forEach((record) => {
+		for (const record of cattleFeedRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach(
-					(item: { amount: string | number; price: string | number }) => {
+				// answer.forEach(
+				// 	(item: { amount: string | number; price: string | number }) => {
+				 for (const item of answer as Array<{ amount: string | number; price: string | number }>) {
 						const rawAmount = item?.amount
 						const rawPrice = item?.price
 
@@ -4181,10 +4284,12 @@ export class ReportService {
 									: 0
 						totalCattleFeed += price * amount
 						cattleFeedQty += amount
-					},
-				)
+					// },
+				// )
+				 }
 			}
-		})
+		// })
+		}
 
 		// Process dry feed records
 		let totalDryFeed = 0

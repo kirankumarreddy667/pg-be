@@ -86,7 +86,22 @@ export class DailyMilkRecordService {
 
 		const errors: Record<string, string[]> = {}
 
-		animalData.forEach((item, index) => {
+		// animalData.forEach((item, index) => {
+		// 	if (!validAnimalIds.has(item.animal_id)) {
+		// 		errors[`${dataType}.${index}.animal_id`] = [
+		// 			`The selected ${dataType}.${index}.animal_id is invalid.`,
+		// 		]
+		// 	}
+
+		// 	const pairKey = `${item.animal_id}-${item.animal_number}`
+		// 	if (!validAnimalNumberPairs.has(pairKey)) {
+		// 		errors[`${dataType}.${index}.animal_number`] = [
+		// 			`The selected ${dataType}.${index}.animal_number is invalid.`,
+		// 		]
+		// 	}
+		// })
+
+		for (const [index, item] of animalData.entries()) {
 			if (!validAnimalIds.has(item.animal_id)) {
 				errors[`${dataType}.${index}.animal_id`] = [
 					`The selected ${dataType}.${index}.animal_id is invalid.`,
@@ -99,7 +114,7 @@ export class DailyMilkRecordService {
 					`The selected ${dataType}.${index}.animal_number is invalid.`,
 				]
 			}
-		})
+		}
 
 		if (Object.keys(errors).length > 0) {
 			throw new ValidationRequestError(errors)
@@ -287,7 +302,8 @@ export class DailyMilkRecordService {
 	}
 	private static async checkAndInsertLactatingYield(
 		user: User,
-	): Promise<boolean> {
+	// ): Promise<boolean> {
+	): Promise<void> {
 		const userDetails = await db.User.findOne({
 			where: {
 				id: user.id,
@@ -298,7 +314,7 @@ export class DailyMilkRecordService {
 		})
 
 		if (!userDetails || userDetails.record_milk_refresh !== null) {
-			return true
+			return 
 		}
 
 		const animalNumbers = (await db.AnimalQuestionAnswer.findAll({
@@ -378,7 +394,7 @@ export class DailyMilkRecordService {
 			{ where: { id: user.id } },
 		)
 
-		return true
+		// return true
 	}
 	private static async animalGestationHistory(
 		animalId: number,
