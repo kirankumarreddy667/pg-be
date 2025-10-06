@@ -1177,9 +1177,11 @@ export class ReportsService {
 		})) as { investment_type_id: number; investment_type: string }[]
 
 		const typeMap = new Map<number, string>()
-		investmentTypes.forEach((t) => {
+		// investmentTypes.forEach((t) => {
+		for (const t of investmentTypes) {
 			typeMap.set(t.investment_type_id, t.investment_type)
-		})
+		// })
+		}
 
 		const currentDate = new Date()
 		currentDate.setHours(0, 0, 0, 0)
@@ -1719,7 +1721,8 @@ export class ReportsService {
 			Record<string, Record<number, string>>
 		> = {}
 
-		allAnimalAnswers.forEach((answer) => {
+		// allAnimalAnswers.forEach((answer) => {
+		for (const answer of allAnimalAnswers) {
 			const animalNumber = answer.animal_number
 			const date = answer.created_at.split(' ')[0] // Extract date part
 			const questionTag = answer['CommonQuestion.question_tag']
@@ -1734,14 +1737,17 @@ export class ReportsService {
 			}
 
 			answersByAnimalAndDate[animalNumber][date][questionTag] = answerValue
-		})
+		// })
+		}
 
 		// Process each animal and date combination
-		userAnimals.forEach((animal) => {
+		// userAnimals.forEach((animal) => {
+		for (const animal of userAnimals) {
 			const animalNumber = animal.animal_number
 			const animalAnswers = answersByAnimalAndDate[animalNumber] || {}
 
-			dates.forEach((date) => {
+			// dates.forEach((date) => {
+			for (const date of dates) {
 				const dateAnswers = animalAnswers[date] || {}
 
 				const healthData: HealthReportDetailsEntry = {
@@ -1755,8 +1761,10 @@ export class ReportsService {
 				if (healthData.date) {
 					resData.push(healthData)
 				}
-			})
-		})
+			// })
+			}
+		// })
+		}
 
 		return resData
 	}
@@ -1764,11 +1772,13 @@ export class ReportsService {
 		resData: HealthReportDetailsEntry[],
 	): string[] {
 		const animals = new Set<string>()
-		resData.forEach((entry) => {
+		// resData.forEach((entry) => {
+		for (const entry of resData) {
 			if (entry.date) {
 				animals.add(entry.animal_number)
 			}
-		})
+		// })
+		}
 		return Array.from(animals)
 	}
 
@@ -2063,7 +2073,8 @@ export class ReportsService {
 
 		// Use reduce to build the result array
 		const resData = userAnimals.reduce((result, animal) => {
-			dates.forEach((date) => {
+			// dates.forEach((date) => {
+			for (const date of dates) {
 				const milkReportDate = answerMap.get(
 					`${animal.animal_number}|${animal.animal_id}|${date}|56`,
 				)
@@ -2098,7 +2109,8 @@ export class ReportsService {
 							) || null,
 					})
 				}
-			})
+			// })
+			}
 			return result
 		}, [] as AnimalMilkReportDetailsRow[])
 
@@ -2209,18 +2221,22 @@ export class ReportsService {
 
 		const animalGroups = new Map<number, typeof allData>()
 
-		allData.forEach((row) => {
+		// allData.forEach((row) => {
+		for (const row of allData) {
 			if (!animalGroups.has(row.animal_id)) {
 				animalGroups.set(row.animal_id, [])
 			}
 			animalGroups.get(row.animal_id)!.push(row)
-		})
+		// })
+		}
 
-		animalGroups.forEach((animalNumbers) => {
+		// animalGroups.forEach((animalNumbers) => {
+		for (const animalNumbers of animalGroups.values()) {
 			let pregnantAnimal = 0
 			let nonPregnantAnimal = 0
 
-			animalNumbers.forEach((row) => {
+			// animalNumbers.forEach((row) => {
+			for (const row of animalNumbers) {
 				if (row.sex_answer && row.sex_answer.toLowerCase() !== 'male') {
 					if (row.pregnancy_answer) {
 						const answer = row.pregnancy_answer.toLowerCase()
@@ -2237,8 +2253,10 @@ export class ReportsService {
 						}
 					}
 				}
-			})
-		})
+			// })
+			}
+		// })
+		}
 
 		return Object.keys(resData).length === 0 ? [] : resData
 	}
@@ -2567,7 +2585,8 @@ export class ReportsService {
 		const pregnant: Record<string, AnimalPregnancyInfo[]> = {}
 		const non_pregnant: Record<string, AnimalPregnancyInfo[]> = {}
 
-		results.forEach((row) => {
+		// results.forEach((row) => {
+		for (const row of results) {
 			const animalInfo: AnimalPregnancyInfo = {
 				animal_num: row.animal_number,
 				date_of_pregnancy_detection: row.pregnancy_detection_date || 'NA',
@@ -2595,7 +2614,8 @@ export class ReportsService {
 				}
 				non_pregnant[row.animal_name].push(animalInfo)
 			}
-		})
+		// })
+		}
 
 		return { pregnant, non_pregnant }
 	}

@@ -341,10 +341,18 @@ export class UserService {
 		let filterStartDate: string
 		let filterEndDate: string
 
-		if (type === 'all_time' || (!start_date && !end_date)) {
-			filterStartDate = '1970-01-01'
-			filterEndDate = now.format('YYYY-MM-DD')
-		} else if (start_date && end_date) {
+		// if (type === 'all_time' || (!start_date && !end_date)) {
+		// 	filterStartDate = '1970-01-01'
+		// 	filterEndDate = now.format('YYYY-MM-DD')
+		// } else if (start_date && end_date) {
+		// 	filterStartDate = start_date
+		// 	filterEndDate = end_date
+		// } else {
+		// 	filterStartDate = '1970-01-01'
+		// 	filterEndDate = now.format('YYYY-MM-DD')
+		// }
+
+		if (start_date && end_date) {
 			filterStartDate = start_date
 			filterEndDate = end_date
 		} else {
@@ -954,20 +962,30 @@ export class UserService {
 				const startDate = moment.tz(start_date, 'Asia/Kolkata')
 				const endDate = moment.tz(end_date, 'Asia/Kolkata')
 
+				// if (userCreatedAt.isSameOrBefore(endDate)) {
+				// 	let diff: number
+
+				// 	if (userCreatedAt.isSameOrBefore(startDate)) {
+				// 		diff = endDate.diff(startDate, 'days')
+				// 	} else {
+				// 		diff = endDate.diff(userCreatedAt, 'days')
+				// 	}
+
+				// 	if (diff === 0) {
+				// 		total_days = 1
+				// 	} else {
+				// 		total_days = diff + 1
+				// 	}
+				// } else {
+				// 	total_days = 0
+				// }
+
 				if (userCreatedAt.isSameOrBefore(endDate)) {
-					let diff: number
+					const diff = userCreatedAt.isSameOrBefore(startDate)
+						? endDate.diff(startDate, 'days')
+						: endDate.diff(userCreatedAt, 'days')
 
-					if (userCreatedAt.isSameOrBefore(startDate)) {
-						diff = endDate.diff(startDate, 'days')
-					} else {
-						diff = endDate.diff(userCreatedAt, 'days')
-					}
-
-					if (diff === 0) {
-						total_days = 1
-					} else {
-						total_days = diff + 1
-					}
+					total_days = diff === 0 ? 1 : diff + 1
 				} else {
 					total_days = 0
 				}

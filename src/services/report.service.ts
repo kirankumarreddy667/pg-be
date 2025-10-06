@@ -13,6 +13,11 @@ import { addMonths, format } from 'date-fns'
 
 type MilkValue = string | number | null
 
+type FeedItem = {
+	amount: string | number
+	price: string | number
+}
+
 interface AnimalNumber {
 	animal_id: number
 	animal_number: string
@@ -4013,7 +4018,7 @@ export class ReportService {
 				TotalLitresInMorning += amount
 				milkProdCostMorning += price * amount
 			}
-		// })
+			// })
 		}
 		let TotalLitresInEvening = 0
 		let milkProdCostEvening = 0
@@ -4031,7 +4036,7 @@ export class ReportService {
 				TotalLitresInEvening += amount
 				milkProdCostEvening += price * amount
 			}
-		// })
+			// })
 		}
 		return {
 			aggregate: {
@@ -4198,29 +4203,32 @@ export class ReportService {
 			if (Array.isArray(answer)) {
 				// answer.forEach(
 				// 	(item: { amount: number | string; price: number | string }) => {
-				 for (const item of answer as { amount: number | string; price: number | string }[]) {
-						const rawAmount = item?.amount
-						const rawPrice = item?.price
+				for (const item of answer as {
+					amount: number | string
+					price: number | string
+				}[]) {
+					const rawAmount = item?.amount
+					const rawPrice = item?.price
 
-						const amount =
-							typeof rawAmount === 'number'
-								? rawAmount
-								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
-									: 1
-						const price =
-							typeof rawPrice === 'number'
-								? rawPrice
-								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
-									: 0
+					const amount =
+						typeof rawAmount === 'number'
+							? rawAmount
+							: typeof rawAmount === 'string'
+								? Number.parseFloat(rawAmount) || 1
+								: 1
+					const price =
+						typeof rawPrice === 'number'
+							? rawPrice
+							: typeof rawPrice === 'string'
+								? Number.parseFloat(rawPrice) || 0
+								: 0
 
-						totalExpense += price * amount
+					totalExpense += price * amount
 					// },
-				// )
-				 }
+					// )
+				}
 			}
-		// })
+			// })
 		}
 
 		// Process green feed records
@@ -4232,29 +4240,32 @@ export class ReportService {
 			if (Array.isArray(answer)) {
 				// answer.forEach(
 				// 	(item: { amount: string | number; price: string | number }) => {
-				 for (const item of answer as Array<{ amount: string | number; price: string | number }>) {
-						const rawAmount = item?.amount
-						const rawPrice = item?.price
+				for (const item of answer as Array<{
+					amount: string | number
+					price: string | number
+				}>) {
+					const rawAmount = item?.amount
+					const rawPrice = item?.price
 
-						const amount =
-							typeof rawAmount === 'number'
-								? rawAmount
-								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
-									: 1
-						const price =
-							typeof rawPrice === 'number'
-								? rawPrice
-								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
-									: 0
-						totalGreenFeed += price * amount
-						greenFeedQty += amount
+					const amount =
+						typeof rawAmount === 'number'
+							? rawAmount
+							: typeof rawAmount === 'string'
+								? Number.parseFloat(rawAmount) || 1
+								: 1
+					const price =
+						typeof rawPrice === 'number'
+							? rawPrice
+							: typeof rawPrice === 'string'
+								? Number.parseFloat(rawPrice) || 0
+								: 0
+					totalGreenFeed += price * amount
+					greenFeedQty += amount
 					// },
-				// )
-				 }
+					// )
+				}
 			}
-		// })
+			// })
 		}
 
 		// Process cattle feed records
@@ -4266,90 +4277,159 @@ export class ReportService {
 			if (Array.isArray(answer)) {
 				// answer.forEach(
 				// 	(item: { amount: string | number; price: string | number }) => {
-				 for (const item of answer as Array<{ amount: string | number; price: string | number }>) {
-						const rawAmount = item?.amount
-						const rawPrice = item?.price
+				for (const item of answer as Array<{
+					amount: string | number
+					price: string | number
+				}>) {
+					const rawAmount = item?.amount
+					const rawPrice = item?.price
 
-						const amount =
-							typeof rawAmount === 'number'
-								? rawAmount
-								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
-									: 1
-						const price =
-							typeof rawPrice === 'number'
-								? rawPrice
-								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
-									: 0
-						totalCattleFeed += price * amount
-						cattleFeedQty += amount
+					// const amount =
+					// 	typeof rawAmount === 'number'
+					// 		? rawAmount
+					// 		: typeof rawAmount === 'string'
+					// 			? Number.parseFloat(rawAmount) || 1
+					// 			: 1
+
+					let amount: number
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
+
+					// const price =
+					// 	typeof rawPrice === 'number'
+					// 		? rawPrice
+					// 		: typeof rawPrice === 'string'
+					// 			? Number.parseFloat(rawPrice) || 0
+					// 			: 0
+
+					let price: number
+					if (typeof rawPrice === 'number') {
+						price = rawPrice
+					} else if (typeof rawPrice === 'string') {
+						price = Number.parseFloat(rawPrice) || 0
+					} else {
+						price = 0
+					}
+
+					totalCattleFeed += price * amount
+					cattleFeedQty += amount
 					// },
-				// )
-				 }
+					// )
+				}
 			}
-		// })
+			// })
 		}
 
 		// Process dry feed records
 		let totalDryFeed = 0
 		let dryFeedQty = 0
-		dryFeedRecords.forEach((record) => {
+		// dryFeedRecords.forEach((record) => {
+		for (const record of dryFeedRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach(
-					(item: { amount: string | number; price: string | number }) => {
-						const rawAmount = item?.amount
-						const rawPrice = item?.price
+				// answer.forEach(
+				// 	(item: { amount: string | number; price: string | number }) => {
+				for (const item of answer) {
+					const feedItem = item as FeedItem
+					const rawAmount = feedItem?.amount
+					const rawPrice = feedItem?.price
 
-						const amount =
-							typeof rawAmount === 'number'
-								? rawAmount
-								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
-									: 1
-						const price =
-							typeof rawPrice === 'number'
-								? rawPrice
-								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
-									: 0
-						totalDryFeed += price * amount
-						dryFeedQty += amount
-					},
-				)
+					// const amount =
+					// 	typeof rawAmount === 'number'
+					// 		? rawAmount
+					// 		: typeof rawAmount === 'string'
+					// 			? Number.parseFloat(rawAmount) || 1
+					// 			: 1
+					// const price =
+					// 	typeof rawPrice === 'number'
+					// 		? rawPrice
+					// 		: typeof rawPrice === 'string'
+					// 			? Number.parseFloat(rawPrice) || 0
+					// 			: 0
+
+					let amount: number
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
+
+					let price: number
+					if (typeof rawPrice === 'number') {
+						price = rawPrice
+					} else if (typeof rawPrice === 'string') {
+						price = Number.parseFloat(rawPrice) || 0
+					} else {
+						price = 0
+					}
+					totalDryFeed += price * amount
+					dryFeedQty += amount
+					// },
+					// )
+				}
 			}
-		})
+			// })
+		}
 
 		// Process supplement records
 		let totalSupplement = 0
 		let supplementQty = 0
-		supplementRecords.forEach((record) => {
+		// supplementRecords.forEach((record) => {
+		for (const record of supplementRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach(
-					(item: { amount: string | number; price: string | number }) => {
-						const rawAmount = item?.amount
-						const rawPrice = item?.price
+				// answer.forEach(
+				// 	(item: { amount: string | number; price: string | number }) => {
+				for (const item of answer) {
+					const feedItem = item as FeedItem
+					const rawAmount = feedItem?.amount
+					const rawPrice = feedItem?.price
 
-						const amount =
-							typeof rawAmount === 'number'
-								? rawAmount
-								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
-									: 1
-						const price =
-							typeof rawPrice === 'number'
-								? rawPrice
-								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
-									: 0
-						totalSupplement += price * amount
-						supplementQty += amount
-					},
-				)
+					// const amount =
+					// 	typeof rawAmount === 'number'
+					// 		? rawAmount
+					// 		: typeof rawAmount === 'string'
+					// 			? Number.parseFloat(rawAmount) || 1
+					// 			: 1
+					// const price =
+					// 	typeof rawPrice === 'number'
+					// 		? rawPrice
+					// 		: typeof rawPrice === 'string'
+					// 			? Number.parseFloat(rawPrice) || 0
+					// 			: 0
+
+					let amount: number
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
+
+					let price: number
+					if (typeof rawPrice === 'number') {
+						price = rawPrice
+					} else if (typeof rawPrice === 'string') {
+						price = Number.parseFloat(rawPrice) || 0
+					} else {
+						price = 0
+					}
+					totalSupplement += price * amount
+					supplementQty += amount
+					// },
+					// )
+				}
 			}
-		})
+			// })
+		}
 		const otherExpense =
 			totalExpense -
 			(totalGreenFeed + totalCattleFeed + totalDryFeed + totalSupplement)
@@ -4429,41 +4509,70 @@ export class ReportService {
 		])
 		// Process purchase records
 		let expenseForPurchaseAnimals = 0
-		purchaseRecords.forEach((record) => {
+		// purchaseRecords.forEach((record) => {
+		for (const record of purchaseRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach((item: { amount: string | number }) => {
+				// answer.forEach((item: { amount: string | number }) => {
+				for (const item of answer as { amount: string | number }[]) {
 					const rawAmount = item?.amount
 
-					const amount =
-						typeof rawAmount === 'number'
-							? rawAmount
-							: typeof rawAmount === 'string'
-								? Number.parseFloat(rawAmount) || 1
-								: 1
+					// const amount =
+					// 	typeof rawAmount === 'number'
+					// 		? rawAmount
+					// 		: typeof rawAmount === 'string'
+					// 			? Number.parseFloat(rawAmount) || 1
+					// 			: 1
+
+					let amount: number
+
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
 					expenseForPurchaseAnimals += amount
-				})
+					// })
+				}
 			}
-		})
+			// })
+		}
 
 		// Process sale records
 		let incomeForSaleAnimals = 0
-		saleRecords.forEach((record) => {
+		// saleRecords.forEach((record) => {
+		for (const record of saleRecords) {
 			const answer = JSON.parse(record.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach((item: { amount: string | number }) => {
+				// answer.forEach((item: { amount: string | number }) => {
+				for (const item of answer as { amount: string | number }[]) {
 					const rawAmount = item?.amount
 
-					const amount =
-						typeof rawAmount === 'number'
-							? rawAmount
-							: typeof rawAmount === 'string'
-								? Number.parseFloat(rawAmount) || 1
-								: 1
+					// const amount =
+					// 	typeof rawAmount === 'number'
+					// 		? rawAmount
+					// 		: typeof rawAmount === 'string'
+					// 			? Number.parseFloat(rawAmount) || 1
+					// 			: 1
+
+					// Extract nested ternary into independent statement
+					let amount: number
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
+
 					incomeForSaleAnimals += amount
-				})
+					// })
+				}
 			}
-		})
+			// })
+		}
 
 		return {
 			income_for_sale_animals: incomeForSaleAnimals.toFixed(2),
@@ -4765,138 +4874,252 @@ export class ReportService {
 		let totalIncome = 0
 
 		// Process morning milk data
-		morning.forEach((value) => {
+		// morning.forEach((value) => {
+		for (const value of morning) {
 			const answer = JSON.parse(value.answer) as unknown
 			if (Array.isArray(answer)) {
 				const firstItem = answer[0] as {
 					amount?: string | number
 					price?: string | number
 				}
-				const amount =
-					typeof firstItem?.amount === 'number'
-						? firstItem.amount
-						: typeof firstItem?.amount === 'string'
-							? Number.parseFloat(firstItem.amount) || 0
-							: 0
-				const price =
-					typeof firstItem?.price === 'number'
-						? firstItem.price
-						: typeof firstItem?.price === 'string'
-							? Number.parseFloat(firstItem.price) || 0
-							: 0
+				// const amount =
+				// 	typeof firstItem?.amount === 'number'
+				// 		? firstItem.amount
+				// 		: typeof firstItem?.amount === 'string'
+				// 			? Number.parseFloat(firstItem.amount) || 0
+				// 			: 0
+				// const price =
+				// 	typeof firstItem?.price === 'number'
+				// 		? firstItem.price
+				// 		: typeof firstItem?.price === 'string'
+				// 			? Number.parseFloat(firstItem.price) || 0
+				// 			: 0
+
+				let amount: number
+				if (typeof firstItem?.amount === 'number') {
+					amount = firstItem.amount
+				} else if (typeof firstItem?.amount === 'string') {
+					amount = Number.parseFloat(firstItem.amount) || 0
+				} else {
+					amount = 0
+				}
+
+				let price: number
+				if (typeof firstItem?.price === 'number') {
+					price = firstItem.price
+				} else if (typeof firstItem?.price === 'string') {
+					price = Number.parseFloat(firstItem.price) || 0
+				} else {
+					price = 0
+				}
 
 				TotalLitresInMorning += amount
 				milkProdCostMorning += price * amount
 			}
-		})
+			// })
+		}
 
 		// Process evening milk data
-		evening.forEach((value) => {
+		// evening.forEach((value) => {
+		for (const value of evening) {
 			const answer = JSON.parse(value.answer) as unknown
 			if (Array.isArray(answer)) {
 				const firstItem = answer[0] as {
 					amount?: string | number
 					price?: string | number
 				}
-				const amount =
-					typeof firstItem?.amount === 'number'
-						? firstItem.amount
-						: typeof firstItem?.amount === 'string'
-							? Number.parseFloat(firstItem.amount) || 0
-							: 0
-				const price =
-					typeof firstItem?.price === 'number'
-						? firstItem.price
-						: typeof firstItem?.price === 'string'
-							? Number.parseFloat(firstItem.price) || 0
-							: 0
+				// const amount =
+				// 	typeof firstItem?.amount === 'number'
+				// 		? firstItem.amount
+				// 		: typeof firstItem?.amount === 'string'
+				// 			? Number.parseFloat(firstItem.amount) || 0
+				// 			: 0
+				// const price =
+				// 	typeof firstItem?.price === 'number'
+				// 		? firstItem.price
+				// 		: typeof firstItem?.price === 'string'
+				// 			? Number.parseFloat(firstItem.price) || 0
+				// 			: 0
+
+				let amount: number
+				if (typeof firstItem?.amount === 'number') {
+					amount = firstItem.amount
+				} else if (typeof firstItem?.amount === 'string') {
+					amount = Number.parseFloat(firstItem.amount) || 0
+				} else {
+					amount = 0
+				}
+
+				// Extract price calculation
+				let price: number
+				if (typeof firstItem?.price === 'number') {
+					price = firstItem.price
+				} else if (typeof firstItem?.price === 'string') {
+					price = Number.parseFloat(firstItem.price) || 0
+				} else {
+					price = 0
+				}
 
 				TotalLitresInEvening += amount
 				milkProdCostEvening += price * amount
 			}
-		})
+			// })
+		}
 
 		// Process manure production data
-		manure.forEach((value) => {
+		// manure.forEach((value) => {
+		for (const value of manure) {
 			const answer = JSON.parse(value.answer) as unknown
 			if (Array.isArray(answer)) {
 				const firstItem = answer[0] as {
 					amount?: string | number
 					price?: string | number
 				}
-				const amount =
-					typeof firstItem?.amount === 'number'
-						? firstItem.amount
-						: typeof firstItem?.amount === 'string'
-							? Number.parseFloat(firstItem.amount) || 0
-							: 0
-				const price =
-					typeof firstItem?.price === 'number'
-						? firstItem.price
-						: typeof firstItem?.price === 'string'
-							? Number.parseFloat(firstItem.price) || 0
-							: 0
+				// const amount =
+				// 	typeof firstItem?.amount === 'number'
+				// 		? firstItem.amount
+				// 		: typeof firstItem?.amount === 'string'
+				// 			? Number.parseFloat(firstItem.amount) || 0
+				// 			: 0
+				// const price =
+				// 	typeof firstItem?.price === 'number'
+				// 		? firstItem.price
+				// 		: typeof firstItem?.price === 'string'
+				// 			? Number.parseFloat(firstItem.price) || 0
+				// 			: 0
+
+				let amount: number
+				if (typeof firstItem?.amount === 'number') {
+					amount = firstItem.amount
+				} else if (typeof firstItem?.amount === 'string') {
+					amount = Number.parseFloat(firstItem.amount) || 0
+				} else {
+					amount = 0
+				}
+
+				// Extract price calculation
+				let price: number
+				if (typeof firstItem?.price === 'number') {
+					price = firstItem.price
+				} else if (typeof firstItem?.price === 'string') {
+					price = Number.parseFloat(firstItem.price) || 0
+				} else {
+					price = 0
+				}
 
 				totalmanureProduction += amount
 				totalmanureProductionPrice += price * amount
 			}
-		})
+			// })
+		}
 
 		// Process selling price data
-		selling.forEach((value) => {
+		// selling.forEach((value) => {
+		for (const value of selling) {
 			const answer = JSON.parse(value.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach(
-					(item: { price?: string | number; amount?: string | number }) => {
-						const rawAmount = item?.amount
-						const rawPrice = item?.price
+				// answer.forEach(
+				// 	(item: { price?: string | number; amount?: string | number }) => {
+				for (const item of answer as Array<{
+					price?: string | number
+					amount?: string | number
+				}>) {
+					const rawAmount = item?.amount
+					const rawPrice = item?.price
 
-						const amount =
-							typeof rawAmount === 'number'
-								? rawAmount
-								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
-									: 1
-						const price =
-							typeof rawPrice === 'number'
-								? rawPrice
-								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
-									: 0
+					// const amount =
+					// 	typeof rawAmount === 'number'
+					// 		? rawAmount
+					// 		: typeof rawAmount === 'string'
+					// 			? Number.parseFloat(rawAmount) || 1
+					// 			: 1
+					// const price =
+					// 	typeof rawPrice === 'number'
+					// 		? rawPrice
+					// 		: typeof rawPrice === 'string'
+					// 			? Number.parseFloat(rawPrice) || 0
+					// 			: 0
 
-						totalsellingPrice += price * amount
-					},
-				)
+					let amount: number
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
+
+					// Extract nested ternary for price
+					let price: number
+					if (typeof rawPrice === 'number') {
+						price = rawPrice
+					} else if (typeof rawPrice === 'string') {
+						price = Number.parseFloat(rawPrice) || 0
+					} else {
+						price = 0
+					}
+					totalsellingPrice += price * amount
+					// },
+					// )
+				}
 			}
-		})
+			// })
+		}
 
 		// Process income data
-		income.forEach((value) => {
+		// income.forEach((value) => {
+		for (const value of income) {
 			const answer = JSON.parse(value.answer) as unknown
 			if (Array.isArray(answer)) {
-				answer.forEach(
-					(item: { price?: string | number; amount?: string | number }) => {
-						const rawAmount = item?.amount
-						const rawPrice = item?.price
+				// answer.forEach(
+				// 	(item: { price?: string | number; amount?: string | number }) => {
+				for (const item of answer as Array<{
+					price?: string | number
+					amount?: string | number
+				}>) {
+					const rawAmount = item?.amount
+					const rawPrice = item?.price
 
-						const amount =
-							typeof rawAmount === 'number'
-								? rawAmount
-								: typeof rawAmount === 'string'
-									? Number.parseFloat(rawAmount) || 1
-									: 1
-						const price =
-							typeof rawPrice === 'number'
-								? rawPrice
-								: typeof rawPrice === 'string'
-									? Number.parseFloat(rawPrice) || 0
-									: 0
+					// const amount =
+					// 	typeof rawAmount === 'number'
+					// 		? rawAmount
+					// 		: typeof rawAmount === 'string'
+					// 			? Number.parseFloat(rawAmount) || 1
+					// 			: 1
+					// const price =
+					// 	typeof rawPrice === 'number'
+					// 		? rawPrice
+					// 		: typeof rawPrice === 'string'
+					// 			? Number.parseFloat(rawPrice) || 0
+					// 			: 0
 
-						totalIncome += price * amount
-					},
-				)
+					// Extract nested ternary for price
+					let amount: number
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
+
+					// Extract nested ternary for price
+					let price: number
+					if (typeof rawPrice === 'number') {
+						price = rawPrice
+					} else if (typeof rawPrice === 'string') {
+						price = Number.parseFloat(rawPrice) || 0
+					} else {
+						price = 0
+					}
+
+					totalIncome += price * amount
+					// },
+					// )
+				}
 			}
-		})
+			// })
+		}
 
 		// Calculate number of days
 		const noOfDays = daysCount[0]?.count > 0 ? daysCount[0].count : 1

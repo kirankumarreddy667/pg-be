@@ -777,7 +777,8 @@ export class UserPaymentService {
 				quantity = offerData.additional_months
 				monthYear = 'Months'
 			}
-			if (offerData.additional_years && offerData.additional_years > 0) {
+			// if (offerData.additional_years && offerData.additional_years > 0) {
+			else if (offerData.additional_years && offerData.additional_years > 0) {
 				quantity = offerData.additional_years
 				monthYear = 'Months'
 			}
