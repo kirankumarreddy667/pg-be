@@ -395,19 +395,6 @@ export class DailyRecordQuestionService {
 				acc[categoryName][subCategoryName] = []
 			}
 
-			// let questionTags: QuestionTag[] = []
-			// if (row.question_tags_json) {
-			// 	questionTags = row.question_tags_json
-			// 		.filter(
-			// 			(tag: { id: number; name: string }) =>
-			// 				tag !== null && tag.id && tag.name,
-			// 		)
-			// 		.map((tag: { id: number; name: string }) => ({
-			// 			question_tag_id: tag.id,
-			// 			question_tag_name: tag.name,
-			// 		}))
-			// }
-
 			const questionTags: QuestionTag[] =
 				row.question_tags_json
 					?.filter((tag) => tag?.id && tag?.name)

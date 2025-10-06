@@ -17,7 +17,7 @@ const router: Router = Router()
 
 /**
  * @swagger
- * /generate-pdf:
+ * /generate_pdf:
  *   post:
  *     summary: Generate PDF report and send via email
  *     description: Generates various types of PDF reports based on the report_type and sends them to the specified email address

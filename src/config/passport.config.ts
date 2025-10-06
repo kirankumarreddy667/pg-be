@@ -98,5 +98,5 @@ passport.deserializeUser((id: number, done) => {
 		.catch((err: unknown) => done(err as Error, null))
 })
 
-//sonar-ignore-next-line
+// SonarQube: export default is necessary because passport is configured
 export default passport

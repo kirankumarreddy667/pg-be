@@ -782,14 +782,6 @@ export class ReportService {
 			if (answer1) {
 				const dateObj = new Date(answer1)
 				const day = dateObj.getDate()
-				// const suffix =
-				// 	day % 10 === 1 && day !== 11
-				// 		? 'st'
-				// 		: day % 10 === 2 && day !== 12
-				// 			? 'nd'
-				// 			: day % 10 === 3 && day !== 13
-				// 				? 'rd'
-				// 				: 'th'
 
 				let suffix: string
 				if (day % 10 === 1 && day !== 11) {
@@ -818,16 +810,6 @@ export class ReportService {
 
 				const words = answer2.split(' ')
 				const firstWord = words[0]
-
-				// if (telu.includes(firstWord)) {
-				// 	font = 'Pothana2000'
-				// } else if (end.includes(answer2[0])) {
-				// 	font = 'DejaVuSans'
-				// } else if (hin.includes(answer2[0])) {
-				// 	font = 'mangal'
-				// } else {
-				// 	font = 'Pothana2000'
-				// }
 
 				if (end.includes(answer2[0])) {
 					font = 'DejaVuSans'
@@ -928,14 +910,6 @@ export class ReportService {
 				})
 				.replaceAll(/(\d+)/, (match) => {
 					const day = Number.parseInt(match)
-					// const suffix =
-					// 	day === 1 || day === 21 || day === 31
-					// 		? 'st'
-					// 		: day === 2 || day === 22
-					// 			? 'nd'
-					// 			: day === 3 || day === 23
-					// 				? 'rd'
-					// 				: 'th'
 
 					let suffix: string
 					if (day === 1 || day === 21 || day === 31) {
@@ -1048,14 +1022,6 @@ export class ReportService {
 					})
 					.replaceAll(/(\d+)/, (match) => {
 						const day = Number.parseInt(match)
-						// const suffix =
-						// 	day === 1 || day === 21 || day === 31
-						// 		? 'st'
-						// 		: day === 2 || day === 22
-						// 			? 'nd'
-						// 			: day === 3 || day === 23
-						// 				? 'rd'
-						// 				: 'th'
 
 						let suffix: string
 
@@ -1202,14 +1168,6 @@ export class ReportService {
 					})
 					.replaceAll(/(\d+)/, (match) => {
 						const day = Number.parseInt(match)
-						// const suffix =
-						// 	day === 1 || day === 21 || day === 31
-						// 		? 'st'
-						// 		: day === 2 || day === 22
-						// 			? 'nd'
-						// 			: day === 3 || day === 23
-						// 				? 'rd'
-						// 				: 'th'
 
 						let suffix: string
 
@@ -1707,14 +1665,6 @@ export class ReportService {
 		const year = dateObj.getFullYear()
 
 		// Add ordinal suffix efficiently
-		// const suffix =
-		// 	day % 10 === 1 && day !== 11
-		// 		? 'st'
-		// 		: day % 10 === 2 && day !== 12
-		// 			? 'nd'
-		// 			: day % 10 === 3 && day !== 13
-		// 				? 'rd'
-		// 				: 'th'
 
 		let suffix: string
 
@@ -2208,13 +2158,6 @@ export class ReportService {
 		)) as unknown as { mother_number: string; offspring_dob: string }[]
 
 		const motherOffspringMap = new Map<string, string>()
-		// motherOffspringData.forEach(
-		// 	(row: { mother_number: string; offspring_dob: string }) => {
-		// 		if (row.mother_number && row.offspring_dob) {
-		// 			motherOffspringMap.set(row.mother_number, row.offspring_dob)
-		// 		}
-		// 	},
-		// )
 
 		for (const row of motherOffspringData) {
 			if (row.mother_number && row.offspring_dob) {
@@ -3672,12 +3615,7 @@ export class ReportService {
 				try {
 					const answer = JSON.parse(value3?.answer || '[]') as AnswerItem[]
 					for (const valuea of answer) {
-						let amount: number
-						if (!valuea.amount) {
-							amount = 1
-						} else {
-							amount = valuea.amount
-						}
+						const amount: number = valuea.amount ?? 1
 						const price = valuea.price * amount
 						totalExpenseWithoutPurchasePrice =
 							totalExpenseWithoutPurchasePrice + price
@@ -4210,18 +4148,37 @@ export class ReportService {
 					const rawAmount = item?.amount
 					const rawPrice = item?.price
 
-					const amount =
-						typeof rawAmount === 'number'
-							? rawAmount
-							: typeof rawAmount === 'string'
-								? Number.parseFloat(rawAmount) || 1
-								: 1
-					const price =
-						typeof rawPrice === 'number'
-							? rawPrice
-							: typeof rawPrice === 'string'
-								? Number.parseFloat(rawPrice) || 0
-								: 0
+					// const amount =
+					// 	typeof rawAmount === 'number'
+					// 		? rawAmount
+					// 		: typeof rawAmount === 'string'
+					// 			? Number.parseFloat(rawAmount) || 1
+					// 			: 1
+
+					let amount: number
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
+
+					// const price =
+					// 	typeof rawPrice === 'number'
+					// 		? rawPrice
+					// 		: typeof rawPrice === 'string'
+					// 			? Number.parseFloat(rawPrice) || 0
+					// 			: 0
+
+					let price: number
+					if (typeof rawPrice === 'number') {
+						price = rawPrice
+					} else if (typeof rawPrice === 'string') {
+						price = Number.parseFloat(rawPrice) || 0
+					} else {
+						price = 0
+					}
 
 					totalExpense += price * amount
 					// },
@@ -4247,18 +4204,24 @@ export class ReportService {
 					const rawAmount = item?.amount
 					const rawPrice = item?.price
 
-					const amount =
-						typeof rawAmount === 'number'
-							? rawAmount
-							: typeof rawAmount === 'string'
-								? Number.parseFloat(rawAmount) || 1
-								: 1
-					const price =
-						typeof rawPrice === 'number'
-							? rawPrice
-							: typeof rawPrice === 'string'
-								? Number.parseFloat(rawPrice) || 0
-								: 0
+					let amount: number
+					if (typeof rawAmount === 'number') {
+						amount = rawAmount
+					} else if (typeof rawAmount === 'string') {
+						amount = Number.parseFloat(rawAmount) || 1
+					} else {
+						amount = 1
+					}
+
+					let price: number
+					if (typeof rawPrice === 'number') {
+						price = rawPrice
+					} else if (typeof rawPrice === 'string') {
+						price = Number.parseFloat(rawPrice) || 0
+					} else {
+						price = 0
+					}
+
 					totalGreenFeed += price * amount
 					greenFeedQty += amount
 					// },

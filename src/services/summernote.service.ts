@@ -26,7 +26,8 @@ export class SummernoteService {
 			const { document } = dom.window
 			const images = document.querySelectorAll('img')
 			if (images) {
-				images.forEach((img, k) => {
+				// images.forEach((img, k) => {
+				for (const [k, img] of Array.from(images).entries()) {
 					const data = img.getAttribute('src')
 					if (data?.startsWith('data:')) {
 						const matches = data.match(/^data:(.+);base64,(.+)$/)
@@ -45,7 +46,8 @@ export class SummernoteService {
 							img.setAttribute('src', `/storage/images/${imageName}`)
 						}
 					}
-				})
+				// })
+				}
 			}
 
 			detail = document.body.innerHTML

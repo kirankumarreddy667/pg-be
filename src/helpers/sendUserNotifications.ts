@@ -134,8 +134,8 @@ export class SendUserNotifications {
 				const user = users[0]
 
 				if (
-					user &&
-					user.firebase_token &&
+					// user &&
+					user?.firebase_token &&
 					notification.heading &&
 					notification.message
 				) {

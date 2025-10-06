@@ -365,17 +365,6 @@ async function getFarmers(
 		}
 	}
 
-	// if (data.start_date || data.end_date) {
-	// 	userWhere.created_at = {
-	// 		...((userWhere.created_at as Record<string, unknown>) || {}),
-	// 		...(data.start_date
-	// 			? { [Op.gte as unknown as string]: new Date(data.start_date) }
-	// 			: {}),
-	// 		...(data.end_date
-	// 			? { [Op.lte as unknown as string]: new Date(data.end_date) }
-	// 			: {}),
-	// 	}
-	// }
 
 	// Date filter
 	const createdAt: Record<string, unknown> = {}
@@ -1322,11 +1311,6 @@ export class BusinessOutletService {
 				transaction,
 			})
 			if (!outlet) throw new ValidationError('Business outlet not found')
-			// if (outlet && outlet.get('assign_to'))
-			// 	await db.User.destroy({
-			// 		where: { id: outlet.get('assign_to') },
-			// 		transaction,
-			// 	})
 
 			if (outlet?.get('assign_to')) {
 				await db.User.destroy({

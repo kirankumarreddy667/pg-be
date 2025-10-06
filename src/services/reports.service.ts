@@ -1506,9 +1506,9 @@ export class ReportsService {
 			totalbreedingExpense: number
 			otherExpense: number
 		},
-		daysCount: number,
+		daysCount: number = 1,
 	): TotalExpenseAggregateAverageResult {
-		const noOfDays = daysCount || 1
+		// const noOfDays = daysCount || 1
 		const aggregate = {
 			greenFeedQty: totals.greenFeedQty.toFixed(2),
 			dryFeedQty: totals.dryFeedQty.toFixed(2),
@@ -1529,24 +1529,24 @@ export class ReportsService {
 			otherExpense: totals.otherExpense.toFixed(2),
 		}
 		const average = {
-			greenFeedQty: (totals.greenFeedQty / noOfDays).toFixed(2),
-			dryFeedQty: (totals.dryFeedQty / noOfDays).toFixed(2),
-			cattleFeedQty: (totals.cattleFeedQty / noOfDays).toFixed(2),
-			supplementQty: (totals.supplementQty / noOfDays).toFixed(2),
-			greenFeedCost: (totals.totalGreenFeed / noOfDays).toFixed(2),
-			dryFeedCost: (totals.totalDryFeed / noOfDays).toFixed(2),
-			cattleFeedCost: (totals.totalCattleFeed / noOfDays).toFixed(2),
-			supplementCost: (totals.totalSupplement / noOfDays).toFixed(2),
+			greenFeedQty: (totals.greenFeedQty / daysCount).toFixed(2),
+			dryFeedQty: (totals.dryFeedQty / daysCount).toFixed(2),
+			cattleFeedQty: (totals.cattleFeedQty / daysCount).toFixed(2),
+			supplementQty: (totals.supplementQty / daysCount).toFixed(2),
+			greenFeedCost: (totals.totalGreenFeed / daysCount).toFixed(2),
+			dryFeedCost: (totals.totalDryFeed / daysCount).toFixed(2),
+			cattleFeedCost: (totals.totalCattleFeed / daysCount).toFixed(2),
+			supplementCost: (totals.totalSupplement / daysCount).toFixed(2),
 			totalExpense: (
 				(totals.totalExpense +
 					totals.totalpurchasePrice +
 					totals.totalbreedingExpense) /
-				noOfDays
+				daysCount
 			).toFixed(2),
-			purchaseExpense: (totals.totalpurchasePrice / noOfDays).toFixed(2),
-			medicalExpense: (totals.totalcostOfTreatment / noOfDays).toFixed(2),
-			breedingExpense: (totals.totalbreedingExpense / noOfDays).toFixed(2),
-			otherExpense: (totals.otherExpense / noOfDays).toFixed(2),
+			purchaseExpense: (totals.totalpurchasePrice / daysCount).toFixed(2),
+			medicalExpense: (totals.totalcostOfTreatment / daysCount).toFixed(2),
+			breedingExpense: (totals.totalbreedingExpense / daysCount).toFixed(2),
+			otherExpense: (totals.otherExpense / daysCount).toFixed(2),
 		}
 		return { aggregate, average }
 	}
@@ -2261,179 +2261,7 @@ export class ReportsService {
 		return Object.keys(resData).length === 0 ? [] : resData
 	}
 
-	// Get pregnant and non pregnant animals
-	// public static async getPregnantAnimalsDetails(user: User): Promise<
-	// 	| {
-	// 			pregnant: Record<string, AnimalPregnancyInfo[]>
-	// 			non_pregnant: Record<string, AnimalPregnancyInfo[]>
-	// 	  }
-	// 	| []
-	// > {
-	// 	const user_id = user.id
-
-	// 	const results = (await db.sequelize.query(
-	// 		`
-	//     WITH latest_answers AS (
-	//         -- Get latest answer for each animal_number + question_tag combination
-	//         SELECT
-	//             aqa.animal_number,
-	//             aqa.animal_id,
-	//             cq.question_tag,
-	//             aqa.answer,
-	//             a.name as animal_name,
-	//             ROW_NUMBER() OVER (
-	//                 PARTITION BY aqa.animal_number, cq.question_tag
-	//                 ORDER BY aqa.created_at DESC
-	//             ) as rn
-	//         FROM animal_question_answers aqa
-	//         JOIN common_questions cq ON cq.id = aqa.question_id
-	//         JOIN animals a ON a.id = aqa.animal_id AND a.deleted_at IS NULL
-	//         WHERE aqa.user_id = :user_id
-	//         AND aqa.status != 1
-	//         AND aqa.deleted_at IS NULL
-	// 		AND cq.deleted_at IS NULL
-	//         AND cq.question_tag IN (8, 9, 11, 15, 16, 23, 35, 42, 59)
-	//     ),
-	//     animal_data AS (
-	//         -- Pivot the data to get all answers per animal in one row
-	//         SELECT
-	//             animal_number,
-	//             animal_id,
-	//             animal_name,
-	//             MAX(CASE WHEN question_tag = 8 THEN answer END) as sex_answer,
-	//             MAX(CASE WHEN question_tag = 9 THEN answer END) as dob_answer,
-	//             MAX(CASE WHEN question_tag = 11 THEN answer END) as mother_answer,
-	//             MAX(CASE WHEN question_tag = 15 THEN answer END) as pregnancy_answer,
-	//             MAX(CASE WHEN question_tag = 16 THEN answer END) as milking_answer,
-	//             MAX(CASE WHEN question_tag = 23 THEN answer END) as ai_date_answer,
-	//             MAX(CASE WHEN question_tag = 35 THEN answer END) as bull_answer,
-	//             MAX(CASE WHEN question_tag = 42 THEN answer END) as semen_company_answer,
-	//             MAX(CASE WHEN question_tag = 59 THEN answer END) as pregnancy_cycle_answer
-	//         FROM latest_answers
-	//         WHERE rn = 1
-	//         GROUP BY animal_number, animal_id, animal_name
-	//     ),
-	//     mother_child_dob AS (
-	//         -- Find DOB for children where current animal is mother
-	//         SELECT DISTINCT
-	//             mother.animal_number as mother_animal_number,
-	//             child.dob_answer as child_dob
-	//         FROM animal_data mother
-	//         JOIN animal_data child ON child.mother_answer = mother.animal_number
-	//         WHERE child.dob_answer IS NOT NULL
-	//     ),
-	//     processed_animals AS (
-	//         SELECT
-	//             ad.animal_name,
-	//             ad.animal_number,
-	//             ad.pregnancy_answer,
-	//             ad.ai_date_answer,
-	//             COALESCE(ad.bull_answer, 'NA') as bull_no,
-	//             COALESCE(ad.semen_company_answer, 'NA') as semen_company_name,
-	//             COALESCE(ad.pregnancy_cycle_answer, 'NA') as pregnancy_cycle,
-	//             CASE
-	//                 WHEN ad.milking_answer IS NULL THEN 'NA'
-	//                 WHEN LOWER(ad.milking_answer) = 'yes' THEN 'Lactating'
-	//                 ELSE 'Non-Lactating'
-	//             END as status_milking_dry,
-	//             COALESCE(mcd.child_dob, 'NA') as animal_dob,
-	//             -- Date calculations using SQL functions
-	//             CASE
-	//                 WHEN ad.ai_date_answer IS NOT NULL THEN
-	//                     DATE_FORMAT(DATE_ADD(STR_TO_DATE(ad.ai_date_answer, '%Y-%m-%d'), INTERVAL 3 MONTH), '%Y-%m-%d')
-	//                 ELSE 'NA'
-	//             END as pregnancy_detection_date,
-	//             CASE
-	//                 WHEN ad.ai_date_answer IS NOT NULL AND LOWER(ad.pregnancy_answer) = 'yes' THEN
-	//                     MONTHNAME(DATE_ADD(STR_TO_DATE(ad.ai_date_answer, '%Y-%m-%d'),
-	//                         INTERVAL (CASE WHEN LOWER(ad.animal_name) = 'buffalo' THEN 10 ELSE 9 END) MONTH))
-	//                 ELSE 'NA'
-	//             END as expected_delivery_month
-	//         FROM animal_data ad
-	//         LEFT JOIN mother_child_dob mcd ON mcd.mother_animal_number = ad.animal_number
-	//         WHERE LOWER(COALESCE(ad.sex_answer, '')) = 'female'
-	//         AND ad.pregnancy_answer IS NOT NULL
-	//     ),
-	//     pregnant_animals AS (
-	//         -- Format pregnant animals data
-	//         SELECT
-	//             animal_name,
-	//             JSON_OBJECT(
-	//                 'animal_num', animal_number,
-	//                 'date_of_pregnancy_detection', pregnancy_detection_date,
-	//                 'bull_no', bull_no,
-	//                 'expected_month_of_delevry', expected_delivery_month,
-	//                 'status_milking_dry', status_milking_dry,
-	//                 'date_of_AI', COALESCE(ai_date_answer, 'NA'),
-	//                 'Semen_company_name', semen_company_name,
-	//                 'pregnancy_cycle', pregnancy_cycle
-	//             ) as animal_data
-	//         FROM processed_animals
-	//         WHERE LOWER(pregnancy_answer) = 'yes'
-	//     ),
-	//     non_pregnant_animals AS (
-	//         -- Format non-pregnant animals data
-	//         SELECT
-	//             animal_name,
-	//             JSON_OBJECT(
-	//                 'animal_num', animal_number,
-	//                 'date_of_last_AI', COALESCE(ai_date_answer, 'NA'),
-	//                 'bull_no', bull_no,
-	//                 'date_of_pregnancy_detection', pregnancy_detection_date,
-	//                 'date_of_last_delivery', animal_dob,
-	//                 'Semen_company_name', semen_company_name,
-	//                 'status_milking_dry', status_milking_dry,
-	//                 'pregnancy_cycle', pregnancy_cycle
-	//             ) as animal_data
-	//         FROM processed_animals
-	//         WHERE LOWER(pregnancy_answer) != 'yes'
-	//     )
-	//     -- Final result combining both pregnant and non-pregnant
-	//     SELECT
-	//         'pregnant' as category,
-	//         animal_name,
-	//         JSON_ARRAYAGG(animal_data) as animals_data
-	//     FROM pregnant_animals
-	//     GROUP BY animal_name
-
-	//     UNION ALL
-
-	//     SELECT
-	//         'non_pregnant' as category,
-	//         animal_name,
-	//         JSON_ARRAYAGG(animal_data) as animals_data
-	//     FROM non_pregnant_animals
-	//     GROUP BY animal_name
-	//     `,
-	// 		{
-	// 			replacements: { user_id },
-	// 			type: QueryTypes.SELECT,
-	// 		},
-	// 	)) as unknown as {
-	// 		category: 'pregnant' | 'non_pregnant'
-	// 		animal_name: string
-	// 		animals_data: string
-	// 	}[]
-
-	// 	if (results.length === 0) {
-	// 		return []
-	// 	}
-
-	// 	const pregnant: Record<string, AnimalPregnancyInfo[]> = {}
-	// 	const non_pregnant: Record<string, AnimalPregnancyInfo[]> = {}
-
-	// 	results.forEach((row) => {
-	// 		const animalsData = JSON.parse(row.animals_data) as AnimalPregnancyInfo[]
-
-	// 		if (row.category === 'pregnant') {
-	// 			pregnant[row.animal_name] = animalsData
-	// 		} else {
-	// 			non_pregnant[row.animal_name] = animalsData
-	// 		}
-	// 	})
-
-	// 	return { pregnant, non_pregnant }
-	// }
+	
 
 	public static async getPregnantAnimalsDetails(user: User): Promise<
 		| {
