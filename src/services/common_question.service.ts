@@ -22,6 +22,7 @@ interface QuestionLanguage {
 	master_hint: string | null
 }
 
+
 type GroupedQuestion = {
 	validation_rule: string | null
 	master_question: string
@@ -63,162 +64,334 @@ interface QuestionRow {
 type NestedResult = Record<string, Record<string, QuestionRow[]>>
 
 export class CommonQuestionService {
+	// static async create(data: {
+	// 	category_id: number
+	// 	sub_category_id?: number | null
+	// 	language_id: number
+	// 	questions: Array<{
+	// 		question: string
+	// 		form_type_id: number
+	// 		validation_rule_id: number
+	// 		date: boolean
+	// 		form_type_value?: string | null
+	// 		question_tag: number
+	// 		question_unit: number
+	// 		hint?: string | null
+	// 	}>
+	// }): Promise<{ message: string; data: [] }> {
+	// 	const t: Transaction = await db.sequelize.transaction()
+	// 	try {
+	// 		const catergory = await db.Category.findOne({
+	// 			where: {
+	// 				id: data.category_id,
+	// 				deleted_at: null,
+	// 			},
+	// 			transaction: t,
+	// 		})
+	// 		if (!catergory)
+	// 			throw new ValidationRequestError({
+	// 				category_id: ['The selected category id is invalid.'],
+	// 			})
+
+	// 		if (data.sub_category_id) {
+	// 			const subCategory = await db.Subcategory.findOne({
+	// 				where: {
+	// 					id: data.sub_category_id,
+	// 					deleted_at: null,
+	// 				},
+	// 				transaction: t,
+	// 			})
+	// 			if (!subCategory)
+	// 				throw new ValidationRequestError({
+	// 					sub_category_id: ['The selected sub category id is invalid.'],
+	// 				})
+	// 		}
+
+	// 		const language = await db.Language.findOne({
+	// 			where: {
+	// 				id: data.language_id,
+	// 				deleted_at: null,
+	// 			},
+	// 			transaction: t,
+	// 		})
+	// 		if (!language)
+	// 			throw new ValidationRequestError({
+	// 				language_id: ['The selected language id is invalid.'],
+	// 			})
+	// 		for (const value of data.questions) {
+	// 			const question = await db.CommonQuestions.findOne({
+	// 				where: {
+	// 					question: value.question,
+	// 					deleted_at: null,
+	// 				},
+	// 				transaction: t,
+	// 			})
+	// 			if (question)
+	// 				throw new ValidationRequestError({
+	// 					[`questions.${data.questions.indexOf(value)}.question`]: [
+	// 						`questions.${data.questions.indexOf(value)}.question has already been taken.`,
+	// 					],
+	// 				})
+
+	// 			const formType = await db.FormType.findOne({
+	// 				where: {
+	// 					id: value.form_type_id,
+	// 					deleted_at: null,
+	// 				},
+	// 				transaction: t,
+	// 			})
+	// 			if (!formType)
+	// 				throw new ValidationRequestError({
+	// 					[`questions.${data.questions.indexOf(value)}.form_type_id`]: [
+	// 						`The selected questions.${data.questions.indexOf(value)}.form_type_id is invalid.`,
+	// 					],
+	// 				})
+
+	// 			const validationRule = await db.ValidationRule.findOne({
+	// 				where: {
+	// 					id: value.validation_rule_id,
+	// 					deleted_at: null,
+	// 				},
+	// 				transaction: t,
+	// 			})
+	// 			if (!validationRule)
+	// 				throw new ValidationRequestError({
+	// 					[`questions.${data.questions.indexOf(value)}.validation_rule_id`]: [
+	// 						`The selected questions.${data.questions.indexOf(value)}.validation_rule_id is invalid.`,
+	// 					],
+	// 				})
+
+	// 			const questionTag = await db.QuestionTag.findOne({
+	// 				where: {
+	// 					id: value.question_tag,
+	// 					deleted_at: null,
+	// 				},
+	// 				transaction: t,
+	// 			})
+	// 			if (!questionTag)
+	// 				throw new ValidationRequestError({
+	// 					[`questions.${data.questions.indexOf(value)}.question_tag`]: [
+	// 						`The selected questions.${data.questions.indexOf(value)}.question_tag is invalid.`,
+	// 					],
+	// 				})
+
+	// 			const questionUnit = await db.QuestionUnit.findOne({
+	// 				where: {
+	// 					id: value.question_unit,
+	// 					deleted_at: null,
+	// 				},
+	// 				transaction: t,
+	// 			})
+	// 			if (!questionUnit)
+	// 				throw new ValidationRequestError({
+	// 					[`questions.${data.questions.indexOf(value)}.question_unit`]: [
+	// 						`The selected questions.${data.questions.indexOf(value)}.question_unit is invalid.`,
+	// 					],
+	// 				})
+	// 			const questionData = {
+	// 				category_id: data.category_id,
+	// 				sub_category_id: data.sub_category_id ?? null,
+	// 				question: value.question,
+	// 				form_type_id: value.form_type_id,
+	// 				validation_rule_id: value.validation_rule_id,
+	// 				date: value.date,
+	// 				form_type_value: value.form_type_value ?? null,
+	// 				question_tag: value.question_tag,
+	// 				question_unit: value.question_unit,
+	// 				hint: value.hint ?? null,
+	// 				sequence_number: 0,
+	// 			}
+	// 			const saveQuestion = await db.CommonQuestions.create(questionData, {
+	// 				transaction: t,
+	// 			})
+	// 			const languageQuestion = {
+	// 				question_id: saveQuestion.id,
+	// 				language_id: data.language_id,
+	// 				question: value.question,
+	// 				form_type_value: value.form_type_value ?? null,
+	// 				hint: value.hint ?? null,
+	// 			}
+	// 			await db.QuestionLanguage.create(languageQuestion, { transaction: t })
+	// 		}
+	// 		await t.commit()
+	// 		return { message: 'Questions added successfully', data: [] }
+	// 	} catch (error) {
+	// 		await t.rollback()
+	// 		throw error
+	// 	}
+	// }
+
 	static async create(data: {
-		category_id: number
-		sub_category_id?: number | null
-		language_id: number
-		questions: Array<{
-			question: string
-			form_type_id: number
-			validation_rule_id: number
-			date: boolean
-			form_type_value?: string | null
-			question_tag: number
-			question_unit: number
-			hint?: string | null
-		}>
-	}): Promise<{ message: string; data: [] }> {
-		const t: Transaction = await db.sequelize.transaction()
-		try {
-			const catergory = await db.Category.findOne({
-				where: {
-					id: data.category_id,
-					deleted_at: null,
-				},
-				transaction: t,
-			})
-			if (!catergory)
-				throw new ValidationRequestError({
-					category_id: ['The selected category id is invalid.'],
-				})
+    category_id: number
+    sub_category_id?: number | null
+    language_id: number
+    questions: Array<{
+        question: string
+        form_type_id: number
+        validation_rule_id: number
+        date: boolean
+        form_type_value?: string | null
+        question_tag: number
+        question_unit: number
+        hint?: string | null
+    }>
+}): Promise<{ message: string; data: [] }> {
+    const t: Transaction = await db.sequelize.transaction()
+    try {
+        const catergory = await db.Category.findOne({
+            where: {
+                id: data.category_id,
+                deleted_at: null,
+            },
+            transaction: t,
+        })
+        if (!catergory)
+            throw new ValidationRequestError({
+                category_id: ['The selected category id is invalid.'],
+            })
 
-			if (data.sub_category_id) {
-				const subCategory = await db.Subcategory.findOne({
-					where: {
-						id: data.sub_category_id,
-						deleted_at: null,
-					},
-					transaction: t,
-				})
-				if (!subCategory)
-					throw new ValidationRequestError({
-						sub_category_id: ['The selected sub category id is invalid.'],
-					})
-			}
+        if (data.sub_category_id) {
+            const subCategory = await db.Subcategory.findOne({
+                where: {
+                    id: data.sub_category_id,
+                    deleted_at: null,
+                },
+                transaction: t,
+            })
+            if (!subCategory)
+                throw new ValidationRequestError({
+                    sub_category_id: ['The selected sub category id is invalid.'],
+                })
+        }
 
-			const language = await db.Language.findOne({
-				where: {
-					id: data.language_id,
-					deleted_at: null,
-				},
-				transaction: t,
-			})
-			if (!language)
-				throw new ValidationRequestError({
-					language_id: ['The selected language id is invalid.'],
-				})
-			for (const value of data.questions) {
-				const question = await db.CommonQuestions.findOne({
-					where: {
-						question: value.question,
-						deleted_at: null,
-					},
-					transaction: t,
-				})
-				if (question)
-					throw new ValidationRequestError({
-						[`questions.${data.questions.indexOf(value)}.question`]: [
-							`questions.${data.questions.indexOf(value)}.question has already been taken.`,
-						],
-					})
+        const language = await db.Language.findOne({
+            where: {
+                id: data.language_id,
+                deleted_at: null,
+            },
+            transaction: t,
+        })
+        if (!language)
+            throw new ValidationRequestError({
+                language_id: ['The selected language id is invalid.'],
+            })
 
-				const formType = await db.FormType.findOne({
-					where: {
-						id: value.form_type_id,
-						deleted_at: null,
-					},
-					transaction: t,
-				})
-				if (!formType)
-					throw new ValidationRequestError({
-						[`questions.${data.questions.indexOf(value)}.form_type_id`]: [
-							`The selected questions.${data.questions.indexOf(value)}.form_type_id is invalid.`,
-						],
-					})
+        await this.processQuestions(data, t)
+        await t.commit()
+        return { message: 'Questions added successfully', data: [] }
+    } catch (error) {
+        await t.rollback()
+        throw error
+    }
+}
 
-				const validationRule = await db.ValidationRule.findOne({
-					where: {
-						id: value.validation_rule_id,
-						deleted_at: null,
-					},
-					transaction: t,
-				})
-				if (!validationRule)
-					throw new ValidationRequestError({
-						[`questions.${data.questions.indexOf(value)}.validation_rule_id`]: [
-							`The selected questions.${data.questions.indexOf(value)}.validation_rule_id is invalid.`,
-						],
-					})
+private static async processQuestions(data: {
+    category_id: number
+    sub_category_id?: number | null
+    language_id: number
+    questions: Array<{
+        question: string
+        form_type_id: number
+        validation_rule_id: number
+        date: boolean
+        form_type_value?: string | null
+        question_tag: number
+        question_unit: number
+        hint?: string | null
+    }>
+}, t: Transaction): Promise<void> {
+    for (const [index, value] of data.questions.entries()) {
+        const question = await db.CommonQuestions.findOne({
+            where: {
+                question: value.question,
+                deleted_at: null,
+            },
+            transaction: t,
+        })
+        if (question)
+            throw new ValidationRequestError({
+                [`questions.${index}.question`]: [
+                    `questions.${index}.question has already been taken.`,
+                ],
+            })
 
-				const questionTag = await db.QuestionTag.findOne({
-					where: {
-						id: value.question_tag,
-						deleted_at: null,
-					},
-					transaction: t,
-				})
-				if (!questionTag)
-					throw new ValidationRequestError({
-						[`questions.${data.questions.indexOf(value)}.question_tag`]: [
-							`The selected questions.${data.questions.indexOf(value)}.question_tag is invalid.`,
-						],
-					})
+        const [formType, validationRule, questionTag, questionUnit] = await Promise.all([
+            db.FormType.findOne({
+                where: { id: value.form_type_id, deleted_at: null },
+                transaction: t,
+            }),
+            db.ValidationRule.findOne({
+                where: { id: value.validation_rule_id, deleted_at: null },
+                transaction: t,
+            }),
+            db.QuestionTag.findOne({
+                where: { id: value.question_tag, deleted_at: null },
+                transaction: t,
+            }),
+            db.QuestionUnit.findOne({
+                where: { id: value.question_unit, deleted_at: null },
+                transaction: t,
+            })
+        ])
 
-				const questionUnit = await db.QuestionUnit.findOne({
-					where: {
-						id: value.question_unit,
-						deleted_at: null,
-					},
-					transaction: t,
-				})
-				if (!questionUnit)
-					throw new ValidationRequestError({
-						[`questions.${data.questions.indexOf(value)}.question_unit`]: [
-							`The selected questions.${data.questions.indexOf(value)}.question_unit is invalid.`,
-						],
-					})
-				const questionData = {
-					category_id: data.category_id,
-					sub_category_id: data.sub_category_id ?? null,
-					question: value.question,
-					form_type_id: value.form_type_id,
-					validation_rule_id: value.validation_rule_id,
-					date: value.date,
-					form_type_value: value.form_type_value ?? null,
-					question_tag: value.question_tag,
-					question_unit: value.question_unit,
-					hint: value.hint ?? null,
-					sequence_number: 0,
-				}
-				const saveQuestion = await db.CommonQuestions.create(questionData, {
-					transaction: t,
-				})
-				const languageQuestion = {
-					question_id: saveQuestion.id,
-					language_id: data.language_id,
-					question: value.question,
-					form_type_value: value.form_type_value ?? null,
-					hint: value.hint ?? null,
-				}
-				await db.QuestionLanguage.create(languageQuestion, { transaction: t })
-			}
-			await t.commit()
-			return { message: 'Questions added successfully', data: [] }
-		} catch (error) {
-			await t.rollback()
-			throw error
-		}
-	}
+        if (!formType)
+            throw new ValidationRequestError({
+                [`questions.${index}.form_type_id`]: [
+                    `The selected questions.${index}.form_type_id is invalid.`,
+                ],
+            })
+
+        if (!validationRule)
+            throw new ValidationRequestError({
+                [`questions.${index}.validation_rule_id`]: [
+                    `The selected questions.${index}.validation_rule_id is invalid.`,
+                ],
+            })
+
+        if (!questionTag)
+            throw new ValidationRequestError({
+                [`questions.${index}.question_tag`]: [
+                    `The selected questions.${index}.question_tag is invalid.`,
+                ],
+            })
+
+        if (!questionUnit)
+            throw new ValidationRequestError({
+                [`questions.${index}.question_unit`]: [
+                    `The selected questions.${index}.question_unit is invalid.`,
+                ],
+            })
+
+        const questionData = {
+            category_id: data.category_id,
+            sub_category_id: data.sub_category_id ?? null,
+            question: value.question,
+            form_type_id: value.form_type_id,
+            validation_rule_id: value.validation_rule_id,
+            date: value.date,
+            form_type_value: value.form_type_value ?? null,
+            question_tag: value.question_tag,
+            question_unit: value.question_unit,
+            hint: value.hint ?? null,
+            sequence_number: 0,
+        }
+        const saveQuestion = await db.CommonQuestions.create(questionData, {
+            transaction: t,
+        })
+        const languageQuestion = {
+            question_id: saveQuestion.id,
+            language_id: data.language_id,
+            question: value.question,
+            form_type_value: value.form_type_value ?? null,
+            hint: value.hint ?? null,
+        }
+        await db.QuestionLanguage.create(languageQuestion, { transaction: t })
+    }
+}
+
+
+
+	
 
 	static async update(
 		id: number,

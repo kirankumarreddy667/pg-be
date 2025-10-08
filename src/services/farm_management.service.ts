@@ -51,7 +51,7 @@ export class FarmManagementService {
 			azzola: body.azzola ?? null,
 			hydroponics: body.hydroponics ?? null,
 		})
-		return { status: 200, message: 'Success', data: [] }
+		return { status: 200, message: 'Farm information successfully added', data: [] }
 	}
 
 	static async showFarmDetails(
@@ -126,7 +126,7 @@ export class FarmManagementService {
 		)
 		if (affectedRows > 0) {
 			await transaction.commit()
-			return { status: 200, message: 'Success', data: [] }
+			return { status: 200, message: 'Farm information successfully updated', data: [] }
 		} else {
 			await transaction.rollback()
 			return { status: 400, message: 'Something went wrong', data: [] }

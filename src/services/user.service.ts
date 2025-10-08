@@ -305,264 +305,576 @@ export class UserService {
 		}
 	}
 
+	// static async getFilteredUsers({
+	// 	status,
+	// 	phone,
+	// 	type,
+	// 	start_date,
+	// 	end_date,
+	// 	page_number,
+	// 	limit_number,
+	// }: {
+	// 	status?: string
+	// 	phone?: string
+	// 	type?: string
+	// 	start_date?: string
+	// 	end_date?: string
+	// 	page_number: number
+	// 	limit_number: number
+	// }): Promise<{
+	// 	data: FilteredUser[]
+	// 	pagination: Pagination
+	// }> {
+	// 	const { page, limit, offset } = this.normalizePaginationParams(
+	// 		page_number,
+	// 		limit_number,
+	// 	)
+
+	// 	if ((status && phone) || (!status && !phone)) {
+	// 		return {
+	// 			data: [],
+	// 			pagination: this.calculatePagination(page, limit, 0),
+	// 		}
+	// 	}
+
+	// 	const now = moment.tz(new Date(), 'Asia/Kolkata')
+	// 	let filterStartDate: string
+	// 	let filterEndDate: string
+
+	// 	if (start_date && end_date) {
+	// 		filterStartDate = start_date
+	// 		filterEndDate = end_date
+	// 	} else {
+	// 		filterStartDate = '1970-01-01'
+	// 		filterEndDate = now.format('YYYY-MM-DD')
+	// 	}
+
+	// 	const countQuery = `
+	// 	SELECT COUNT(*) as total_count
+	// 	FROM users u
+	// 	INNER JOIN role_user ru ON ru.user_id = u.id AND ru.role_id = 2
+	// 	WHERE 1=1
+	// 		AND u.deleted_at IS NULL
+	// 		${status ? 'AND u.payment_status = ?' : ''}
+	// 		${phone ? 'AND u.phone_number = ?' : ''}
+	// `
+
+	// 	const countParams: (string | number)[] = []
+	// 	if (status) {
+	// 		countParams.push(status.toLowerCase())
+	// 	}
+	// 	if (phone) {
+	// 		countParams.push(phone)
+	// 	}
+
+	// 	const countResult = (await db.sequelize.query(countQuery, {
+	// 		type: QueryTypes.SELECT,
+	// 		replacements: countParams,
+	// 		raw: true,
+	// 		nest: false,
+	// 		logging: false,
+	// 	})) as unknown as { total_count: number }[]
+
+	// 	const totalCount = Number(countResult[0]?.total_count || 0)
+
+	// 	if (totalCount === 0) {
+	// 		return {
+	// 			data: [],
+	// 			pagination: this.calculatePagination(page, limit, 0),
+	// 		}
+	// 	}
+
+	// 	const query = `
+	//     WITH user_base AS (
+	// 	SELECT
+	// 		u.id,
+	// 		u.name,
+	// 		u.email,
+	// 		u.phone_number,
+	// 		u.farm_name,
+	// 		u.address,
+	// 		u.pincode,
+	// 		u.taluka,
+	// 		u.district,
+	// 		u.state,
+	// 		u.country,
+	// 		u.payment_status,
+	// 		u.language_id,
+	// 		u.created_at,
+	// 		l.name as language_name
+	// 	FROM users u
+	// 	INNER JOIN role_user ru ON ru.user_id = u.id AND ru.role_id = 2
+	// 	LEFT JOIN languages l ON l.id = u.language_id AND l.deleted_at IS NULL
+	// 	WHERE 1=1
+	// 		AND u.deleted_at IS NULL
+	// 		${status ? 'AND u.payment_status = ?' : ''}
+	// 		${phone ? 'AND u.phone_number = ?' : ''}
+	// 	LIMIT ? OFFSET ?
+	// 	),
+	// 	latest_payments AS (
+	// 		SELECT DISTINCT
+	// 			up.user_id,
+	// 			FIRST_VALUE(up.plan_exp_date) OVER (
+	// 				PARTITION BY up.user_id
+	// 				ORDER BY up.created_at DESC
+	// 				ROWS UNBOUNDED PRECEDING
+	// 			) as plan_exp_date
+	// 		FROM user_payment up
+	// 		WHERE up.user_id IN (SELECT id FROM user_base)
+	// 		AND up.deleted_at IS NULL
+	// 	),
+	// 	answer_stats AS (
+	// 		SELECT
+	// 			dra.user_id,
+	// 			COUNT(DISTINCT DATE(dra.answer_date)) as total_answer_days,
+	// 			COUNT(DISTINCT CASE
+	// 				WHEN ${type === 'all_time' ? 'dra.answer_date >= ub.created_at' : 'dra.answer_date BETWEEN ? AND ?'}
+	// 				THEN DATE(dra.answer_date)
+	// 			END) as filtered_answer_days
+	// 		FROM daily_record_question_answer dra
+	// 		INNER JOIN user_base ub ON ub.id = dra.user_id
+	// 		WHERE dra.deleted_at IS NULL
+	// 		AND DATE(dra.answer_date) >= GREATEST(
+	// 			DATE(ub.created_at),
+	// 			${type === 'all_time' ? 'DATE(ub.created_at)' : '?'}
+	// 		)
+	// 		${type !== 'all_time' && start_date && end_date ? 'AND DATE(dra.answer_date) <= ?' : ''}
+	// 		GROUP BY dra.user_id
+	// 	)
+	// 	SELECT
+	// 		ub.*,
+	// 		COALESCE(lp.plan_exp_date, '') as latest_exp_date,
+	// 		COALESCE(ans.total_answer_days, 0) as daily_record_update_count,
+	// 		COALESCE(ans.filtered_answer_days, 0) as answer_days_count
+	// 	FROM user_base ub
+	// 	LEFT JOIN latest_payments lp ON lp.user_id = ub.id
+	// 	LEFT JOIN answer_stats ans ON ans.user_id = ub.id
+	// 	ORDER BY ub.id ASC
+	// `
+
+	// 	const queryParams: (string | number)[] = []
+
+	// 	if (status) {
+	// 		queryParams.push(status.toLowerCase())
+	// 	}
+	// 	if (phone) {
+	// 		queryParams.push(phone)
+	// 	}
+	// 	queryParams.push(limit, offset)
+	// 	if (type !== 'all_time' && start_date && end_date) {
+	// 		queryParams.push(
+	// 			filterStartDate,
+	// 			filterEndDate,
+	// 			filterStartDate,
+	// 			filterEndDate,
+	// 		)
+	// 	}
+
+	// 	const users = (await db.sequelize.query(query, {
+	// 		type: QueryTypes.SELECT,
+	// 		replacements: queryParams,
+	// 		raw: true,
+	// 		nest: false,
+	// 		logging: false,
+	// 	})) as unknown as (UserAttributes & {
+	// 		language_name: string
+	// 		latest_exp_date: string
+	// 		daily_record_update_count: number
+	// 		answer_days_count: number
+	// 	})[]
+
+	// 	const nowMoment = moment.tz(now, 'Asia/Kolkata')
+	// 	const startDateMoment = start_date
+	// 		? moment.tz(start_date, 'Asia/Kolkata')
+	// 		: null
+	// 	const endDateMoment = end_date ? moment.tz(end_date, 'Asia/Kolkata') : null
+	// 	const endDateForComparison = end_date ? new Date(end_date) : null
+
+	// 	if (endDateForComparison) {
+	// 		endDateForComparison.setHours(0, 0, 0, 0)
+	// 	}
+
+	// 	const results = users.map((user) => {
+	// 		const expDate =
+	// 			user.payment_status?.toLowerCase() === 'free'
+	// 				? ''
+	// 				: user.latest_exp_date || ''
+	// 		const answerDaysCount = Number(user.answer_days_count) || 0
+
+	// 		let totalDays = 0
+	// 		let finalAnswerCount = answerDaysCount
+
+	// 		const userCreatedMoment = moment.tz(user.created_at, 'Asia/Kolkata')
+
+	// 		if (type === 'all_time' || (!start_date && !end_date)) {
+	// 			const diff = nowMoment.diff(userCreatedMoment, 'days')
+	// 			totalDays = diff === 0 ? 1 : diff + 1
+	// 		} else if (startDateMoment && endDateMoment) {
+	// 			if (userCreatedMoment.isSameOrBefore(endDateMoment)) {
+	// 				const startPoint = userCreatedMoment.isSameOrBefore(startDateMoment)
+	// 					? startDateMoment
+	// 					: userCreatedMoment
+	// 				const diff = endDateMoment.diff(startPoint, 'days')
+	// 				totalDays = diff === 0 ? 1 : diff + 1
+	// 			}
+	// 		}
+
+	// 		let finalTotalDays = totalDays
+
+	// 		if (endDateForComparison) {
+	// 			const userCreatedAt = new Date(user.created_at)
+	// 			userCreatedAt.setHours(0, 0, 0, 0)
+
+	// 			if (userCreatedAt > endDateForComparison) {
+	// 				finalTotalDays = 0
+	// 				finalAnswerCount = 0
+	// 			}
+	// 		}
+
+	// 		const divisor = finalTotalDays === 0 ? 1 : finalTotalDays
+	// 		const percentage = (finalAnswerCount / divisor) * 100
+
+	// 		return {
+	// 			user_id: Number(user.id),
+	// 			name: String(user.name || ''),
+	// 			email: String(user.email || ''),
+	// 			phone_number: String(user.phone_number || ''),
+	// 			farm_name: String(user.farm_name || ''),
+	// 			address: String(user.address || ''),
+	// 			pincode: String(user.pincode || ''),
+	// 			taluka: String(user.taluka || ''),
+	// 			district: String(user.district || ''),
+	// 			state_name: String(user.state || ''),
+	// 			country: String(user.country || ''),
+	// 			payment_status: String(user.payment_status || ''),
+	// 			expDate,
+	// 			registration_date: user.created_at || null,
+	// 			Daily_record_update_count: Number(user.daily_record_update_count) || 0,
+	// 			total_days: finalTotalDays,
+	// 			answer_days_count: finalAnswerCount,
+	// 			percentage: percentage.toFixed(2),
+	// 			language_id: Number(user.language_id) || 0,
+	// 			language_name: String(user.language_name || ''),
+	// 		}
+	// 	})
+
+	// 	return {
+	// 		data: results,
+	// 		pagination: this.calculatePagination(page, limit, totalCount),
+	// 	}
+	// }
+
 	static async getFilteredUsers({
-		status,
-		phone,
-		type,
-		start_date,
-		end_date,
-		page_number,
-		limit_number,
-	}: {
-		status?: string
-		phone?: string
-		type?: string
-		start_date?: string
-		end_date?: string
-		page_number: number
-		limit_number: number
-	}): Promise<{
-		data: FilteredUser[]
-		pagination: Pagination
-	}> {
-		const { page, limit, offset } = this.normalizePaginationParams(
-			page_number,
-			limit_number,
-		)
+    status,
+    phone,
+    type,
+    start_date,
+    end_date,
+    page_number,
+    limit_number,
+}: {
+    status?: string
+    phone?: string
+    type?: string
+    start_date?: string
+    end_date?: string
+    page_number: number
+    limit_number: number
+}): Promise<{
+    data: FilteredUser[]
+    pagination: Pagination
+}> {
+    const { page, limit, offset } = this.normalizePaginationParams(
+        page_number,
+        limit_number,
+    )
 
-		if ((status && phone) || (!status && !phone)) {
-			return {
-				data: [],
-				pagination: this.calculatePagination(page, limit, 0),
-			}
-		}
+    if ((status && phone) || (!status && !phone)) {
+        return {
+            data: [],
+            pagination: this.calculatePagination(page, limit, 0),
+        }
+    }
 
-		const now = moment.tz(new Date(), 'Asia/Kolkata')
-		let filterStartDate: string
-		let filterEndDate: string
+    const { filterStartDate, filterEndDate } = this.getFilterDates(start_date, end_date);
+    const totalCount = await this.getTotalCount(status, phone);
 
-		if (start_date && end_date) {
-			filterStartDate = start_date
-			filterEndDate = end_date
-		} else {
-			filterStartDate = '1970-01-01'
-			filterEndDate = now.format('YYYY-MM-DD')
-		}
+    if (totalCount === 0) {
+        return {
+            data: [],
+            pagination: this.calculatePagination(page, limit, 0),
+        }
+    }
 
-		const countQuery = `
-		SELECT COUNT(*) as total_count
-		FROM users u
-		INNER JOIN role_user ru ON ru.user_id = u.id AND ru.role_id = 2
-		WHERE 1=1
-			AND u.deleted_at IS NULL
-			${status ? 'AND u.payment_status = ?' : ''}
-			${phone ? 'AND u.phone_number = ?' : ''}
-	`
+    const users = await this.executeUsersQuery(status, phone, type, filterStartDate, filterEndDate, limit, offset);
+    const results = this.processUsers(users, type, start_date, end_date);
 
-		const countParams: (string | number)[] = []
-		if (status) {
-			countParams.push(status.toLowerCase())
-		}
-		if (phone) {
-			countParams.push(phone)
-		}
+    return {
+        data: results,
+        pagination: this.calculatePagination(page, limit, totalCount),
+    }
+}
 
-		const countResult = (await db.sequelize.query(countQuery, {
-			type: QueryTypes.SELECT,
-			replacements: countParams,
-			raw: true,
-			nest: false,
-			logging: false,
-		})) as unknown as { total_count: number }[]
+private static getFilterDates(start_date?: string, end_date?: string): { filterStartDate: string; filterEndDate: string } {
+    const now = moment.tz(new Date(), 'Asia/Kolkata');
+    
+    if (start_date && end_date) {
+        return {
+            filterStartDate: start_date,
+            filterEndDate: end_date
+        };
+    } else {
+        return {
+            filterStartDate: '1970-01-01',
+            filterEndDate: now.format('YYYY-MM-DD')
+        };
+    }
+}
 
-		const totalCount = Number(countResult[0]?.total_count || 0)
+private static async getTotalCount(status?: string, phone?: string): Promise<number> {
+    const countQuery = `
+        SELECT COUNT(*) as total_count
+        FROM users u
+        INNER JOIN role_user ru ON ru.user_id = u.id AND ru.role_id = 2
+        WHERE 1=1
+            AND u.deleted_at IS NULL
+            ${status ? 'AND u.payment_status = ?' : ''}
+            ${phone ? 'AND u.phone_number = ?' : ''}
+    `;
 
-		if (totalCount === 0) {
-			return {
-				data: [],
-				pagination: this.calculatePagination(page, limit, 0),
-			}
-		}
+    const countParams: (string | number)[] = [];
+    if (status) {
+        countParams.push(status.toLowerCase());
+    }
+    if (phone) {
+        countParams.push(phone);
+    }
 
-		const query = `
-	    WITH user_base AS (
-		SELECT
-			u.id,
-			u.name,
-			u.email,
-			u.phone_number,
-			u.farm_name,
-			u.address,
-			u.pincode,
-			u.taluka,
-			u.district,
-			u.state,
-			u.country,
-			u.payment_status,
-			u.language_id,
-			u.created_at,
-			l.name as language_name
-		FROM users u
-		INNER JOIN role_user ru ON ru.user_id = u.id AND ru.role_id = 2
-		LEFT JOIN languages l ON l.id = u.language_id AND l.deleted_at IS NULL
-		WHERE 1=1
-			AND u.deleted_at IS NULL
-			${status ? 'AND u.payment_status = ?' : ''}
-			${phone ? 'AND u.phone_number = ?' : ''}
-		LIMIT ? OFFSET ?
-		),
-		latest_payments AS (
-			SELECT DISTINCT
-				up.user_id,
-				FIRST_VALUE(up.plan_exp_date) OVER (
-					PARTITION BY up.user_id
-					ORDER BY up.created_at DESC
-					ROWS UNBOUNDED PRECEDING
-				) as plan_exp_date
-			FROM user_payment up
-			WHERE up.user_id IN (SELECT id FROM user_base)
-			AND up.deleted_at IS NULL
-		),
-		answer_stats AS (
-			SELECT
-				dra.user_id,
-				COUNT(DISTINCT DATE(dra.answer_date)) as total_answer_days,
-				COUNT(DISTINCT CASE
-					WHEN ${type === 'all_time' ? 'dra.answer_date >= ub.created_at' : 'dra.answer_date BETWEEN ? AND ?'}
-					THEN DATE(dra.answer_date)
-				END) as filtered_answer_days
-			FROM daily_record_question_answer dra
-			INNER JOIN user_base ub ON ub.id = dra.user_id
-			WHERE dra.deleted_at IS NULL
-			AND DATE(dra.answer_date) >= GREATEST(
-				DATE(ub.created_at),
-				${type === 'all_time' ? 'DATE(ub.created_at)' : '?'}
-			)
-			${type !== 'all_time' && start_date && end_date ? 'AND DATE(dra.answer_date) <= ?' : ''}
-			GROUP BY dra.user_id
-		)
-		SELECT
-			ub.*,
-			COALESCE(lp.plan_exp_date, '') as latest_exp_date,
-			COALESCE(ans.total_answer_days, 0) as daily_record_update_count,
-			COALESCE(ans.filtered_answer_days, 0) as answer_days_count
-		FROM user_base ub
-		LEFT JOIN latest_payments lp ON lp.user_id = ub.id
-		LEFT JOIN answer_stats ans ON ans.user_id = ub.id
-		ORDER BY ub.id ASC
-	`
+    const countResult = (await db.sequelize.query(countQuery, {
+        type: QueryTypes.SELECT,
+        replacements: countParams,
+        raw: true,
+        nest: false,
+        logging: false,
+    })) as unknown as { total_count: number }[];
 
-		const queryParams: (string | number)[] = []
+    return Number(countResult[0]?.total_count || 0);
+}
 
-		if (status) {
-			queryParams.push(status.toLowerCase())
-		}
-		if (phone) {
-			queryParams.push(phone)
-		}
-		queryParams.push(limit, offset)
-		if (type !== 'all_time' && start_date && end_date) {
-			queryParams.push(
-				filterStartDate,
-				filterEndDate,
-				filterStartDate,
-				filterEndDate,
-			)
-		}
+private static async executeUsersQuery(
+    status: string | undefined,
+    phone: string | undefined,
+    type: string | undefined,
+    filterStartDate: string,
+    filterEndDate: string,
+    limit: number,
+    offset: number
+): Promise<(UserAttributes & {
+    language_name: string
+    latest_exp_date: string
+    daily_record_update_count: number
+    answer_days_count: number
+})[]> {
+    const query = `
+        WITH user_base AS (
+        SELECT
+            u.id,
+            u.name,
+            u.email,
+            u.phone_number,
+            u.farm_name,
+            u.address,
+            u.pincode,
+            u.taluka,
+            u.district,
+            u.state,
+            u.country,
+            u.payment_status,
+            u.language_id,
+            u.created_at,
+            l.name as language_name
+        FROM users u
+        INNER JOIN role_user ru ON ru.user_id = u.id AND ru.role_id = 2
+        LEFT JOIN languages l ON l.id = u.language_id AND l.deleted_at IS NULL
+        WHERE 1=1
+            AND u.deleted_at IS NULL
+            ${status ? 'AND u.payment_status = ?' : ''}
+            ${phone ? 'AND u.phone_number = ?' : ''}
+        LIMIT ? OFFSET ?
+        ),
+        latest_payments AS (
+            SELECT DISTINCT
+                up.user_id,
+                FIRST_VALUE(up.plan_exp_date) OVER (
+                    PARTITION BY up.user_id
+                    ORDER BY up.created_at DESC
+                    ROWS UNBOUNDED PRECEDING
+                ) as plan_exp_date
+            FROM user_payment up
+            WHERE up.user_id IN (SELECT id FROM user_base)
+            AND up.deleted_at IS NULL
+        ),
+        answer_stats AS (
+            SELECT
+                dra.user_id,
+                COUNT(DISTINCT DATE(dra.answer_date)) as total_answer_days,
+                COUNT(DISTINCT CASE
+                    WHEN ${type === 'all_time' ? 'dra.answer_date >= ub.created_at' : 'dra.answer_date BETWEEN ? AND ?'}
+                    THEN DATE(dra.answer_date)
+                END) as filtered_answer_days
+            FROM daily_record_question_answer dra
+            INNER JOIN user_base ub ON ub.id = dra.user_id
+            WHERE dra.deleted_at IS NULL
+            AND DATE(dra.answer_date) >= GREATEST(
+                DATE(ub.created_at),
+                ${type === 'all_time' ? 'DATE(ub.created_at)' : '?'}
+            )
+            ${type !== 'all_time' ? 'AND DATE(dra.answer_date) <= ?' : ''}
+            GROUP BY dra.user_id
+        )
+        SELECT
+            ub.*,
+            COALESCE(lp.plan_exp_date, '') as latest_exp_date,
+            COALESCE(ans.total_answer_days, 0) as daily_record_update_count,
+            COALESCE(ans.filtered_answer_days, 0) as answer_days_count
+        FROM user_base ub
+        LEFT JOIN latest_payments lp ON lp.user_id = ub.id
+        LEFT JOIN answer_stats ans ON ans.user_id = ub.id
+        ORDER BY ub.id ASC
+    `;
 
-		const users = (await db.sequelize.query(query, {
-			type: QueryTypes.SELECT,
-			replacements: queryParams,
-			raw: true,
-			nest: false,
-			logging: false,
-		})) as unknown as (UserAttributes & {
-			language_name: string
-			latest_exp_date: string
-			daily_record_update_count: number
-			answer_days_count: number
-		})[]
+    const queryParams: (string | number)[] = [];
 
-		const nowMoment = moment.tz(now, 'Asia/Kolkata')
-		const startDateMoment = start_date
-			? moment.tz(start_date, 'Asia/Kolkata')
-			: null
-		const endDateMoment = end_date ? moment.tz(end_date, 'Asia/Kolkata') : null
-		const endDateForComparison = end_date ? new Date(end_date) : null
+    if (status) {
+        queryParams.push(status.toLowerCase());
+    }
+    if (phone) {
+        queryParams.push(phone);
+    }
+    queryParams.push(limit, offset);
+    if (type !== 'all_time') {
+        queryParams.push(
+            filterStartDate,
+            filterEndDate,
+            filterStartDate,
+            filterEndDate,
+        );
+        if (type !== 'all_time') {
+            queryParams.push(filterEndDate);
+        }
+    }
 
-		if (endDateForComparison) {
-			endDateForComparison.setHours(0, 0, 0, 0)
-		}
+    return (await db.sequelize.query(query, {
+        type: QueryTypes.SELECT,
+        replacements: queryParams,
+        raw: true,
+        nest: false,
+        logging: false,
+    })) as unknown as (UserAttributes & {
+        language_name: string
+        latest_exp_date: string
+        daily_record_update_count: number
+        answer_days_count: number
+    })[];
+}
 
-		const results = users.map((user) => {
-			const expDate =
-				user.payment_status?.toLowerCase() === 'free'
-					? ''
-					: user.latest_exp_date || ''
-			const answerDaysCount = Number(user.answer_days_count) || 0
+private static processUsers(
+    users: (UserAttributes & {
+        language_name: string
+        latest_exp_date: string
+        daily_record_update_count: number
+        answer_days_count: number
+    })[],
+    type: string | undefined,
+    start_date: string | undefined,
+    end_date: string | undefined
+): FilteredUser[] {
+    const nowMoment = moment.tz(new Date(), 'Asia/Kolkata');
+    const startDateMoment = start_date
+        ? moment.tz(start_date, 'Asia/Kolkata')
+        : null;
+    const endDateMoment = end_date ? moment.tz(end_date, 'Asia/Kolkata') : null;
+    const endDateForComparison = end_date ? new Date(end_date) : null;
 
-			let totalDays = 0
-			let finalAnswerCount = answerDaysCount
+    if (endDateForComparison) {
+        endDateForComparison.setHours(0, 0, 0, 0);
+    }
 
-			const userCreatedMoment = moment.tz(user.created_at, 'Asia/Kolkata')
+    return users.map((user) => {
+        const { totalDays, finalAnswerCount } = this.calculateUserDaysAndAnswers(
+            user,
+            type,
+            startDateMoment,
+            endDateMoment,
+            nowMoment,
+            endDateForComparison
+        );
 
-			if (type === 'all_time' || (!start_date && !end_date)) {
-				const diff = nowMoment.diff(userCreatedMoment, 'days')
-				totalDays = diff === 0 ? 1 : diff + 1
-			} else if (startDateMoment && endDateMoment) {
-				if (userCreatedMoment.isSameOrBefore(endDateMoment)) {
-					const startPoint = userCreatedMoment.isSameOrBefore(startDateMoment)
-						? startDateMoment
-						: userCreatedMoment
-					const diff = endDateMoment.diff(startPoint, 'days')
-					totalDays = diff === 0 ? 1 : diff + 1
-				}
-			}
+        const divisor = totalDays === 0 ? 1 : totalDays;
+        const percentage = (finalAnswerCount / divisor) * 100;
 
-			let finalTotalDays = totalDays
+        return {
+            user_id: Number(user.id),
+            name: String(user.name || ''),
+            email: String(user.email || ''),
+            phone_number: String(user.phone_number || ''),
+            farm_name: String(user.farm_name || ''),
+            address: String(user.address || ''),
+            pincode: String(user.pincode || ''),
+            taluka: String(user.taluka || ''),
+            district: String(user.district || ''),
+            state_name: String(user.state || ''),
+            country: String(user.country || ''),
+            payment_status: String(user.payment_status || ''),
+            expDate: user.payment_status?.toLowerCase() === 'free' ? '' : user.latest_exp_date || '',
+            registration_date: user.created_at || null,
+            Daily_record_update_count: Number(user.daily_record_update_count) || 0,
+            total_days: totalDays,
+            answer_days_count: finalAnswerCount,
+            percentage: percentage.toFixed(2),
+            language_id: Number(user.language_id) || 0,
+            language_name: String(user.language_name || ''),
+        };
+    });
+}
 
-			if (endDateForComparison) {
-				const userCreatedAt = new Date(user.created_at)
-				userCreatedAt.setHours(0, 0, 0, 0)
+private static calculateUserDaysAndAnswers(
+    user: UserAttributes & { created_at: string; answer_days_count: number },
+    type: string | undefined,
+    startDateMoment: moment.Moment | null,
+    endDateMoment: moment.Moment | null,
+    nowMoment: moment.Moment,
+    endDateForComparison: Date | null
+): { totalDays: number; finalAnswerCount: number } {
+    const userCreatedMoment = moment.tz(user.created_at, 'Asia/Kolkata');
+    let totalDays = 0;
+    let finalAnswerCount = Number(user.answer_days_count) || 0;
 
-				if (userCreatedAt > endDateForComparison) {
-					finalTotalDays = 0
-					finalAnswerCount = 0
-				}
-			}
+    if (type === 'all_time' || (!startDateMoment && !endDateMoment)) {
+        const diff = nowMoment.diff(userCreatedMoment, 'days');
+        totalDays = diff === 0 ? 1 : diff + 1;
+    } else if (startDateMoment && endDateMoment) {
+        if (userCreatedMoment.isSameOrBefore(endDateMoment)) {
+            const startPoint = userCreatedMoment.isSameOrBefore(startDateMoment)
+                ? startDateMoment
+                : userCreatedMoment;
+            const diff = endDateMoment.diff(startPoint, 'days');
+            totalDays = diff === 0 ? 1 : diff + 1;
+        }
+    }
 
-			const divisor = finalTotalDays === 0 ? 1 : finalTotalDays
-			const percentage = (finalAnswerCount / divisor) * 100
+    if (endDateForComparison) {
+        const userCreatedAt = new Date(user.created_at);
+        userCreatedAt.setHours(0, 0, 0, 0);
 
-			return {
-				user_id: Number(user.id),
-				name: String(user.name || ''),
-				email: String(user.email || ''),
-				phone_number: String(user.phone_number || ''),
-				farm_name: String(user.farm_name || ''),
-				address: String(user.address || ''),
-				pincode: String(user.pincode || ''),
-				taluka: String(user.taluka || ''),
-				district: String(user.district || ''),
-				state_name: String(user.state || ''),
-				country: String(user.country || ''),
-				payment_status: String(user.payment_status || ''),
-				expDate,
-				registration_date: user.created_at || null,
-				Daily_record_update_count: Number(user.daily_record_update_count) || 0,
-				total_days: finalTotalDays,
-				answer_days_count: finalAnswerCount,
-				percentage: percentage.toFixed(2),
-				language_id: Number(user.language_id) || 0,
-				language_name: String(user.language_name || ''),
-			}
-		})
+        if (userCreatedAt > endDateForComparison) {
+            totalDays = 0;
+            finalAnswerCount = 0;
+        }
+    }
 
-		return {
-			data: results,
-			pagination: this.calculatePagination(page, limit, totalCount),
-		}
-	}
+    return { totalDays, finalAnswerCount };
+}
 
 	static async sortUsers({
 		payment_status,
@@ -654,6 +966,63 @@ export class UserService {
 		})) as unknown as { total: number }[]
 
 		const totalCount = countResult[0]?.total || 0
+	// 	const query = `
+	// 	SELECT 
+	// 		u.id,
+	// 		u.name,
+	// 		u.email,
+	// 		u.phone_number,
+	// 		u.farm_name,
+	// 		u.address,
+	// 		u.pincode,
+	// 		u.taluka,
+	// 		u.district,
+	// 		u.state,
+	// 		u.country,
+	// 		u.payment_status,
+	// 		u.created_at,
+	// 		COALESCE(latest_payment.plan_exp_date, '') as latest_exp_date,
+	// 		COALESCE(all_distinct_dates.total_count, 0) as daily_record_update_count,
+	// 		COALESCE(filtered_answers.answer_count, 0) as answer_days_count
+	// 	FROM users u
+	// 	INNER JOIN role_user ru ON ru.user_id = u.id
+	// 	LEFT JOIN (
+	// 		SELECT 
+	// 			up1.user_id, 
+	// 			up1.plan_exp_date
+	// 		FROM user_payment up1
+	// 		WHERE deleted_at IS NULL
+	// 		INNER JOIN (
+	// 			SELECT user_id, MAX(created_at) as max_created_at
+	// 			FROM user_payment
+	// 			WHERE deleted_at IS NULL
+	// 			GROUP BY user_id
+	// 		) up2 ON up1.user_id = up2.user_id AND up1.created_at = up2.max_created_at
+	// 	) latest_payment ON latest_payment.user_id = u.id
+	// 	LEFT JOIN (
+	// 		SELECT 
+	// 			user_id, 
+	// 			COUNT(DISTINCT answer_date) as total_count
+	// 		FROM daily_record_question_answer
+	// 		WHERE deleted_at IS NULL
+	// 		GROUP BY user_id
+	// 	) all_distinct_dates ON all_distinct_dates.user_id = u.id
+	// 	LEFT JOIN (
+	// 		SELECT 
+	// 			dra.user_id, 
+	// 			COUNT(DISTINCT DATE(dra.answer_date)) as answer_count
+	// 		FROM daily_record_question_answer dra
+	// 		INNER JOIN users u2 ON u2.id = dra.user_id
+	// 		WHERE 1=1 ${answerDateCondition.replaceAll('u.', 'u2.')}
+	// 		AND deleted_at IS NULL
+	// 		GROUP BY dra.user_id
+	// 	) filtered_answers ON filtered_answers.user_id = u.id
+	// 	WHERE ru.role_id = 2 AND u.payment_status = '${status}'
+	// 	AND u.deleted_at IS NULL
+	// 	ORDER BY u.created_at DESC
+	// 	LIMIT ${limit} OFFSET ${offset}
+	// `
+
 		const query = `
 		SELECT 
 			u.id,
@@ -674,19 +1043,22 @@ export class UserService {
 			COALESCE(filtered_answers.answer_count, 0) as answer_days_count
 		FROM users u
 		INNER JOIN role_user ru ON ru.user_id = u.id
+
+		/* ✅ FIXED subquery for latest_payment */
 		LEFT JOIN (
 			SELECT 
 				up1.user_id, 
 				up1.plan_exp_date
 			FROM user_payment up1
-			WHERE deleted_at IS NULL
 			INNER JOIN (
 				SELECT user_id, MAX(created_at) as max_created_at
 				FROM user_payment
 				WHERE deleted_at IS NULL
 				GROUP BY user_id
 			) up2 ON up1.user_id = up2.user_id AND up1.created_at = up2.max_created_at
+			WHERE up1.deleted_at IS NULL
 		) latest_payment ON latest_payment.user_id = u.id
+
 		LEFT JOIN (
 			SELECT 
 				user_id, 
@@ -695,6 +1067,7 @@ export class UserService {
 			WHERE deleted_at IS NULL
 			GROUP BY user_id
 		) all_distinct_dates ON all_distinct_dates.user_id = u.id
+
 		LEFT JOIN (
 			SELECT 
 				dra.user_id, 
@@ -702,9 +1075,10 @@ export class UserService {
 			FROM daily_record_question_answer dra
 			INNER JOIN users u2 ON u2.id = dra.user_id
 			WHERE 1=1 ${answerDateCondition.replaceAll('u.', 'u2.')}
-			AND deleted_at IS NULL
+			AND dra.deleted_at IS NULL
 			GROUP BY dra.user_id
 		) filtered_answers ON filtered_answers.user_id = u.id
+
 		WHERE ru.role_id = 2 AND u.payment_status = '${status}'
 		AND u.deleted_at IS NULL
 		ORDER BY u.created_at DESC
@@ -834,98 +1208,217 @@ export class UserService {
 		}
 	}
 
+	// private static processUsersData(
+	// 	users: (UserAttributes & {
+	// 		latest_exp_date: string
+	// 		daily_record_update_count: number
+	// 		answer_days_count: number
+	// 	})[],
+	// 	type?: string,
+	// 	start_date?: string,
+	// 	end_date?: string,
+	// ): UserSortResult[] {
+	// 	const now = new Date()
+
+	// 	return users.map((user): UserSortResult => {
+	// 		let expDate: string
+	// 		if (user.payment_status && user.payment_status.toLowerCase() === 'free') {
+	// 			expDate = ''
+	// 		} else {
+	// 			expDate = user.latest_exp_date || ''
+	// 		}
+
+	// 		const answer = Number.parseInt(user.answer_days_count.toString()) || 0
+
+	// 		let total_days = 0
+
+	// 		if (type === 'all_time') {
+	// 			total_days = calcTotalDaysAllTime(user.created_at, now)
+	// 		} else if (start_date && end_date) {
+	// 			const userCreatedAt = moment.tz(user.created_at, 'Asia/Kolkata')
+	// 			const startDate = moment.tz(start_date, 'Asia/Kolkata')
+	// 			const endDate = moment.tz(end_date, 'Asia/Kolkata')
+
+	// 			if (userCreatedAt.isSameOrBefore(endDate)) {
+	// 				let diff: number
+
+	// 				if (userCreatedAt.isSameOrBefore(startDate)) {
+	// 					diff = endDate.diff(startDate, 'days')
+	// 				} else {
+	// 					diff = endDate.diff(userCreatedAt, 'days')
+	// 				}
+
+	// 				if (diff === 0) {
+	// 					total_days = 1
+	// 				} else {
+	// 					total_days = diff + 1
+	// 				}
+	// 			}
+	// 		} else {
+	// 			total_days = calcTotalDaysAllTime(user.created_at, now)
+	// 		}
+
+	// 		let finalTotalDays = total_days
+	// 		let finalAnswer = answer
+
+	// 		if (start_date && end_date) {
+	// 			const userCreatedAt = new Date(user.created_at)
+	// 			const endDate = new Date(end_date)
+	// 			userCreatedAt.setHours(0, 0, 0, 0)
+	// 			endDate.setHours(0, 0, 0, 0)
+
+	// 			if (userCreatedAt > endDate) {
+	// 				finalTotalDays = 0
+	// 				finalAnswer = 0
+	// 			}
+	// 		}
+
+	// 		const difference1 = finalTotalDays === 0 ? 1 : finalTotalDays
+	// 		const percentage = (finalAnswer / difference1) * 100
+
+	// 		return {
+	// 			user_id: Number(user.id),
+	// 			name: String(user.name || ''),
+	// 			email: String(user.email || ''),
+	// 			phone_number: String(user.phone_number || ''),
+	// 			farm_name: String(user.farm_name || ''),
+	// 			address: String(user.address || ''),
+	// 			pincode: String(user.pincode || ''),
+	// 			taluka: String(user.taluka || ''),
+	// 			district: String(user.district || ''),
+	// 			state: String(user.state || ''),
+	// 			country: String(user.country || ''),
+	// 			payment_status: String(user.payment_status || ''),
+	// 			expDate: String(expDate),
+	// 			Daily_record_update_count: Number(
+	// 				Number.parseInt(user.daily_record_update_count.toString()) || 0,
+	// 			),
+	// 			registration_date: user.created_at || null,
+	// 			total_days: Number(finalTotalDays),
+	// 			answer_days_count: Number(finalAnswer),
+	// 			percentage: percentage.toFixed(2),
+	// 		} as UserSortResult
+	// 	})
+	// }
+
 	private static processUsersData(
-		users: (UserAttributes & {
-			latest_exp_date: string
-			daily_record_update_count: number
-			answer_days_count: number
-		})[],
-		type?: string,
-		start_date?: string,
-		end_date?: string,
-	): UserSortResult[] {
-		const now = new Date()
+    users: (UserAttributes & {
+        latest_exp_date: string
+        daily_record_update_count: number
+        answer_days_count: number
+    })[],
+    type?: string,
+    start_date?: string,
+    end_date?: string,
+): UserSortResult[] {
+    const now = new Date()
 
-		return users.map((user): UserSortResult => {
-			let expDate: string
-			if (user.payment_status && user.payment_status.toLowerCase() === 'free') {
-				expDate = ''
-			} else {
-				expDate = user.latest_exp_date || ''
-			}
+    return users.map((user): UserSortResult => {
+        const expDate = this.getExpirationDate(user);
+        const answer = Number.parseInt(user.answer_days_count.toString()) || 0;
 
-			const answer = Number.parseInt(user.answer_days_count.toString()) || 0
+        const totalDays = this.calculateTotalDays(user, type, start_date, end_date, now);
+        const { finalTotalDays, finalAnswer } = this.adjustDaysAndAnswerForDateRange(
+            user, start_date, end_date, totalDays, answer
+        );
 
-			let total_days = 0
+        const percentage = this.calculatePercentage(finalAnswer, finalTotalDays);
 
-			if (type === 'all_time') {
-				total_days = calcTotalDaysAllTime(user.created_at, now)
-			} else if (start_date && end_date) {
-				const userCreatedAt = moment.tz(user.created_at, 'Asia/Kolkata')
-				const startDate = moment.tz(start_date, 'Asia/Kolkata')
-				const endDate = moment.tz(end_date, 'Asia/Kolkata')
+        return {
+            user_id: Number(user.id),
+            name: String(user.name || ''),
+            email: String(user.email || ''),
+            phone_number: String(user.phone_number || ''),
+            farm_name: String(user.farm_name || ''),
+            address: String(user.address || ''),
+            pincode: String(user.pincode || ''),
+            taluka: String(user.taluka || ''),
+            district: String(user.district || ''),
+            state: String(user.state || ''),
+            country: String(user.country || ''),
+            payment_status: String(user.payment_status || ''),
+            expDate: String(expDate),
+            Daily_record_update_count: Number(
+                Number.parseInt(user.daily_record_update_count.toString()) || 0,
+            ),
+            registration_date: user.created_at || null,
+            total_days: Number(finalTotalDays),
+            answer_days_count: Number(finalAnswer),
+            percentage: percentage.toFixed(2),
+        } as UserSortResult
+    })
+}
 
-				if (userCreatedAt.isSameOrBefore(endDate)) {
-					let diff: number
+private static getExpirationDate(user: UserAttributes & { latest_exp_date: string }): string {
+    if (user.payment_status && user.payment_status.toLowerCase() === 'free') {
+        return '';
+    } else {
+        return user.latest_exp_date || '';
+    }
+}
 
-					if (userCreatedAt.isSameOrBefore(startDate)) {
-						diff = endDate.diff(startDate, 'days')
-					} else {
-						diff = endDate.diff(userCreatedAt, 'days')
-					}
+private static calculateTotalDays(
+    user: UserAttributes & { created_at: string },
+    type: string | undefined,
+    start_date: string | undefined,
+    end_date: string | undefined,
+    now: Date
+): number {
+    if (type === 'all_time') {
+        return calcTotalDaysAllTime(user.created_at, now);
+    } else if (start_date && end_date) {
+        return this.calculateDateRangeDays(user.created_at, start_date, end_date);
+    } else {
+        return calcTotalDaysAllTime(user.created_at, now);
+    }
+}
 
-					if (diff === 0) {
-						total_days = 1
-					} else {
-						total_days = diff + 1
-					}
-				}
-			} else {
-				total_days = calcTotalDaysAllTime(user.created_at, now)
-			}
+private static calculateDateRangeDays(userCreatedAt: string, start_date: string, end_date: string): number {
+    const userCreatedMoment = moment.tz(userCreatedAt, 'Asia/Kolkata');
+    const startDateMoment = moment.tz(start_date, 'Asia/Kolkata');
+    const endDateMoment = moment.tz(end_date, 'Asia/Kolkata');
 
-			let finalTotalDays = total_days
-			let finalAnswer = answer
+    if (!userCreatedMoment.isSameOrBefore(endDateMoment)) {
+        return 0;
+    }
 
-			if (start_date && end_date) {
-				const userCreatedAt = new Date(user.created_at)
-				const endDate = new Date(end_date)
-				userCreatedAt.setHours(0, 0, 0, 0)
-				endDate.setHours(0, 0, 0, 0)
+    const startPoint = userCreatedMoment.isSameOrBefore(startDateMoment)
+        ? startDateMoment
+        : userCreatedMoment;
+    const diff = endDateMoment.diff(startPoint, 'days');
 
-				if (userCreatedAt > endDate) {
-					finalTotalDays = 0
-					finalAnswer = 0
-				}
-			}
+    return diff === 0 ? 1 : diff + 1;
+}
 
-			const difference1 = finalTotalDays === 0 ? 1 : finalTotalDays
-			const percentage = (finalAnswer / difference1) * 100
+private static adjustDaysAndAnswerForDateRange(
+    user: UserAttributes & { created_at: string },
+    start_date: string | undefined,
+    end_date: string | undefined,
+    totalDays: number,
+    answer: number
+): { finalTotalDays: number; finalAnswer: number } {
+    let finalTotalDays = totalDays;
+    let finalAnswer = answer;
 
-			return {
-				user_id: Number(user.id),
-				name: String(user.name || ''),
-				email: String(user.email || ''),
-				phone_number: String(user.phone_number || ''),
-				farm_name: String(user.farm_name || ''),
-				address: String(user.address || ''),
-				pincode: String(user.pincode || ''),
-				taluka: String(user.taluka || ''),
-				district: String(user.district || ''),
-				state: String(user.state || ''),
-				country: String(user.country || ''),
-				payment_status: String(user.payment_status || ''),
-				expDate: String(expDate),
-				Daily_record_update_count: Number(
-					Number.parseInt(user.daily_record_update_count.toString()) || 0,
-				),
-				registration_date: user.created_at || null,
-				total_days: Number(finalTotalDays),
-				answer_days_count: Number(finalAnswer),
-				percentage: percentage.toFixed(2),
-			} as UserSortResult
-		})
-	}
+    if (start_date && end_date) {
+        const userCreatedAt = new Date(user.created_at);
+        const endDate = new Date(end_date);
+        userCreatedAt.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+
+        if (userCreatedAt > endDate) {
+            finalTotalDays = 0;
+            finalAnswer = 0;
+        }
+    }
+
+    return { finalTotalDays, finalAnswer };
+}
+
+private static calculatePercentage(finalAnswer: number, finalTotalDays: number): number {
+    const divisor = finalTotalDays === 0 ? 1 : finalTotalDays;
+    return (finalAnswer / divisor) * 100;
+}
 
 	private static processUsersDataWithExpDate(
 		users: (UserAttributes & {

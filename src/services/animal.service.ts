@@ -667,46 +667,77 @@ export class AnimalService {
 		})) as unknown as AnimalDataRow[]
 	}
 
+	// private static processBulkAnimalData(
+	// 	animalData: AnimalDataRow[],
+	// ): GenderCount {
+	// 	let maleCount = 0
+	// 	let cow1 = 0
+	// 	const femaleAnimals: AnimalDataRow[] = []
+	// 	let heifer2 = 0
+	// 	const heiferCalves: AnimalDataRow[] = []
+
+	// 	for (const animal of animalData) {
+	// 		const genderAnswer = animal.gender_answer?.toLowerCase()
+	// 		const heiferLogicValue = animal.heifer_logic_value?.toLowerCase()
+	// 		const hasGender = genderAnswer && genderAnswer.trim() !== ''
+	// 		const hasHeiferAnswer =
+	// 			animal.heifer_answer && animal.heifer_answer.trim() !== ''
+
+	// 		if (!hasGender && !hasHeiferAnswer) {
+	// 			cow1++
+	// 		} else if (!hasGender && heiferLogicValue) {
+	// 			if (heiferLogicValue === 'cow' || heiferLogicValue === 'buffalo') {
+	// 				cow1++
+	// 			}
+	// 		} else if (genderAnswer === 'male') {
+	// 			maleCount++
+	// 		} else if (genderAnswer === 'female') {
+	// 			femaleAnimals.push(animal)
+	// 		} else if (!hasGender && heiferLogicValue === 'calf') {
+	// 			heifer2++
+	// 		}
+
+	// 		if (animal.heifer_logic_value) {
+	// 			if (genderAnswer === 'female' && heiferLogicValue === 'calf') {
+	// 				heiferCalves.push(animal)
+	// 			}
+	// 		}
+	// 	}
+
+	// 	const cowCount = this.calculateFemaleCount(femaleAnimals)
+	// 	const totalFemaleCount = cowCount + cow1
+
+	// 	const totalHeiferCount = heiferCalves.length + heifer2
+
+	// 	return {
+	// 		male: maleCount,
+	// 		female: totalFemaleCount,
+	// 		heifer: totalHeiferCount,
+	// 	}
+	// }
+
 	private static processBulkAnimalData(
 		animalData: AnimalDataRow[],
 	): GenderCount {
-		let maleCount = 0
-		let cow1 = 0
+		const maleCount = 0
+		const cow1 = 0
 		const femaleAnimals: AnimalDataRow[] = []
-		let heifer2 = 0
+		const heifer2 = 0
 		const heiferCalves: AnimalDataRow[] = []
 
 		for (const animal of animalData) {
-			const genderAnswer = animal.gender_answer?.toLowerCase()
-			const heiferLogicValue = animal.heifer_logic_value?.toLowerCase()
-			const hasGender = genderAnswer && genderAnswer.trim() !== ''
-			const hasHeiferAnswer =
-				animal.heifer_answer && animal.heifer_answer.trim() !== ''
-
-			if (!hasGender && !hasHeiferAnswer) {
-				cow1++
-			} else if (!hasGender && heiferLogicValue) {
-				if (heiferLogicValue === 'cow' || heiferLogicValue === 'buffalo') {
-					cow1++
-				}
-			} else if (genderAnswer === 'male') {
-				maleCount++
-			} else if (genderAnswer === 'female') {
-				femaleAnimals.push(animal)
-			} else if (!hasGender && heiferLogicValue === 'calf') {
-				heifer2++
-			}
-
-			if (animal.heifer_logic_value) {
-				if (genderAnswer === 'female' && heiferLogicValue === 'calf') {
-					heiferCalves.push(animal)
-				}
-			}
+			this.processSingleAnimal(
+				animal,
+				maleCount,
+				cow1,
+				femaleAnimals,
+				heifer2,
+				heiferCalves,
+			)
 		}
 
 		const cowCount = this.calculateFemaleCount(femaleAnimals)
 		const totalFemaleCount = cowCount + cow1
-
 		const totalHeiferCount = heiferCalves.length + heifer2
 
 		return {
@@ -714,6 +745,76 @@ export class AnimalService {
 			female: totalFemaleCount,
 			heifer: totalHeiferCount,
 		}
+	}
+
+	private static processSingleAnimal(
+		animal: AnimalDataRow,
+		maleCount: number,
+		cow1: number,
+		femaleAnimals: AnimalDataRow[],
+		heifer2: number,
+		heiferCalves: AnimalDataRow[],
+	): void {
+		const genderAnswer = animal.gender_answer?.toLowerCase().trim()
+		const heiferLogicValue = animal.heifer_logic_value?.toLowerCase().trim()
+
+		const hasGender = !!genderAnswer && genderAnswer !== ''
+		const hasHeiferAnswer = !!animal.heifer_answer?.trim()
+
+		if (
+			this.shouldCountAsCow(
+				hasGender,
+				hasHeiferAnswer,
+				genderAnswer,
+				heiferLogicValue,
+			)
+		) {
+			cow1++
+			return
+		}
+
+		if (genderAnswer === 'male') {
+			maleCount++
+			return
+		}
+
+		if (genderAnswer === 'female') {
+			femaleAnimals.push(animal)
+		}
+
+		if (!hasGender && heiferLogicValue === 'calf') {
+			heifer2++
+		}
+
+		if (this.isHeiferCalf(genderAnswer, heiferLogicValue)) {
+			heiferCalves.push(animal)
+		}
+	}
+
+	private static shouldCountAsCow(
+		hasGender: boolean,
+		hasHeiferAnswer: boolean,
+		genderAnswer: string | undefined,
+		heiferLogicValue: string | undefined,
+	): boolean {
+		// Case 1: No gender and no heifer answer
+		if (!hasGender && !hasHeiferAnswer) {
+			return true
+		}
+
+		// Case 2: No gender but has heifer logic value of cow or buffalo
+		if (!hasGender && heiferLogicValue) {
+			return heiferLogicValue === 'cow' || heiferLogicValue === 'buffalo'
+		}
+
+		return false
+	}
+
+	private static isHeiferCalf(
+		genderAnswer: string | undefined,
+		heiferLogicValue: string | undefined,
+	): boolean {
+		return genderAnswer === 'female' && heiferLogicValue === 'calf'
 	}
 
 	private static calculateFemaleCount(femaleAnimals: AnimalDataRow[]): number {
@@ -1233,10 +1334,10 @@ export class AnimalService {
 			this.getWeight(userId, animalId, animalNumber),
 			includeReproductiveStatus
 				? this.getMilkingStatus(userId, animalId, animalNumber)
-				:Promise.resolve(null), //: null
+				: Promise.resolve(null), //: null
 			includeReproductiveStatus
 				? this.getPregnancyStatus(userId, animalId, animalNumber)
-				:Promise.resolve(null), //: null
+				: Promise.resolve(null), //: null
 		])
 
 		return {
@@ -2158,7 +2259,6 @@ export class AnimalService {
 			death_reason: string | null
 			created_at: Date
 		}[]
-
 
 		return results.map((record) => {
 			// Extract type in a separate statement

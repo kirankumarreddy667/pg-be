@@ -125,16 +125,153 @@ interface GroupedQuestion {
 }
 
 export class DailyRecordQuestionService {
+	// static async create(
+	// 	data: CreateDailyRecordQuestionsInput,
+	// ): Promise<Model<DailyRecordQuestionAttributes>[]> {
+	// 	const catergory = await db.Category.findOne({
+	// 		where: {
+	// 			id: data.category_id,
+	// 			deleted_at: null,
+	// 		},
+	// 	})
+	// 	if (!catergory)
+	// 		throw new ValidationRequestError({
+	// 			category_id: ['The selected category id is invalid.'],
+	// 		})
+
+	// 	if (data.sub_category_id) {
+	// 		const subCategory = await db.Subcategory.findOne({
+	// 			where: {
+	// 				id: data.sub_category_id,
+	// 				deleted_at: null,
+	// 			},
+	// 		})
+	// 		if (!subCategory)
+	// 			throw new ValidationRequestError({
+	// 				sub_category_id: ['The selected sub category id is invalid.'],
+	// 			})
+	// 	}
+
+	// 	const language = await db.Language.findOne({
+	// 		where: {
+	// 			id: data.language_id,
+	// 			deleted_at: null,
+	// 		},
+	// 	})
+	// 	if (!language)
+	// 		throw new ValidationRequestError({
+	// 			language_id: ['The selected language id is invalid.'],
+	// 		})
+
+	// 	for (const value of data.questions) {
+	// 		const question = await db.DailyRecordQuestion.findOne({
+	// 			where: {
+	// 				question: value.question,
+	// 				delete_status: false,
+	// 			},
+	// 		})
+	// 		if (question)
+	// 			throw new ValidationRequestError({
+	// 				[`questions.${data.questions.indexOf(value)}.question`]: [
+	// 					`questions.${data.questions.indexOf(value)}.question has already been taken.`,
+	// 				],
+	// 			})
+
+	// 		const formType = await db.FormType.findOne({
+	// 			where: {
+	// 				id: value.form_type_id,
+	// 				deleted_at: null,
+	// 			},
+	// 		})
+	// 		if (!formType)
+	// 			throw new ValidationRequestError({
+	// 				[`questions.${data.questions.indexOf(value)}.form_type_id`]: [
+	// 					`The selected questions.${data.questions.indexOf(value)}.form_type_id is invalid.`,
+	// 				],
+	// 			})
+
+	// 		const validationRule = await db.ValidationRule.findOne({
+	// 			where: {
+	// 				id: value.validation_rule_id,
+	// 				deleted_at: null,
+	// 			},
+	// 		})
+	// 		if (!validationRule)
+	// 			throw new ValidationRequestError({
+	// 				[`questions.${data.questions.indexOf(value)}.validation_rule_id`]: [
+	// 					`The selected questions.${data.questions.indexOf(value)}.validation_rule_id is invalid.`,
+	// 				],
+	// 			})
+
+	// 		if (Array.isArray(value.question_tag) && value.question_tag.length > 0) {
+	// 			const questionTags = await db.QuestionTag.findAll({
+	// 				where: { id: value.question_tag, deleted_at: null },
+	// 			})
+
+	// 			if (questionTags.length !== value.question_tag.length) {
+	// 				throw new ValidationRequestError({
+	// 					[`questions.${data.questions.indexOf(value)}.question_tag`]: [
+	// 						`The selected questions.${data.questions.indexOf(value)}.question_tag is invalid.`,
+	// 					],
+	// 				})
+	// 			}
+	// 		}
+
+	// 		const questionUnit = await db.QuestionUnit.findOne({
+	// 			where: {
+	// 				id: value.question_unit,
+	// 				deleted_at: null,
+	// 			},
+	// 		})
+	// 		if (!questionUnit)
+	// 			throw new ValidationRequestError({
+	// 				[`questions.${data.questions.indexOf(value)}.question_unit`]: [
+	// 					`The selected questions.${data.questions.indexOf(value)}.question_unit is invalid.`,
+	// 				],
+	// 			})
+	// 	}
+
+	// 	const questions = data.questions.map((q) => this.buildQuestionData(data, q))
+	// 	const savedQuestions = await db.DailyRecordQuestion.bulkCreate(questions, {
+	// 		returning: true,
+	// 	})
+	// 	await Promise.all([
+	// 		this.createTagMappings(savedQuestions, data.questions),
+	// 		this.createLanguageMappings(savedQuestions, data),
+	// 	])
+	// 	return savedQuestions
+	// }
+
 	static async create(
 		data: CreateDailyRecordQuestionsInput,
 	): Promise<Model<DailyRecordQuestionAttributes>[]> {
-		const catergory = await db.Category.findOne({
+		await this.validateBaseEntities(data)
+
+		for (const [index, value] of data.questions.entries()) {
+			await this.validateQuestion(value, index)
+		}
+
+		const questions = data.questions.map((q) => this.buildQuestionData(data, q))
+		const savedQuestions = await db.DailyRecordQuestion.bulkCreate(questions, {
+			returning: true,
+		})
+		await Promise.all([
+			this.createTagMappings(savedQuestions, data.questions),
+			this.createLanguageMappings(savedQuestions, data),
+		])
+		return savedQuestions
+	}
+
+	private static async validateBaseEntities(
+		data: CreateDailyRecordQuestionsInput,
+	): Promise<void> {
+		const category = await db.Category.findOne({
 			where: {
 				id: data.category_id,
 				deleted_at: null,
 			},
 		})
-		if (!catergory)
+		if (!category)
 			throw new ValidationRequestError({
 				category_id: ['The selected category id is invalid.'],
 			})
@@ -162,84 +299,71 @@ export class DailyRecordQuestionService {
 			throw new ValidationRequestError({
 				language_id: ['The selected language id is invalid.'],
 			})
+	}
 
-		for (const value of data.questions) {
-			const question = await db.DailyRecordQuestion.findOne({
-				where: {
-					question: value.question,
-					delete_status: false,
-				},
-			})
-			if (question)
-				throw new ValidationRequestError({
-					[`questions.${data.questions.indexOf(value)}.question`]: [
-						`questions.${data.questions.indexOf(value)}.question has already been taken.`,
-					],
-				})
-
-			const formType = await db.FormType.findOne({
-				where: {
-					id: value.form_type_id,
-					deleted_at: null,
-				},
-			})
-			if (!formType)
-				throw new ValidationRequestError({
-					[`questions.${data.questions.indexOf(value)}.form_type_id`]: [
-						`The selected questions.${data.questions.indexOf(value)}.form_type_id is invalid.`,
-					],
-				})
-
-			const validationRule = await db.ValidationRule.findOne({
-				where: {
-					id: value.validation_rule_id,
-					deleted_at: null,
-				},
-			})
-			if (!validationRule)
-				throw new ValidationRequestError({
-					[`questions.${data.questions.indexOf(value)}.validation_rule_id`]: [
-						`The selected questions.${data.questions.indexOf(value)}.validation_rule_id is invalid.`,
-					],
-				})
-
-			if (Array.isArray(value.question_tag) && value.question_tag.length > 0) {
-				const questionTags = await db.QuestionTag.findAll({
-					where: { id: value.question_tag, deleted_at: null },
-				})
-
-				if (questionTags.length !== value.question_tag.length) {
-					throw new ValidationRequestError({
-						[`questions.${data.questions.indexOf(value)}.question_tag`]: [
-							`The selected questions.${data.questions.indexOf(value)}.question_tag is invalid.`,
-						],
-					})
-				}
-			}
-
-			const questionUnit = await db.QuestionUnit.findOne({
-				where: {
-					id: value.question_unit,
-					deleted_at: null,
-				},
-			})
-			if (!questionUnit)
-				throw new ValidationRequestError({
-					[`questions.${data.questions.indexOf(value)}.question_unit`]: [
-						`The selected questions.${data.questions.indexOf(value)}.question_unit is invalid.`,
-					],
-				})
-		}
-
-		const questions = data.questions.map((q) => this.buildQuestionData(data, q))
-		const savedQuestions = await db.DailyRecordQuestion.bulkCreate(questions, {
-			returning: true,
+	private static async validateQuestion(
+		value: CreateDailyRecordQuestionsInput['questions'][0],
+		index: number,
+	): Promise<void> {
+		const question = await db.DailyRecordQuestion.findOne({
+			where: {
+				question: value.question,
+				delete_status: false,
+			},
 		})
-		await Promise.all([
-			this.createTagMappings(savedQuestions, data.questions),
-			this.createLanguageMappings(savedQuestions, data),
+		if (question)
+			throw new ValidationRequestError({
+				[`questions.${index}.question`]: [
+					`questions.${index}.question has already been taken.`,
+				],
+			})
+
+		const [formType, validationRule, questionUnit] = await Promise.all([
+			db.FormType.findOne({
+				where: { id: value.form_type_id, deleted_at: null },
+			}),
+			db.ValidationRule.findOne({
+				where: { id: value.validation_rule_id, deleted_at: null },
+			}),
+			db.QuestionUnit.findOne({
+				where: { id: value.question_unit, deleted_at: null },
+			}),
 		])
-		return savedQuestions
+
+		if (!formType)
+			throw new ValidationRequestError({
+				[`questions.${index}.form_type_id`]: [
+					`The selected questions.${index}.form_type_id is invalid.`,
+				],
+			})
+
+		if (!validationRule)
+			throw new ValidationRequestError({
+				[`questions.${index}.validation_rule_id`]: [
+					`The selected questions.${index}.validation_rule_id is invalid.`,
+				],
+			})
+
+		if (!questionUnit)
+			throw new ValidationRequestError({
+				[`questions.${index}.question_unit`]: [
+					`The selected questions.${index}.question_unit is invalid.`,
+				],
+			})
+
+		if (Array.isArray(value.question_tag) && value.question_tag.length > 0) {
+			const questionTags = await db.QuestionTag.findAll({
+				where: { id: value.question_tag, deleted_at: null },
+			})
+
+			if (questionTags.length !== value.question_tag.length) {
+				throw new ValidationRequestError({
+					[`questions.${index}.question_tag`]: [
+						`The selected questions.${index}.question_tag is invalid.`,
+					],
+				})
+			}
+		}
 	}
 
 	static async listAll(): Promise<{

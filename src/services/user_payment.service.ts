@@ -7,6 +7,7 @@ import { NotFoundError } from '@/utils/errors'
 import moment from 'moment'
 import { addToEmailQueue } from '@/queues/email.queue'
 import { logger } from '@/config/logger'
+import {Transaction} from "sequelize";
 
 interface EmailData {
 	name: string
@@ -327,201 +328,526 @@ export class UserPaymentService {
 			coupon_id: notes.coupon_id || '',
 		}
 	}
+	// private static async processSuccessfulPayment(
+	// 	user_id: number,
+	// 	order_id: string,
+	// 	user_payment_status: string,
+	// 	payment: {
+	// 		id: string
+	// 		amount: string
+	// 		status: string
+	// 		method: string
+	// 	},
+	// 	notes: {
+	// 		user_id: string
+	// 		plan_id: string
+	// 		amount: string
+	// 		quantity: string
+	// 		name: string
+	// 		email: string
+	// 		phone: string
+	// 		offer_id: string
+	// 		coupon_id: string
+	// 	},
+	// ): Promise<{
+	// 	success: boolean
+	// 	message: string
+	// 	data: {
+	// 		payment: {
+	// 			id: string
+	// 			amount: number
+	// 			status: string
+	// 			method: string
+	// 		}
+	// 		expDate: string
+	// 		planDetails: number
+	// 	}
+	// }> {
+	// 	const transaction = await db.sequelize.transaction()
+
+	// 	try {
+	// 		// Check if already processed
+	// 		const existingPayment = await db.UserPaymentHistory.findOne({
+	// 			where: { payment_id: payment.id },
+	// 			transaction,
+	// 		})
+
+	// 		if (existingPayment && existingPayment.get('status') === '1') {
+	// 			await transaction.commit()
+
+	// 			return {
+	// 				success: true,
+	// 				message: 'Success',
+	// 				data: {
+	// 					payment: {
+	// 						id: payment.id,
+	// 						amount: Number(payment.amount) / 100,
+	// 						status: payment.status,
+	// 						method: payment.method,
+	// 					},
+	// 					expDate: moment(existingPayment.get('plan_exp_date')).format(
+	// 						'YYYY-MM-DD',
+	// 					),
+	// 					planDetails: existingPayment.get('id'),
+	// 				},
+	// 			}
+	// 		} else {
+	// 			// Calculate plan expiration
+	// 			const planExpDate = await this.calculatePlanExpiration(
+	// 				user_id,
+	// 				user_payment_status,
+	// 				{
+	// 					user_id: Number.parseInt(notes.user_id),
+	// 					plan_id: Number.parseInt(notes.plan_id),
+	// 					amount: Number.parseInt(notes.amount),
+	// 					quantity: Number.parseInt(notes.quantity),
+	// 					name: notes.name,
+	// 					email: notes.email,
+	// 					phone: notes.phone,
+	// 					offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+	// 					coupon_id: notes.coupon_id
+	// 						? Number.parseInt(notes.coupon_id)
+	// 						: null,
+	// 				},
+	// 			)
+
+	// 			// Prepare payment data
+	// 			const insertPaymentData = {
+	// 				user_id: user_id,
+	// 				plan_id: Number.parseInt(notes.plan_id),
+	// 				amount: Number(payment.amount) / 100,
+	// 				payment_id: payment.id,
+	// 				order_id: order_id,
+	// 				num_of_valid_years: Number.parseInt(notes.quantity) || 1,
+	// 				plan_exp_date: planExpDate,
+	// 				email: notes.email,
+	// 				phone: notes.phone,
+	// 				billing_instrument: payment.method,
+	// 				offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+	// 				coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
+	// 				status: '1',
+	// 			}
+
+	// 			let paymentDetails
+	// 			const existingUserPlan = await db.UserPayment.findOne({
+	// 				where: { user_id },
+	// 				transaction,
+	// 				raw: true,
+	// 			})
+
+	// 			if (existingPayment) {
+	// 				// Update existing payment record
+	// 				await db.UserPaymentHistory.update(insertPaymentData, {
+	// 					where: { id: existingPayment.get('id') },
+	// 					transaction,
+	// 				})
+	// 				paymentDetails = {
+	// 					id: existingPayment.get('id'),
+	// 					...insertPaymentData,
+	// 				}
+	// 			} else {
+	// 				// Create new payment record
+	// 				paymentDetails = await db.UserPaymentHistory.create(
+	// 					insertPaymentData,
+	// 					{
+	// 						transaction,
+	// 					},
+	// 				)
+	// 			}
+
+	// 			// Update or create user payment plan
+	// 			if (existingUserPlan) {
+	// 				await db.UserPayment.update(
+	// 					{
+	// 						num_of_valid_years: insertPaymentData.num_of_valid_years,
+	// 						plan_exp_date: planExpDate,
+	// 						payment_history_id: paymentDetails.id,
+	// 						amount: insertPaymentData.amount,
+	// 						plan_id: Number.parseInt(notes.plan_id),
+	// 						updated_at: new Date(),
+	// 					},
+	// 					{ where: { user_id }, transaction },
+	// 				)
+	// 			} else {
+	// 				await db.UserPayment.create(
+	// 					{
+	// 						user_id: user_id,
+	// 						plan_id: Number.parseInt(notes.plan_id) || 1,
+	// 						amount: insertPaymentData.amount,
+	// 						payment_history_id: paymentDetails.id,
+	// 						num_of_valid_years: insertPaymentData.num_of_valid_years,
+	// 						plan_exp_date: planExpDate,
+	// 					},
+	// 					{ transaction },
+	// 				)
+	// 			}
+
+	// 			// Update user status
+	// 			await db.User.update(
+	// 				{ payment_status: 'premium' },
+	// 				{ where: { id: user_id }, transaction },
+	// 			)
+
+	// 			await transaction.commit()
+
+	// 			// Queue emails asynchronously
+	// 			this.queuePaymentEmails({
+	// 				user_id: Number.parseInt(notes.user_id),
+	// 				plan_id: Number.parseInt(notes.plan_id),
+	// 				amount: Number.parseInt(notes.amount),
+	// 				quantity: Number.parseInt(notes.quantity),
+	// 				name: notes.name,
+	// 				email: notes.email,
+	// 				phone: notes.phone,
+	// 				offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+	// 				coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
+	// 			}).catch((error) => console.error('Email queue error:', error))
+
+	// 			return {
+	// 				success: true,
+	// 				message: 'Success',
+	// 				data: {
+	// 					payment: {
+	// 						id: payment.id,
+	// 						amount: Number(payment.amount) / 100,
+	// 						status: payment.status,
+	// 						method: payment.method,
+	// 					},
+	// 					expDate: moment(planExpDate).format('YYYY-MM-DD'),
+	// 					planDetails: paymentDetails.id,
+	// 				},
+	// 			}
+	// 		}
+	// 	} catch (error) {
+	// 		await transaction.rollback()
+	// 		throw error
+	// 	}
+	// }
+
 	private static async processSuccessfulPayment(
-		user_id: number,
-		order_id: string,
-		user_payment_status: string,
-		payment: {
-			id: string
-			amount: string
-			status: string
-			method: string
-		},
-		notes: {
-			user_id: string
-			plan_id: string
-			amount: string
-			quantity: string
-			name: string
-			email: string
-			phone: string
-			offer_id: string
-			coupon_id: string
-		},
-	): Promise<{
-		success: boolean
-		message: string
-		data: {
-			payment: {
-				id: string
-				amount: number
-				status: string
-				method: string
-			}
-			expDate: string
-			planDetails: number
-		}
-	}> {
-		const transaction = await db.sequelize.transaction()
+    user_id: number,
+    order_id: string,
+    user_payment_status: string,
+    payment: {
+        id: string
+        amount: string
+        status: string
+        method: string
+    },
+    notes: {
+        user_id: string
+        plan_id: string
+        amount: string
+        quantity: string
+        name: string
+        email: string
+        phone: string
+        offer_id: string
+        coupon_id: string
+    },
+): Promise<{
+    success: boolean
+    message: string
+    data: {
+        payment: {
+            id: string
+            amount: number
+            status: string
+            method: string
+        }
+        expDate: string
+        planDetails: number
+    }
+}> {
+    const transaction = await db.sequelize.transaction()
 
-		try {
-			// Check if already processed
-			const existingPayment = await db.UserPaymentHistory.findOne({
-				where: { payment_id: payment.id },
-				transaction,
-			})
+    try {
+        const existingPayment = await db.UserPaymentHistory.findOne({
+            where: { payment_id: payment.id },
+            transaction,
+        })
 
-			if (existingPayment && existingPayment.get('status') === '1') {
-				await transaction.commit()
+        if (existingPayment && existingPayment.get('status') === '1') {
+            await transaction.commit()
+            return this.buildSuccessResponse(payment, existingPayment.get('plan_exp_date'), existingPayment.get('id'))
+        }
 
-				return {
-					success: true,
-					message: 'Success',
-					data: {
-						payment: {
-							id: payment.id,
-							amount: Number(payment.amount) / 100,
-							status: payment.status,
-							method: payment.method,
-						},
-						expDate: moment(existingPayment.get('plan_exp_date')).format(
-							'YYYY-MM-DD',
-						),
-						planDetails: existingPayment.get('id'),
-					},
-				}
-			} else {
-				// Calculate plan expiration
-				const planExpDate = await this.calculatePlanExpiration(
-					user_id,
-					user_payment_status,
-					{
-						user_id: Number.parseInt(notes.user_id),
-						plan_id: Number.parseInt(notes.plan_id),
-						amount: Number.parseInt(notes.amount),
-						quantity: Number.parseInt(notes.quantity),
-						name: notes.name,
-						email: notes.email,
-						phone: notes.phone,
-						offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
-						coupon_id: notes.coupon_id
-							? Number.parseInt(notes.coupon_id)
-							: null,
-					},
-				)
+        const result = await this.processNewPayment(user_id, order_id, user_payment_status, payment, notes, transaction);
+        await transaction.commit();
+        return result;
 
-				// Prepare payment data
-				const insertPaymentData = {
-					user_id: user_id,
-					plan_id: Number.parseInt(notes.plan_id),
-					amount: Number(payment.amount) / 100,
-					payment_id: payment.id,
-					order_id: order_id,
-					num_of_valid_years: Number.parseInt(notes.quantity) || 1,
-					plan_exp_date: planExpDate,
-					email: notes.email,
-					phone: notes.phone,
-					billing_instrument: payment.method,
-					offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
-					coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
-					status: '1',
-				}
+    } catch (error) {
+        await transaction.rollback()
+        throw error
+    }
+}
 
-				let paymentDetails
-				const existingUserPlan = await db.UserPayment.findOne({
-					where: { user_id },
-					transaction,
-					raw: true,
-				})
+private static async processNewPayment(
+    user_id: number,
+    order_id: string,
+    user_payment_status: string,
+    payment: {
+        id: string
+        amount: string
+        status: string
+        method: string
+    },
+    notes: {
+        user_id: string
+        plan_id: string
+        amount: string
+        quantity: string
+        name: string
+        email: string
+        phone: string
+        offer_id: string
+        coupon_id: string
+    },
+    transaction: Transaction
+): Promise<{
+    success: boolean
+    message: string
+    data: {
+        payment: {
+            id: string
+            amount: number
+            status: string
+            method: string
+        }
+        expDate: string
+        planDetails: number
+    }
+}> {
+    const planExpDate = await this.calculatePlanExpiration(
+        user_id,
+        user_payment_status,
+        {
+            user_id: Number.parseInt(notes.user_id),
+            plan_id: Number.parseInt(notes.plan_id),
+            amount: Number.parseInt(notes.amount),
+            quantity: Number.parseInt(notes.quantity),
+            name: notes.name,
+            email: notes.email,
+            phone: notes.phone,
+            offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+            coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
+        },
+    )
 
-				if (existingPayment) {
-					// Update existing payment record
-					await db.UserPaymentHistory.update(insertPaymentData, {
-						where: { id: existingPayment.get('id') },
-						transaction,
-					})
-					paymentDetails = {
-						id: existingPayment.get('id'),
-						...insertPaymentData,
-					}
-				} else {
-					// Create new payment record
-					paymentDetails = await db.UserPaymentHistory.create(
-						insertPaymentData,
-						{
-							transaction,
-						},
-					)
-				}
+    const insertPaymentData = this.buildPaymentData(user_id, order_id, payment, notes, planExpDate);
+    const paymentDetails = await this.savePaymentDetails(insertPaymentData, transaction);
+    await this.updateUserPaymentPlan(user_id, insertPaymentData, paymentDetails.id, transaction);
+    await this.updateUserStatus(user_id, transaction);
+    
+    // FIX: Remove 'await' since queuePaymentEmailsAsync returns void
+    this.queuePaymentEmailsAsync(notes);
 
-				// Update or create user payment plan
-				if (existingUserPlan) {
-					await db.UserPayment.update(
-						{
-							num_of_valid_years: insertPaymentData.num_of_valid_years,
-							plan_exp_date: planExpDate,
-							payment_history_id: paymentDetails.id,
-							amount: insertPaymentData.amount,
-							plan_id: Number.parseInt(notes.plan_id),
-							updated_at: new Date(),
-						},
-						{ where: { user_id }, transaction },
-					)
-				} else {
-					await db.UserPayment.create(
-						{
-							user_id: user_id,
-							plan_id: Number.parseInt(notes.plan_id) || 1,
-							amount: insertPaymentData.amount,
-							payment_history_id: paymentDetails.id,
-							num_of_valid_years: insertPaymentData.num_of_valid_years,
-							plan_exp_date: planExpDate,
-						},
-						{ transaction },
-					)
-				}
+    return this.buildSuccessResponse(payment, planExpDate, paymentDetails.id);
+}
 
-				// Update user status
-				await db.User.update(
-					{ payment_status: 'premium' },
-					{ where: { id: user_id }, transaction },
-				)
+private static buildPaymentData(
+    user_id: number,
+    order_id: string,
+    payment: {
+        id: string
+        amount: string
+        method: string
+    },
+    notes: {
+        plan_id: string
+        amount: string
+        quantity: string
+        email: string
+        phone: string
+        offer_id: string
+        coupon_id: string
+    },
+    planExpDate: Date
+): {
+    user_id: number
+    plan_id: number
+    amount: number
+    payment_id: string
+    order_id: string
+    num_of_valid_years: number
+    plan_exp_date: Date
+    email: string
+    phone: string
+    billing_instrument: string
+    offer_id: number | null
+    coupon_id: number | null
+    status: string
+} {
+    return {
+        user_id: user_id,
+        plan_id: Number.parseInt(notes.plan_id),
+        amount: Number(payment.amount) / 100,
+        payment_id: payment.id,
+        order_id: order_id,
+        num_of_valid_years: Number.parseInt(notes.quantity) || 1,
+        plan_exp_date: planExpDate,
+        email: notes.email,
+        phone: notes.phone,
+        billing_instrument: payment.method,
+        offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+        coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
+        status: '1',
+    };
+}
 
-				await transaction.commit()
+private static async savePaymentDetails(
+    insertPaymentData: {
+        user_id: number
+        plan_id: number
+        amount: number
+        payment_id: string
+        order_id: string
+        num_of_valid_years: number
+        plan_exp_date: Date
+        email: string
+        phone: string
+        billing_instrument: string
+        offer_id: number | null
+        coupon_id: number | null
+        status: string
+    },
+    transaction: Transaction
+): Promise<{ id: number }> {
+    const existingPayment = await db.UserPaymentHistory.findOne({
+        where: { payment_id: insertPaymentData.payment_id },
+        transaction,
+    })
 
-				// Queue emails asynchronously
-				this.queuePaymentEmails({
-					user_id: Number.parseInt(notes.user_id),
-					plan_id: Number.parseInt(notes.plan_id),
-					amount: Number.parseInt(notes.amount),
-					quantity: Number.parseInt(notes.quantity),
-					name: notes.name,
-					email: notes.email,
-					phone: notes.phone,
-					offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
-					coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
-				}).catch((error) => console.error('Email queue error:', error))
+    if (existingPayment) {
+        await db.UserPaymentHistory.update(insertPaymentData, {
+            where: { id: existingPayment.get('id') },
+            transaction,
+        })
+        return {
+            id: existingPayment.get('id'),
+        }
+    } else {
+        const paymentDetails = await db.UserPaymentHistory.create(insertPaymentData, {
+            transaction,
+        })
+        return { id: paymentDetails.id }
+    }
+}
 
-				return {
-					success: true,
-					message: 'Success',
-					data: {
-						payment: {
-							id: payment.id,
-							amount: Number(payment.amount) / 100,
-							status: payment.status,
-							method: payment.method,
-						},
-						expDate: moment(planExpDate).format('YYYY-MM-DD'),
-						planDetails: paymentDetails.id,
-					},
-				}
-			}
-		} catch (error) {
-			await transaction.rollback()
-			throw error
-		}
-	}
+private static async updateUserPaymentPlan(
+    user_id: number,
+    insertPaymentData: {
+        num_of_valid_years: number
+        plan_exp_date: Date
+        amount: number
+        plan_id: number
+    },
+    paymentHistoryId: number,
+    transaction: Transaction
+): Promise<void> {
+    const existingUserPlan = await db.UserPayment.findOne({
+        where: { user_id },
+        transaction,
+        raw: true,
+    })
+
+    if (existingUserPlan) {
+        await db.UserPayment.update(
+            {
+                num_of_valid_years: insertPaymentData.num_of_valid_years,
+                plan_exp_date: insertPaymentData.plan_exp_date,
+                payment_history_id: paymentHistoryId,
+                amount: insertPaymentData.amount,
+                plan_id: insertPaymentData.plan_id,
+                updated_at: new Date(),
+            },
+            { where: { user_id }, transaction },
+        )
+    } else {
+        await db.UserPayment.create(
+            {
+                user_id: user_id,
+                plan_id: insertPaymentData.plan_id || 1,
+                amount: insertPaymentData.amount,
+                payment_history_id: paymentHistoryId,
+                num_of_valid_years: insertPaymentData.num_of_valid_years,
+                plan_exp_date: insertPaymentData.plan_exp_date,
+            },
+            { transaction },
+        )
+    }
+}
+
+private static async updateUserStatus(user_id: number, transaction: Transaction): Promise<void> {
+    await db.User.update(
+        { payment_status: 'premium' },
+        { where: { id: user_id }, transaction },
+    )
+}
+
+private static queuePaymentEmailsAsync(notes: {
+    user_id: string
+    plan_id: string
+    amount: string
+    quantity: string
+    name: string
+    email: string
+    phone: string
+    offer_id: string
+    coupon_id: string
+}): void {
+    this.queuePaymentEmails({
+        user_id: Number.parseInt(notes.user_id),
+        plan_id: Number.parseInt(notes.plan_id),
+        amount: Number.parseInt(notes.amount),
+        quantity: Number.parseInt(notes.quantity),
+        name: notes.name,
+        email: notes.email,
+        phone: notes.phone,
+        offer_id: notes.offer_id ? Number.parseInt(notes.offer_id) : null,
+        coupon_id: notes.coupon_id ? Number.parseInt(notes.coupon_id) : null,
+    }).catch((error) => console.error('Email queue error:', error))
+}
+
+private static buildSuccessResponse(
+    payment: {
+        id: string
+        amount: string
+        status: string
+        method: string
+    },
+    planExpDate: Date,
+    planDetailsId: number
+): {
+    success: boolean
+    message: string
+    data: {
+        payment: {
+            id: string
+            amount: number
+            status: string
+            method: string
+        }
+        expDate: string
+        planDetails: number
+    }
+} {
+    return {
+        success: true,
+        message: 'Success',
+        data: {
+            payment: {
+                id: payment.id,
+                amount: Number(payment.amount) / 100,
+                status: payment.status,
+                method: payment.method,
+            },
+            expDate: moment(planExpDate).format('YYYY-MM-DD'),
+            planDetails: planDetailsId,
+        },
+    };
+}
+
 	private static async processFailedPayment(
 		user_id: number,
 		payment: {
@@ -780,11 +1106,11 @@ export class UserPaymentService {
 			
 			else if (offerData.additional_years && offerData.additional_years > 0) {
 				quantity = offerData.additional_years
-				monthYear = 'Year'
+				// monthYear = 'Year'
 			}
 		} else {
 			quantity = data.quantity || 1
-			monthYear = 'Year'
+			// monthYear = 'Year'
 		}
 
 		const baseEmailData = {

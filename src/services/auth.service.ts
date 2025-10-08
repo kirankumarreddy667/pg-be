@@ -108,7 +108,9 @@ export class AuthService {
 		plan_expires_on: Date | null
 		otp_status: boolean
 	}> {
-		const roleId = phone_number === '7207063149' ? 1 : 2
+		// const roleId = phone_number === '7207063149' ? 1 : 2
+		const roleId = (phone_number === '7207063149' || phone_number === '9588474088') ? 1 : 2;
+
 
 		const userWithRole = await db.User.findOne({
 			where: { phone_number, deleted_at: null },
@@ -122,7 +124,6 @@ export class AuthService {
 			],
 			attributes: { include: ['password'] },
 		})
-
 		if (!userWithRole) {
 			throw new AuthenticationError('The mobile number is not registered yet')
 		}

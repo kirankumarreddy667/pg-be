@@ -4,90 +4,222 @@ import { Op, QueryTypes } from 'sequelize'
 import { SmsService } from '../services/sms.service'
 import { sendNotificationsByFCM } from '../utils/fcm'
 
+interface NotificationRow {
+	id: number
+	user_id: number
+	send_notification_date: string
+	heading: string
+	doctor_num: string
+	message: string
+	deleted_at: Date | null
+}
+
 export class SendUserNotifications {
+	// public static async sendUserNotifications(): Promise<void> {
+	// 	const today = moment()
+	// 	const notifications = (await db.Notification.findAll({
+	// 		where: {
+	// 			deleted_at: null,
+	// 		},
+	// 		raw: true,
+	// 	})) as unknown as Array<{
+	// 		user_id: number
+	// 		send_notification_date: string
+	// 		heading: string
+	// 		doctor_num: string
+	// 		message: string
+	// 	}>
+	// 	if (!notifications.length) {
+	// 		return
+	// 	}
+	// 	const userIds = notifications.map((notification) => notification.user_id)
+	// 	const users = await db.User.findAll({
+	// 		where: {
+	// 			id: { [Op.in]: userIds },
+	// 			deleted_at: null,
+	// 		},
+	// 		attributes: ['id', 'phone_number'],
+	// 	})
+
+	// 	const userPhoneMap = new Map()
+	// 	for (const user of users) {
+	// 		userPhoneMap.set(user.get('id'), user.get('phone_number'))
+	// 	}
+
+	// 	for (const notification of notifications) {
+	// 		const notificationDate = moment(notification.send_notification_date)
+	// 		const daysDifference = notificationDate.diff(today, 'days')
+	// 		const shouldSendToday = notificationDate.isSame(today, 'day')
+	// 		const shouldSendIn7Days =
+	// 			notificationDate.isAfter(today) && daysDifference === 7
+	// 		const shouldSendIn2Days =
+	// 			notificationDate.isAfter(today) && daysDifference === 2
+
+	// 		if (!(shouldSendToday || shouldSendIn7Days || shouldSendIn2Days)) {
+	// 			continue
+	// 		}
+
+	// 		const phoneNumber = userPhoneMap.get(notification.user_id) as string
+
+	// 		if (!phoneNumber) {
+	// 			continue
+	// 		}
+
+	// 		let DLT_Template_Id = ''
+	// 		const heading = notification.heading?.toLowerCase()
+
+	// 		if (!notification.doctor_num && heading === 'pregnency detection test') {
+	// 			DLT_Template_Id = '1207161534375093546'
+	// 		} else if (heading === 'update pregnency status') {
+	// 			DLT_Template_Id = '1207161534379821134'
+	// 		} else if (heading === 'drying off the animal') {
+	// 			DLT_Template_Id = '1207161534536347379'
+	// 		} else if (heading === 'delivery due') {
+	// 			DLT_Template_Id = '1207161534384946999'
+	// 		} else if (heading === 'biosecurity spray') {
+	// 			DLT_Template_Id = '1207161534545634398'
+	// 		} else if (heading === 'deworming') {
+	// 			DLT_Template_Id = '1207161534541971429'
+	// 		}
+
+	// 		if (DLT_Template_Id && phoneNumber) {
+	// 			await SmsService.sendNotificationSMS(
+	// 				`91${phoneNumber}`,
+	// 				notification.message,
+	// 				DLT_Template_Id,
+	// 			)
+	// 		}
+
+	// 		if (notification.doctor_num && heading === 'pregnency detection test') {
+	// 			const DLT_TE_Id = '1207161534368698597'
+	// 			await SmsService.sendNotificationSMS(
+	// 				`91${notification.doctor_num}`,
+	// 				notification.message,
+	// 				DLT_TE_Id,
+	// 			)
+	// 		}
+	// 	}
+	// }
+
+	/**
+	 * Map notification headings to DLT Template IDs
+	 */
+	private static getDLTTemplateId(
+		heading: string,
+		doctorNum?: string,
+	): { userTemplate?: string; doctorTemplate?: string } {
+		const normalizedHeading = heading.toLowerCase()
+		const templates: Record<string, string> = {
+			'pregnency detection test': '1207161534375093546',
+			'update pregnency status': '1207161534379821134',
+			'drying off the animal': '1207161534536347379',
+			'delivery due': '1207161534384946999',
+			'biosecurity spray': '1207161534545634398',
+			deworming: '1207161534541971429',
+		}
+
+		const userTemplate =
+			!doctorNum || normalizedHeading !== 'pregnency detection test'
+				? templates[normalizedHeading]
+				: undefined
+
+		const doctorTemplate =
+			doctorNum && normalizedHeading === 'pregnency detection test'
+				? '1207161534368698597'
+				: undefined
+
+		return { userTemplate, doctorTemplate }
+	}
+
+	private static shouldSendNotification(
+		notificationDate: moment.Moment,
+		today: moment.Moment,
+	): boolean {
+		const daysDifference = notificationDate.diff(today, 'days')
+		const shouldSendToday = notificationDate.isSame(today, 'day')
+		const shouldSendIn7Days =
+			notificationDate.isAfter(today) && daysDifference === 7
+		const shouldSendIn2Days =
+			notificationDate.isAfter(today) && daysDifference === 2
+
+		return shouldSendToday || shouldSendIn7Days || shouldSendIn2Days
+	}
+
 	public static async sendUserNotifications(): Promise<void> {
 		const today = moment()
+
 		const notifications = (await db.Notification.findAll({
-			where: {
-				deleted_at: null,
-			},
+			where: { deleted_at: null },
 			raw: true,
-		})) as unknown as Array<{
-			user_id: number
-			send_notification_date: string
-			heading: string
-			doctor_num: string
-			message: string
-		}>
-		if (!notifications.length) {
+		})) as unknown as NotificationRow[]
+
+		if (notifications.length === 0) {
 			return
 		}
+
 		const userIds = notifications.map((notification) => notification.user_id)
-		const users = await db.User.findAll({
+		const users = (await db.User.findAll({
 			where: {
 				id: { [Op.in]: userIds },
 				deleted_at: null,
 			},
 			attributes: ['id', 'phone_number'],
-		})
+			raw: true,
+		})) as Array<{ id: number; phone_number: string | null }>
 
-		const userPhoneMap = new Map()
+		const userPhoneMap = new Map<number, string>()
 		for (const user of users) {
-			userPhoneMap.set(user.get('id'), user.get('phone_number'))
+			if (user.phone_number) {
+				userPhoneMap.set(user.id, user.phone_number)
+			}
 		}
+
+		const smsPromises: Array<Promise<unknown>> = []
 
 		for (const notification of notifications) {
 			const notificationDate = moment(notification.send_notification_date)
-			const daysDifference = notificationDate.diff(today, 'days')
-			const shouldSendToday = notificationDate.isSame(today, 'day')
-			const shouldSendIn7Days =
-				notificationDate.isAfter(today) && daysDifference === 7
-			const shouldSendIn2Days =
-				notificationDate.isAfter(today) && daysDifference === 2
 
-			if (!(shouldSendToday || shouldSendIn7Days || shouldSendIn2Days)) {
+			if (!this.shouldSendNotification(notificationDate, today)) {
 				continue
 			}
 
-			const phoneNumber = userPhoneMap.get(notification.user_id) as string
+			const phoneNumber = userPhoneMap.get(notification.user_id)
+			const { userTemplate, doctorTemplate } = this.getDLTTemplateId(
+				notification.heading,
+				notification.doctor_num,
+			)
 
-			if (!phoneNumber) {
-				continue
-			}
-
-			let DLT_Template_Id = ''
-			const heading = notification.heading?.toLowerCase()
-
-			if (!notification.doctor_num && heading === 'pregnency detection test') {
-				DLT_Template_Id = '1207161534375093546'
-			} else if (heading === 'update pregnency status') {
-				DLT_Template_Id = '1207161534379821134'
-			} else if (heading === 'drying off the animal') {
-				DLT_Template_Id = '1207161534536347379'
-			} else if (heading === 'delivery due') {
-				DLT_Template_Id = '1207161534384946999'
-			} else if (heading === 'biosecurity spray') {
-				DLT_Template_Id = '1207161534545634398'
-			} else if (heading === 'deworming') {
-				DLT_Template_Id = '1207161534541971429'
-			}
-
-			if (DLT_Template_Id && phoneNumber) {
-				await SmsService.sendNotificationSMS(
+			if (userTemplate && phoneNumber) {
+				const userSmsPromise = SmsService.sendNotificationSMS(
 					`91${phoneNumber}`,
 					notification.message,
-					DLT_Template_Id,
-				)
+					userTemplate,
+				).catch((error: Error) => {
+					console.error(
+						`Failed to send SMS to user ${notification.user_id}:`,
+						error,
+					)
+				})
+				smsPromises.push(userSmsPromise)
 			}
 
-			if (notification.doctor_num && heading === 'pregnency detection test') {
-				const DLT_TE_Id = '1207161534368698597'
-				await SmsService.sendNotificationSMS(
+			if (doctorTemplate && notification.doctor_num) {
+				const doctorSmsPromise = SmsService.sendNotificationSMS(
 					`91${notification.doctor_num}`,
 					notification.message,
-					DLT_TE_Id,
-				)
+					doctorTemplate,
+				).catch((error: Error) => {
+					console.error(
+						`Failed to send SMS to doctor for notification ${notification.id}:`,
+						error,
+					)
+				})
+				smsPromises.push(doctorSmsPromise)
 			}
+		}
+
+		if (smsPromises.length > 0) {
+			await Promise.all(smsPromises)
 		}
 	}
 
@@ -134,8 +266,8 @@ export class SendUserNotifications {
 				const user = users[0]
 
 				if (
-					// user &&
-					user?.firebase_token &&
+					user &&
+					user.firebase_token &&
 					notification.heading &&
 					notification.message
 				) {
