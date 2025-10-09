@@ -2,21 +2,14 @@ import { Op, QueryTypes, Sequelize } from 'sequelize'
 import db from '../config/database'
 import ejs from 'ejs'
 import puppeteer from 'puppeteer'
-// import path from 'path'
 import path from 'node:path'
 import { addToEmailQueue } from '../queues/email.queue'
-// import fs from 'fs/promises'
 import fs from 'node:fs/promises'
 import { AppError, NotFoundError } from '@/utils/errors'
 import moment from 'moment'
 import { addMonths, format } from 'date-fns'
 
 type MilkValue = string | number | null
-
-// type FeedItem = {
-// 	amount: string | number
-// 	price: string | number
-// }
 
 interface AnimalNumber {
 	animal_id: number
@@ -700,153 +693,15 @@ export class ReportService {
 			return total + answer[0].price
 		}, 0)
 	}
-	// private static async processHealthData(
-	// 	user_id: number,
-	// 	userAnimals: AnimalNumber[],
-	// 	dates: string[],
-	// ): Promise<HealthReportRow[]> {
-	// 	const animalNumbers = userAnimals.map((animal) => animal.animal_number)
-
-	// 	const query = `
-    //     SELECT 
-    //         cq.question_tag,
-    //         cq.question,
-    //         aqa.answer,
-    //         aqa.created_at,
-    //         aqa.animal_number
-    //     FROM common_questions AS cq
-    //     JOIN animal_question_answers AS aqa ON aqa.question_id = cq.id AND aqa.deleted_at IS NULL
-    //     WHERE aqa.animal_number IN (${animalNumbers.map(() => '?').join(',')})
-    //     AND cq.question_tag IN (38, 39, 40, 41)
-    //     AND DATE(aqa.created_at) IN (${dates.map(() => '?').join(',')})
-    //     AND aqa.user_id = ?
-    //     AND aqa.status <> 1
-	// 	AND aqa.deleted_at IS NULL
-	// 	AND cq.deleted_at IS NULL
-    //     ORDER BY aqa.animal_number, aqa.created_at, cq.question_tag
-    // `
-
-	// 	const results = (await db.sequelize.query(query, {
-	// 		replacements: [...animalNumbers, ...dates, user_id],
-	// 		type: QueryTypes.SELECT,
-	// 	})) as unknown as {
-	// 		question_tag: number
-	// 		question: string
-	// 		answer: string
-	// 		created_at: Date | string
-	// 		animal_number: string
-	// 	}[]
-
-	// 	const groupedData: {
-	// 		[key: string]: {
-	// 			animal_number: string
-	// 			date: string
-	// 			answers: { [questionTag: number]: string }
-	// 		}
-	// 	} = {}
-
-	// 	// results.forEach((row) => {
-	// 	for (const row of results) {
-	// 		const dateKey =
-	// 			typeof row.created_at === 'string'
-	// 				? row.created_at.split(' ')[0]
-	// 				: row.created_at.toISOString().split('T')[0]
-	// 		const key = `${row.animal_number}_${dateKey}`
-
-	// 		if (!groupedData[key]) {
-	// 			groupedData[key] = {
-	// 				animal_number: row.animal_number,
-	// 				date: dateKey,
-	// 				answers: {},
-	// 			}
-	// 		}
-
-	// 		groupedData[key].answers[row.question_tag] = row.answer
-	// 		// })
-	// 	}
-
-	// 	const resData: HealthReportRow[] = []
-
-	// 	// Object.values(groupedData).forEach(
-	// 	// 	(group: {
-	// 	// 		animal_number: string
-	// 	// 		date: string
-	// 	// 		answers: { [questionTag: number]: string }
-	// 	// 	}) => {
-	// 	for (const group of Object.values(groupedData)) {
-	// 		let answer1 = group.answers[38] || ''
-	// 		const answer2 = group.answers[39] || ''
-	// 		const answer3 = group.answers[40] || ''
-	// 		const answer4 = group.answers[41] || ''
-
-	// 		if (answer1) {
-	// 			const dateObj = new Date(answer1)
-	// 			const day = dateObj.getDate()
-
-	// 			let suffix: string
-	// 			if (day % 10 === 1 && day !== 11) {
-	// 				suffix = 'st'
-	// 			} else if (day % 10 === 2 && day !== 12) {
-	// 				suffix = 'nd'
-	// 			} else if (day % 10 === 3 && day !== 13) {
-	// 				suffix = 'rd'
-	// 			} else {
-	// 				suffix = 'th'
-	// 			}
-	// 			const month = dateObj.toLocaleDateString('en-US', { month: 'short' })
-	// 			const year = dateObj.getFullYear()
-	// 			answer1 = `${day}${suffix} ${month} ${year}`
-	// 		}
-
-	// 		let font = 'Pothana2000'
-
-	// 		if (answer2) {
-	// 			const end =
-	// 				'A B C D E F G H I J K L M N O P Q R E S U V W X Y Z a b c d e f g h i j k l m n o p q u r s t u v q x y z'
-	// 			const hin =
-	// 				'अ आ इ ई उ ऊ ए ऐ ओ औ अं अः क ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह क़ ग़ ख़ ज़ ड़ ऋ ढ़ फ़'
-	// 			const telu =
-	// 				'మాస్టాటిట్స్ తైలేరియా బాబేసిల్ తివా (3 రోజుల సిక్నెస్) పాలు జ్వరం (కాల్షియం కోల్పోవడం) డిస్టాకిల్ ప్రత్యుత్పత్తి లేకుండుట గర్భస్రావం న్యుమోనియా జ్వరము, దగ్గు విరేచనాలు ఎరుపు మూత్రం ఇతర'
-
-	// 			const words = answer2.split(' ')
-	// 			const firstWord = words[0]
-
-	// 			if (end.includes(answer2[0])) {
-	// 				font = 'DejaVuSans'
-	// 			} else if (hin.includes(answer2[0])) {
-	// 				font = 'mangal'
-	// 			} else if (telu.includes(firstWord)) {
-	// 				// font already 'Pothana2000', no need to reassign
-	// 			}
-	// 		}
-
-	// 		const abc = {
-	// 			date: answer1,
-	// 			diseasName: answer2,
-	// 			details_of_treatment: answer3,
-	// 			milk_loss_in_litres: answer4,
-	// 			animal_number: group.animal_number,
-	// 			font: font,
-	// 		}
-
-	// 		if (abc.date) {
-	// 			resData.push(abc)
-	// 		}
-	// 	}
-	// 	// },
-	// 	// )
-
-	// 	return resData
-	// }
 
 	private static async processHealthData(
-    user_id: number,
-    userAnimals: AnimalNumber[],
-    dates: string[],
-): Promise<HealthReportRow[]> {
-    const animalNumbers = userAnimals.map((animal) => animal.animal_number)
+		user_id: number,
+		userAnimals: AnimalNumber[],
+		dates: string[],
+	): Promise<HealthReportRow[]> {
+		const animalNumbers = userAnimals.map((animal) => animal.animal_number)
 
-    const query = `
+		const query = `
         SELECT 
             cq.question_tag,
             cq.question,
@@ -865,147 +720,149 @@ export class ReportService {
         ORDER BY aqa.animal_number, aqa.created_at, cq.question_tag
     `
 
-    const results = (await db.sequelize.query(query, {
-        replacements: [...animalNumbers, ...dates, user_id],
-        type: QueryTypes.SELECT,
-    })) as unknown as {
-        question_tag: number
-        question: string
-        answer: string
-        created_at: Date | string
-        animal_number: string
-    }[]
+		const results = (await db.sequelize.query(query, {
+			replacements: [...animalNumbers, ...dates, user_id],
+			type: QueryTypes.SELECT,
+		})) as unknown as {
+			question_tag: number
+			question: string
+			answer: string
+			created_at: Date | string
+			animal_number: string
+		}[]
 
-    const groupedData = this.groupResultsByAnimalAndDate(results)
-    return this.transformGroupedDataToReport(groupedData)
-}
+		const groupedData = this.groupResultsByAnimalAndDate(results)
+		return this.transformGroupedDataToReport(groupedData)
+	}
 
-private static groupResultsByAnimalAndDate(
-    results: {
-        question_tag: number
-        question: string
-        answer: string
-        created_at: Date | string
-        animal_number: string
-    }[]
-): {
-    [key: string]: {
-        animal_number: string
-        date: string
-        answers: { [questionTag: number]: string }
-    }
-} {
-    const groupedData: {
-        [key: string]: {
-            animal_number: string
-            date: string
-            answers: { [questionTag: number]: string }
-        }
-    } = {}
+	private static groupResultsByAnimalAndDate(
+		results: {
+			question_tag: number
+			question: string
+			answer: string
+			created_at: Date | string
+			animal_number: string
+		}[],
+	): {
+		[key: string]: {
+			animal_number: string
+			date: string
+			answers: { [questionTag: number]: string }
+		}
+	} {
+		const groupedData: {
+			[key: string]: {
+				animal_number: string
+				date: string
+				answers: { [questionTag: number]: string }
+			}
+		} = {}
 
-    for (const row of results) {
-        const dateKey = this.formatDateKey(row.created_at)
-        const key = `${row.animal_number}_${dateKey}`
+		for (const row of results) {
+			const dateKey = this.formatDateKey(row.created_at)
+			const key = `${row.animal_number}_${dateKey}`
 
-        if (!groupedData[key]) {
-            groupedData[key] = {
-                animal_number: row.animal_number,
-                date: dateKey,
-                answers: {},
-            }
-        }
+			if (!groupedData[key]) {
+				groupedData[key] = {
+					animal_number: row.animal_number,
+					date: dateKey,
+					answers: {},
+				}
+			}
 
-        groupedData[key].answers[row.question_tag] = row.answer
-    }
+			groupedData[key].answers[row.question_tag] = row.answer
+		}
 
-    return groupedData
-}
+		return groupedData
+	}
 
-private static formatDateKey(createdAt: Date | string): string {
-    const dateString = typeof createdAt === 'string' 
-        ? createdAt.split(' ')[0] 
-        : createdAt.toISOString().split('T')[0]
-    return dateString
-}
+	private static formatDateKey(createdAt: Date | string): string {
+		const dateString =
+			typeof createdAt === 'string'
+				? createdAt.split(' ')[0]
+				: createdAt.toISOString().split('T')[0]
+		return dateString
+	}
 
-private static transformGroupedDataToReport(
-    groupedData: {
-        [key: string]: {
-            animal_number: string
-            date: string
-            answers: { [questionTag: number]: string }
-        }
-    }
-): HealthReportRow[] {
-    const resData: HealthReportRow[] = []
+	private static transformGroupedDataToReport(groupedData: {
+		[key: string]: {
+			animal_number: string
+			date: string
+			answers: { [questionTag: number]: string }
+		}
+	}): HealthReportRow[] {
+		const resData: HealthReportRow[] = []
 
-    for (const group of Object.values(groupedData)) {
-        const answer1 = this.formatDateAnswer(group.answers[38] || '')
-        const answer2 = group.answers[39] || ''
-        const answer3 = group.answers[40] || ''
-        const answer4 = group.answers[41] || ''
+		for (const group of Object.values(groupedData)) {
+			const answer1 = this.formatDateAnswer(group.answers[38] || '')
+			const answer2 = group.answers[39] || ''
+			const answer3 = group.answers[40] || ''
+			const answer4 = group.answers[41] || ''
 
-        const font = this.determineFont(answer2)
+			const font = this.determineFont(answer2)
 
-        const reportRow = {
-            date: answer1,
-            diseasName: answer2,
-            details_of_treatment: answer3,
-            milk_loss_in_litres: answer4,
-            animal_number: group.animal_number,
-            font: font,
-        }
+			const reportRow = {
+				date: answer1,
+				diseasName: answer2,
+				details_of_treatment: answer3,
+				milk_loss_in_litres: answer4,
+				animal_number: group.animal_number,
+				font: font,
+			}
 
-        if (reportRow.date) {
-            resData.push(reportRow)
-        }
-    }
+			if (reportRow.date) {
+				resData.push(reportRow)
+			}
+		}
 
-    return resData
-}
+		return resData
+	}
 
-private static formatDateAnswer(answer: string): string {
-    if (!answer) return ''
+	private static formatDateAnswer(answer: string): string {
+		if (!answer) return ''
 
-    const dateObj = new Date(answer)
-    const day = dateObj.getDate()
+		const dateObj = new Date(answer)
+		const day = dateObj.getDate()
 
-    let suffix: string
-    if (day % 10 === 1 && day !== 11) {
-        suffix = 'st'
-    } else if (day % 10 === 2 && day !== 12) {
-        suffix = 'nd'
-    } else if (day % 10 === 3 && day !== 13) {
-        suffix = 'rd'
-    } else {
-        suffix = 'th'
-    }
+		let suffix: string
+		if (day % 10 === 1 && day !== 11) {
+			suffix = 'st'
+		} else if (day % 10 === 2 && day !== 12) {
+			suffix = 'nd'
+		} else if (day % 10 === 3 && day !== 13) {
+			suffix = 'rd'
+		} else {
+			suffix = 'th'
+		}
 
-    const month = dateObj.toLocaleDateString('en-US', { month: 'short' })
-    const year = dateObj.getFullYear()
-    return `${day}${suffix} ${month} ${year}`
-}
+		const month = dateObj.toLocaleDateString('en-US', { month: 'short' })
+		const year = dateObj.getFullYear()
+		return `${day}${suffix} ${month} ${year}`
+	}
 
-private static determineFont(answer2: string): string {
-    if (!answer2) return 'Pothana2000'
+	private static determineFont(answer2: string): string {
+		if (!answer2) return 'Pothana2000'
 
-    const end = 'A B C D E F G H I J K L M N O P Q R E S U V W X Y Z a b c d e f g h i j k l m n o p q u r s t u v q x y z'
-    const hin = 'अ आ इ ई उ ऊ ए ऐ ओ औ अं अः क ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह क़ ग़ ख़ ज़ ड़ ऋ ढ़ फ़'
-    const telu = 'మాస్టాటిట్స్ తైలేరియా బాబేసిల్ తివా (3 రోజుల సిక్నెస్) పాలు జ్వరం (కాల్షియం కోల్పోవడం) డిస్టాకిల్ ప్రత్యుత్పత్తి లేకుండుట గర్భస్రావం న్యుమోనియా జ్వరము, దగ్గు విరేచనాలు ఎరుపు మూత్రం ఇతర'
+		const end =
+			'A B C D E F G H I J K L M N O P Q R E S U V W X Y Z a b c d e f g h i j k l m n o p q u r s t u v q x y z'
+		const hin =
+			'अ आ इ ई उ ऊ ए ऐ ओ औ अं अः क ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह क़ ग़ ख़ ज़ ड़ ऋ ढ़ फ़'
+		const telu =
+			'మాస్టాటిట్స్ తైలేరియా బాబేసిల్ తివా (3 రోజుల సిక్నెస్) పాలు జ్వరం (కాల్షియం కోల్పోవడం) డిస్టాకిల్ ప్రత్యుత్పత్తి లేకుండుట గర్భస్రావం న్యుమోనియా జ్వరము, దగ్గు విరేచనాలు ఎరుపు మూత్రం ఇతర'
 
-    const words = answer2.split(' ')
-    const firstWord = words[0]
+		const words = answer2.split(' ')
+		const firstWord = words[0]
 
-    if (end.includes(answer2[0])) {
-        return 'DejaVuSans'
-    } else if (hin.includes(answer2[0])) {
-        return 'mangal'
-    } else if (telu.includes(firstWord)) {
-        return 'Pothana2000'
-    }
+		if (end.includes(answer2[0])) {
+			return 'DejaVuSans'
+		} else if (hin.includes(answer2[0])) {
+			return 'mangal'
+		} else if (telu.includes(firstWord)) {
+			return 'Pothana2000'
+		}
 
-    return 'Pothana2000'
-}
+		return 'Pothana2000'
+	}
 
 	public static async healthReportPDFData(
 		user_id: number,
@@ -2258,195 +2115,38 @@ private static determineFont(answer2: string): string {
 	}
 
 	// Breeding Report
-	// public static async breedingReportPDFData(
-	// 	user_id: number,
-	// ): Promise<BreedingReportResult> {
-	// 	const sql = `
-    //         SELECT DISTINCT
-    //             aqa.animal_number,
-    //             aqa.animal_id,
-    //             a.name as animal_name,
-    //             MAX(CASE WHEN cq.question_tag = 8 THEN aqa.answer END) as sex,
-    //             MAX(CASE WHEN cq.question_tag = 15 THEN aqa.answer END) as pregnancy_state,
-    //             MAX(CASE WHEN cq.question_tag = 23 THEN aqa.answer END) as ai_date,
-	// 			MAX(CASE WHEN cq.question_tag = 35 THEN aqa.answer END) as bull_no,
-    //             MAX(CASE WHEN cq.question_tag = 16 THEN aqa.answer END) as milking_status,
-	// 			MAX(CASE WHEN cq.question_tag = 9 THEN aqa.answer END) as dob
-    //         FROM animal_question_answers aqa
-    //         JOIN animals a ON a.id = aqa.animal_id AND a.deleted_at IS NULL
-    //         JOIN common_questions cq ON cq.id = aqa.question_id AND cq.deleted_at IS NULL
-    //         WHERE aqa.user_id = ?
-    //         AND aqa.status != 1
-    //         AND cq.question_tag IN (8, 9, 11, 15, 16, 23, 35)
-	// 		AND aqa.deleted_at IS NULL
-    //         GROUP BY aqa.animal_number, aqa.animal_id, a.name
-    //     `
-
-	// 	const animals = (await db.sequelize.query(sql, {
-	// 		replacements: [user_id],
-	// 		type: QueryTypes.SELECT,
-	// 	})) as unknown as {
-	// 		animal_number: string
-	// 		animal_id: number
-	// 		animal_name: string
-	// 		sex: string
-	// 		pregnancy_state: string
-	// 		ai_date: string
-	// 		bull_no: string
-	// 		milking_status: string
-	// 		dob: string
-	// 	}[]
-
-	// 	const motherOffspringQuery = `
-    //         SELECT 
-    //            mother_aqa.answer as mother_number,
-    //            offspring_aqa.animal_number as offspring_number,
-    //            offspring_aqa.animal_id as offspring_id,
-    //            MAX(CASE WHEN cq.question_tag = 9 THEN offspring_aqa.answer END) as offspring_dob
-    //         FROM animal_question_answers mother_aqa
-    //         JOIN animal_question_answers offspring_aqa ON offspring_aqa.animal_id = mother_aqa.animal_id
-    //         JOIN common_questions cq ON cq.id = offspring_aqa.question_id
-    //         WHERE mother_aqa.user_id = ?
-    //         AND mother_aqa.status != 1
-    //         AND offspring_aqa.status != 1
-    //         AND mother_aqa.question_id IN (SELECT id FROM common_questions WHERE question_tag = 11 AND deleted_at IS NULL)
-    //         AND cq.question_tag IN (9, 11)
-    //         AND mother_aqa.deleted_at IS NULL
-    //         AND offspring_aqa.deleted_at IS NULL
-    //         AND cq.deleted_at IS NULL
-    //         GROUP BY mother_aqa.answer, offspring_aqa.animal_number, offspring_aqa.animal_id
-    //     `
-
-	// 	const motherOffspringData = (await db.sequelize.query(
-	// 		motherOffspringQuery,
-	// 		{
-	// 			replacements: [user_id],
-	// 			type: QueryTypes.SELECT,
-	// 		},
-	// 	)) as unknown as { mother_number: string; offspring_dob: string }[]
-
-	// 	const motherOffspringMap = new Map<string, string>()
-
-	// 	for (const row of motherOffspringData) {
-	// 		if (row.mother_number && row.offspring_dob) {
-	// 			motherOffspringMap.set(row.mother_number, row.offspring_dob)
-	// 		}
-	// 	}
-
-	// 	const pregnant: Record<string, PregnantAnimal[]> = {}
-	// 	const nonPregnant: Record<string, NonPregnantAnimal[]> = {}
-
-	// 	for (const animal of animals) {
-	// 		if (!animal.sex || animal.sex.toLowerCase() === 'male') {
-	// 			continue
-	// 		}
-
-	// 		if (!animal.pregnancy_state) {
-	// 			continue
-	// 		}
-
-	// 		const pregnancyState = animal.pregnancy_state.toLowerCase()
-	// 		const aiDate = animal.ai_date
-	// 		const bullNo = animal.bull_no || 'NA'
-	// 		const milkingStatus = animal.milking_status || 'dry'
-	// 		const animalName = animal.animal_name
-
-	// 		if (pregnancyState === 'yes') {
-	// 			let monthOfPregnancy = 'NA'
-	// 			let expectedDeliveryMonth: string | null = null
-
-	// 			if (aiDate && aiDate !== 'NA') {
-	// 				try {
-	// 					const aiDateParsed = new Date(aiDate)
-	// 					const pregnancyDetectionDate = addMonths(aiDateParsed, 3)
-	// 					monthOfPregnancy = format(pregnancyDetectionDate, 'yyyy-MM-dd')
-
-	// 					const expectedDeliveryDate = addMonths(aiDateParsed, 9)
-	// 					expectedDeliveryMonth = format(expectedDeliveryDate, 'MMMM')
-	// 				} catch {
-	// 					monthOfPregnancy = 'NA'
-	// 					expectedDeliveryMonth = null
-	// 				}
-	// 			}
-
-	// 			if (!pregnant[animalName]) {
-	// 				pregnant[animalName] = []
-	// 			}
-
-	// 			pregnant[animalName].push({
-	// 				animal_num: animal.animal_number,
-	// 				date_of_pregnancy_detection: monthOfPregnancy,
-	// 				bull_no: bullNo,
-	// 				expected_month_of_delivery: expectedDeliveryMonth,
-	// 				status_milking_dry: milkingStatus,
-	// 				date_of_AI: aiDate || 'NA',
-	// 			})
-	// 		} else {
-	// 			let dateOfPregnancyDetection = 'NA'
-
-	// 			if (aiDate && aiDate !== 'NA') {
-	// 				try {
-	// 					const aiDateParsed = new Date(aiDate)
-	// 					const pregnancyDetectionDate = addMonths(aiDateParsed, 3)
-	// 					dateOfPregnancyDetection = format(
-	// 						pregnancyDetectionDate,
-	// 						'yyyy-MM-dd',
-	// 					)
-	// 				} catch {
-	// 					dateOfPregnancyDetection = 'NA'
-	// 				}
-	// 			}
-
-	// 			const lastDeliveryDate =
-	// 				motherOffspringMap.get(animal.animal_number) || 'NA'
-
-	// 			if (!nonPregnant[animalName]) {
-	// 				nonPregnant[animalName] = []
-	// 			}
-
-	// 			nonPregnant[animalName].push({
-	// 				animal_num: animal.animal_number,
-	// 				date_of_last_AI: aiDate || 'NA',
-	// 				bull_no: bullNo,
-	// 				date_of_pregnancy_detection: dateOfPregnancyDetection,
-	// 				date_of_last_delivery: lastDeliveryDate,
-	// 				status_milking_dry: milkingStatus,
-	// 			})
-	// 		}
-	// 	}
-
-	// 	return {
-	// 		pregnant,
-	// 		non_pregnant: nonPregnant,
-	// 	}
-	// }
 
 	public static async breedingReportPDFData(
-    user_id: number,
-): Promise<BreedingReportResult> {
-    const animals = await this.getAnimalData(user_id);
-    const motherOffspringMap = await this.getMotherOffspringMap(user_id);
-    
-    const { pregnant, nonPregnant } = this.categorizeAnimals(animals, motherOffspringMap);
-    
-    return {
-        pregnant,
-        non_pregnant: nonPregnant,
-    }
-}
+		user_id: number,
+	): Promise<BreedingReportResult> {
+		const animals = await this.getAnimalData(user_id)
+		const motherOffspringMap = await this.getMotherOffspringMap(user_id)
 
-private static async getAnimalData(user_id: number): Promise<{
-    animal_number: string
-    animal_id: number
-    animal_name: string
-    sex: string
-    pregnancy_state: string
-    ai_date: string
-    bull_no: string
-    milking_status: string
-    dob: string
-}[]> {
-    const sql = `
+		const { pregnant, nonPregnant } = this.categorizeAnimals(
+			animals,
+			motherOffspringMap,
+		)
+
+		return {
+			pregnant,
+			non_pregnant: nonPregnant,
+		}
+	}
+
+	private static async getAnimalData(user_id: number): Promise<
+		{
+			animal_number: string
+			animal_id: number
+			animal_name: string
+			sex: string
+			pregnancy_state: string
+			ai_date: string
+			bull_no: string
+			milking_status: string
+			dob: string
+		}[]
+	> {
+		const sql = `
         SELECT DISTINCT
             aqa.animal_number,
             aqa.animal_id,
@@ -2467,24 +2167,26 @@ private static async getAnimalData(user_id: number): Promise<{
         GROUP BY aqa.animal_number, aqa.animal_id, a.name
     `
 
-    return (await db.sequelize.query(sql, {
-        replacements: [user_id],
-        type: QueryTypes.SELECT,
-    })) as unknown as {
-        animal_number: string
-        animal_id: number
-        animal_name: string
-        sex: string
-        pregnancy_state: string
-        ai_date: string
-        bull_no: string
-        milking_status: string
-        dob: string
-    }[]
-}
+		return (await db.sequelize.query(sql, {
+			replacements: [user_id],
+			type: QueryTypes.SELECT,
+		})) as unknown as {
+			animal_number: string
+			animal_id: number
+			animal_name: string
+			sex: string
+			pregnancy_state: string
+			ai_date: string
+			bull_no: string
+			milking_status: string
+			dob: string
+		}[]
+	}
 
-private static async getMotherOffspringMap(user_id: number): Promise<Map<string, string>> {
-    const motherOffspringQuery = `
+	private static async getMotherOffspringMap(
+		user_id: number,
+	): Promise<Map<string, string>> {
+		const motherOffspringQuery = `
         SELECT 
            mother_aqa.answer as mother_number,
            offspring_aqa.animal_number as offspring_number,
@@ -2504,154 +2206,168 @@ private static async getMotherOffspringMap(user_id: number): Promise<Map<string,
         GROUP BY mother_aqa.answer, offspring_aqa.animal_number, offspring_aqa.animal_id
     `
 
-    const motherOffspringData = (await db.sequelize.query(
-        motherOffspringQuery,
-        {
-            replacements: [user_id],
-            type: QueryTypes.SELECT,
-        },
-    )) as unknown as { mother_number: string; offspring_dob: string }[]
+		const motherOffspringData = (await db.sequelize.query(
+			motherOffspringQuery,
+			{
+				replacements: [user_id],
+				type: QueryTypes.SELECT,
+			},
+		)) as unknown as { mother_number: string; offspring_dob: string }[]
 
-    const motherOffspringMap = new Map<string, string>()
-    for (const row of motherOffspringData) {
-        if (row.mother_number && row.offspring_dob) {
-            motherOffspringMap.set(row.mother_number, row.offspring_dob)
-        }
-    }
-    return motherOffspringMap
-}
+		const motherOffspringMap = new Map<string, string>()
+		for (const row of motherOffspringData) {
+			if (row.mother_number && row.offspring_dob) {
+				motherOffspringMap.set(row.mother_number, row.offspring_dob)
+			}
+		}
+		return motherOffspringMap
+	}
 
-private static categorizeAnimals(
-    animals: {
-        animal_number: string
-        animal_id: number
-        animal_name: string
-        sex: string
-        pregnancy_state: string
-        ai_date: string
-        bull_no: string
-        milking_status: string
-        dob: string
-    }[],
-    motherOffspringMap: Map<string, string>
-): { pregnant: Record<string, PregnantAnimal[]>; nonPregnant: Record<string, NonPregnantAnimal[]> } {
-    const pregnant: Record<string, PregnantAnimal[]> = {}
-    const nonPregnant: Record<string, NonPregnantAnimal[]> = {}
+	private static categorizeAnimals(
+		animals: {
+			animal_number: string
+			animal_id: number
+			animal_name: string
+			sex: string
+			pregnancy_state: string
+			ai_date: string
+			bull_no: string
+			milking_status: string
+			dob: string
+		}[],
+		motherOffspringMap: Map<string, string>,
+	): {
+		pregnant: Record<string, PregnantAnimal[]>
+		nonPregnant: Record<string, NonPregnantAnimal[]>
+	} {
+		const pregnant: Record<string, PregnantAnimal[]> = {}
+		const nonPregnant: Record<string, NonPregnantAnimal[]> = {}
 
-    for (const animal of animals) {
-        if (this.shouldSkipAnimal(animal)) {
-            continue
-        }
+		for (const animal of animals) {
+			if (this.shouldSkipAnimal(animal)) {
+				continue
+			}
 
-        const pregnancyState = animal.pregnancy_state.toLowerCase()
-        
-        if (pregnancyState === 'yes') {
-            this.processPregnantAnimal(animal, pregnant)
-        } else {
-            this.processNonPregnantAnimal(animal, motherOffspringMap, nonPregnant)
-        }
-    }
+			const pregnancyState = animal.pregnancy_state.toLowerCase()
 
-    return { pregnant, nonPregnant }
-}
+			if (pregnancyState === 'yes') {
+				this.processPregnantAnimal(animal, pregnant)
+			} else {
+				this.processNonPregnantAnimal(animal, motherOffspringMap, nonPregnant)
+			}
+		}
 
-private static shouldSkipAnimal(animal: {
-    sex: string
-    pregnancy_state: string
-}): boolean {
-    return !animal.sex || animal.sex.toLowerCase() === 'male' || !animal.pregnancy_state
-}
+		return { pregnant, nonPregnant }
+	}
 
-private static processPregnantAnimal(
-    animal: {
-        animal_number: string
-        animal_name: string
-        ai_date: string
-        bull_no: string
-        milking_status: string
-    },
-    pregnant: Record<string, PregnantAnimal[]>
-): void {
-    const { monthOfPregnancy, expectedDeliveryMonth } = this.calculatePregnancyDates(animal.ai_date)
-    
-    if (!pregnant[animal.animal_name]) {
-        pregnant[animal.animal_name] = []
-    }
+	private static shouldSkipAnimal(animal: {
+		sex: string
+		pregnancy_state: string
+	}): boolean {
+		return (
+			!animal.sex ||
+			animal.sex.toLowerCase() === 'male' ||
+			!animal.pregnancy_state
+		)
+	}
 
-    pregnant[animal.animal_name].push({
-        animal_num: animal.animal_number,
-        date_of_pregnancy_detection: monthOfPregnancy,
-        bull_no: animal.bull_no || 'NA',
-        expected_month_of_delivery: expectedDeliveryMonth,
-        status_milking_dry: animal.milking_status || 'dry',
-        date_of_AI: animal.ai_date || 'NA',
-    })
-}
+	private static processPregnantAnimal(
+		animal: {
+			animal_number: string
+			animal_name: string
+			ai_date: string
+			bull_no: string
+			milking_status: string
+		},
+		pregnant: Record<string, PregnantAnimal[]>,
+	): void {
+		const { monthOfPregnancy, expectedDeliveryMonth } =
+			this.calculatePregnancyDates(animal.ai_date)
 
-private static processNonPregnantAnimal(
-    animal: {
-        animal_number: string
-        animal_name: string
-        ai_date: string
-        bull_no: string
-        milking_status: string
-    },
-    motherOffspringMap: Map<string, string>,
-    nonPregnant: Record<string, NonPregnantAnimal[]>
-): void {
-    const dateOfPregnancyDetection = this.calculatePregnancyDetectionDate(animal.ai_date)
-    const lastDeliveryDate = motherOffspringMap.get(animal.animal_number) || 'NA'
-    
-    if (!nonPregnant[animal.animal_name]) {
-        nonPregnant[animal.animal_name] = []
-    }
+		if (!pregnant[animal.animal_name]) {
+			pregnant[animal.animal_name] = []
+		}
 
-    nonPregnant[animal.animal_name].push({
-        animal_num: animal.animal_number,
-        date_of_last_AI: animal.ai_date || 'NA',
-        bull_no: animal.bull_no || 'NA',
-        date_of_pregnancy_detection: dateOfPregnancyDetection,
-        date_of_last_delivery: lastDeliveryDate,
-        status_milking_dry: animal.milking_status || 'dry',
-    })
-}
+		pregnant[animal.animal_name].push({
+			animal_num: animal.animal_number,
+			date_of_pregnancy_detection: monthOfPregnancy,
+			bull_no: animal.bull_no || 'NA',
+			expected_month_of_delivery: expectedDeliveryMonth,
+			status_milking_dry: animal.milking_status || 'dry',
+			date_of_AI: animal.ai_date || 'NA',
+		})
+	}
 
-private static calculatePregnancyDates(aiDate: string): { monthOfPregnancy: string; expectedDeliveryMonth: string | null } {
-    let monthOfPregnancy = 'NA'
-    let expectedDeliveryMonth: string | null = null
+	private static processNonPregnantAnimal(
+		animal: {
+			animal_number: string
+			animal_name: string
+			ai_date: string
+			bull_no: string
+			milking_status: string
+		},
+		motherOffspringMap: Map<string, string>,
+		nonPregnant: Record<string, NonPregnantAnimal[]>,
+	): void {
+		const dateOfPregnancyDetection = this.calculatePregnancyDetectionDate(
+			animal.ai_date,
+		)
+		const lastDeliveryDate =
+			motherOffspringMap.get(animal.animal_number) || 'NA'
 
-    if (aiDate && aiDate !== 'NA') {
-        try {
-            const aiDateParsed = new Date(aiDate)
-            const pregnancyDetectionDate = addMonths(aiDateParsed, 3)
-            monthOfPregnancy = format(pregnancyDetectionDate, 'yyyy-MM-dd')
+		if (!nonPregnant[animal.animal_name]) {
+			nonPregnant[animal.animal_name] = []
+		}
 
-            const expectedDeliveryDate = addMonths(aiDateParsed, 9)
-            expectedDeliveryMonth = format(expectedDeliveryDate, 'MMMM')
-        } catch {
-            monthOfPregnancy = 'NA'
-            expectedDeliveryMonth = null
-        }
-    }
+		nonPregnant[animal.animal_name].push({
+			animal_num: animal.animal_number,
+			date_of_last_AI: animal.ai_date || 'NA',
+			bull_no: animal.bull_no || 'NA',
+			date_of_pregnancy_detection: dateOfPregnancyDetection,
+			date_of_last_delivery: lastDeliveryDate,
+			status_milking_dry: animal.milking_status || 'dry',
+		})
+	}
 
-    return { monthOfPregnancy, expectedDeliveryMonth }
-}
+	private static calculatePregnancyDates(aiDate: string): {
+		monthOfPregnancy: string
+		expectedDeliveryMonth: string | null
+	} {
+		let monthOfPregnancy = 'NA'
+		let expectedDeliveryMonth: string | null = null
 
-private static calculatePregnancyDetectionDate(aiDate: string): string {
-    let dateOfPregnancyDetection = 'NA'
+		if (aiDate && aiDate !== 'NA') {
+			try {
+				const aiDateParsed = new Date(aiDate)
+				const pregnancyDetectionDate = addMonths(aiDateParsed, 3)
+				monthOfPregnancy = format(pregnancyDetectionDate, 'yyyy-MM-dd')
 
-    if (aiDate && aiDate !== 'NA') {
-        try {
-            const aiDateParsed = new Date(aiDate)
-            const pregnancyDetectionDate = addMonths(aiDateParsed, 3)
-            dateOfPregnancyDetection = format(pregnancyDetectionDate, 'yyyy-MM-dd')
-        } catch {
-            dateOfPregnancyDetection = 'NA'
-        }
-    }
+				const expectedDeliveryDate = addMonths(aiDateParsed, 9)
+				expectedDeliveryMonth = format(expectedDeliveryDate, 'MMMM')
+			} catch {
+				monthOfPregnancy = 'NA'
+				expectedDeliveryMonth = null
+			}
+		}
 
-    return dateOfPregnancyDetection
-}
+		return { monthOfPregnancy, expectedDeliveryMonth }
+	}
+
+	private static calculatePregnancyDetectionDate(aiDate: string): string {
+		let dateOfPregnancyDetection = 'NA'
+
+		if (aiDate && aiDate !== 'NA') {
+			try {
+				const aiDateParsed = new Date(aiDate)
+				const pregnancyDetectionDate = addMonths(aiDateParsed, 3)
+				dateOfPregnancyDetection = format(pregnancyDetectionDate, 'yyyy-MM-dd')
+			} catch {
+				dateOfPregnancyDetection = 'NA'
+			}
+		}
+
+		return dateOfPregnancyDetection
+	}
 
 	//Animal Profile Report
 	public static async getProfileData(
@@ -3239,275 +2955,193 @@ private static calculatePregnancyDetectionDate(aiDate: string): string {
 		return 0
 	}
 
-	// private static async calculateLastLactationMilkYield(
-	// 	user_id: number,
-	// 	animal_id: number,
-	// 	animal_number: string,
-	// ): Promise<number> {
-	// 	const lHistory = (await db.AnimalQuestionAnswer.findAll({
-	// 		where: {
-	// 			user_id,
-	// 			animal_id,
-	// 			animal_number,
-	// 			status: { [Op.ne]: 1 },
-	// 			deleted_at: null,
-	// 		},
-	// 		include: [
-	// 			{
-	// 				model: db.CommonQuestions,
-	// 				as: 'AnimalQuestion',
-	// 				where: { question_tag: 16, deleted_at: null },
-	// 			},
-	// 		],
-	// 		order: [['created_at', 'ASC']],
-	// 		attributes: ['answer', 'created_at'],
-	// 	})) as unknown as {
-	// 		answer: string
-	// 		created_at: Date
-	// 	}[]
-
-	// 	if (lHistory.length <= 1) return 0
-
-	// 	const historyData: LactationHistory[] = lHistory.map((item) => ({
-	// 		lactating_status: item.answer || '',
-	// 		date: item.created_at,
-	// 		created_at: item.created_at,
-	// 	}))
-
-	// 	const result: LactationHistory[] = []
-
-	// 	// Replicate PHP logic for finding lactation cycles
-	// 	for (let i = 0; i < historyData.length; i++) {
-	// 		if (
-	// 			i < historyData.length - 1 &&
-	// 			historyData[i].lactating_status.toLowerCase() === 'yes'
-	// 		) {
-	// 			let k = i + 1
-	// 			while (
-	// 				k < historyData.length - 1 &&
-	// 				historyData[k].lactating_status.toLowerCase() !== 'no'
-	// 			) {
-	// 				k++
-	// 			}
-
-	// 			if (
-	// 				historyData[i].lactating_status !== historyData[k].lactating_status
-	// 			) {
-	// 				result.push(historyData[i], historyData[k])
-	// 			}
-	// 		}
-	// 	}
-
-	// 	const lactatingCycles = this.getCountLactationCycle(result)
-
-	// 	if (lactatingCycles.length > 0) {
-	// 		let startDate = ''
-	// 		let endDate = ''
-	// 		let cycleCount = lactatingCycles.length
-
-	// 		for (const cycle of result) {
-	// 			if (cycle.lactating_status.toLowerCase() === 'yes') {
-	// 				startDate = cycle.date as string
-	// 			} else if (cycle.lactating_status.toLowerCase() === 'no') {
-	// 				endDate = cycle.date as string
-	// 			}
-
-	// 			if (startDate && endDate) {
-	// 				if (cycleCount === 1) {
-	// 					const dates = this.generateDates(
-	// 						new Date(startDate),
-	// 						new Date(endDate),
-	// 					)
-
-	// 					if (dates.length > 0) {
-	// 						const milkResult = (await db.DailyMilkRecord.findOne({
-	// 							where: {
-	// 								user_id,
-	// 								animal_number,
-	// 								animal_id,
-	// 								record_date: { [Op.in]: dates },
-	// 								deleted_at: null,
-	// 							},
-	// 							attributes: [
-	// 								[
-	// 									db.sequelize.fn(
-	// 										'SUM',
-	// 										db.sequelize.literal(
-	// 											'morning_milk_in_litres + evening_milk_in_litres',
-	// 										),
-	// 									),
-	// 									'total_milk',
-	// 								],
-	// 							],
-	// 							raw: true,
-	// 						})) as unknown as { total_milk: string }
-
-	// 						return Number.parseFloat(milkResult?.total_milk || '0')
-	// 					}
-	// 				}
-	// 				startDate = ''
-	// 				endDate = ''
-	// 				cycleCount--
-	// 			}
-	// 		}
-	// 	}
-
-	// 	return 0
-	// }
-
 	private static async calculateLastLactationMilkYield(
-    user_id: number,
-    animal_id: number,
-    animal_number: string,
-): Promise<number> {
-    const lHistory = await this.getLactationHistory(user_id, animal_id, animal_number);
-    
-    if (lHistory.length <= 1) return 0;
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<number> {
+		const lHistory = await this.getLactationHistory(
+			user_id,
+			animal_id,
+			animal_number,
+		)
 
-    const historyData: LactationHistory[] = lHistory.map((item) => ({
-        lactating_status: item.answer || '',
-        date: item.created_at,
-        created_at: item.created_at,
-    }))
+		if (lHistory.length <= 1) return 0
 
-    const lactationCycles = this.findLactationCycles(historyData);
-    const lactatingCycles = this.getCountLactationCycle(lactationCycles);
+		const historyData: LactationHistory[] = lHistory.map((item) => ({
+			lactating_status: item.answer || '',
+			date: item.created_at,
+			created_at: item.created_at,
+		}))
 
-    if (lactatingCycles.length > 0) {
-        return await this.calculateMilkYieldForLastCycle(user_id, animal_number, animal_id, lactationCycles);
-    }
+		const lactationCycles = this.findLactationCycles(historyData)
+		const lactatingCycles = this.getCountLactationCycle(lactationCycles)
 
-    return 0
-}
+		if (lactatingCycles.length > 0) {
+			return await this.calculateMilkYieldForLastCycle(
+				user_id,
+				animal_number,
+				animal_id,
+				lactationCycles,
+			)
+		}
 
-private static async getLactationHistory(
-    user_id: number,
-    animal_id: number,
-    animal_number: string,
-): Promise<{ answer: string; created_at: Date }[]> {
-    return (await db.AnimalQuestionAnswer.findAll({
-        where: {
-            user_id,
-            animal_id,
-            animal_number,
-            status: { [Op.ne]: 1 },
-            deleted_at: null,
-        },
-        include: [
-            {
-                model: db.CommonQuestions,
-                as: 'AnimalQuestion',
-                where: { question_tag: 16, deleted_at: null },
-            },
-        ],
-        order: [['created_at', 'ASC']],
-        attributes: ['answer', 'created_at'],
-    })) as unknown as { answer: string; created_at: Date }[];
-}
+		return 0
+	}
 
-private static findLactationCycles(historyData: LactationHistory[]): LactationHistory[] {
-    const result: LactationHistory[] = []
+	private static async getLactationHistory(
+		user_id: number,
+		animal_id: number,
+		animal_number: string,
+	): Promise<{ answer: string; created_at: Date }[]> {
+		return (await db.AnimalQuestionAnswer.findAll({
+			where: {
+				user_id,
+				animal_id,
+				animal_number,
+				status: { [Op.ne]: 1 },
+				deleted_at: null,
+			},
+			include: [
+				{
+					model: db.CommonQuestions,
+					as: 'AnimalQuestion',
+					where: { question_tag: 16, deleted_at: null },
+				},
+			],
+			order: [['created_at', 'ASC']],
+			attributes: ['answer', 'created_at'],
+		})) as unknown as { answer: string; created_at: Date }[]
+	}
 
-    for (let i = 0; i < historyData.length; i++) {
-        if (!this.isStartOfLactationCycle(historyData, i)) {
-            continue;
-        }
+	private static findLactationCycles(
+		historyData: LactationHistory[],
+	): LactationHistory[] {
+		const result: LactationHistory[] = []
 
-        const endIndex = this.findLactationEndIndex(historyData, i);
-        if (this.isValidLactationCycle(historyData, i, endIndex)) {
-            result.push(historyData[i], historyData[endIndex]);
-        }
-    }
+		for (let i = 0; i < historyData.length; i++) {
+			if (!this.isStartOfLactationCycle(historyData, i)) {
+				continue
+			}
 
-    return result;
-}
+			const endIndex = this.findLactationEndIndex(historyData, i)
+			if (this.isValidLactationCycle(historyData, i, endIndex)) {
+				result.push(historyData[i], historyData[endIndex])
+			}
+		}
 
-private static isStartOfLactationCycle(historyData: LactationHistory[], index: number): boolean {
-    return index < historyData.length - 1 &&
-        historyData[index].lactating_status.toLowerCase() === 'yes';
-}
+		return result
+	}
 
-private static findLactationEndIndex(historyData: LactationHistory[], startIndex: number): number {
-    let endIndex = startIndex + 1;
-    while (
-        endIndex < historyData.length - 1 &&
-        historyData[endIndex].lactating_status.toLowerCase() !== 'no'
-    ) {
-        endIndex++;
-    }
-    return endIndex;
-}
+	private static isStartOfLactationCycle(
+		historyData: LactationHistory[],
+		index: number,
+	): boolean {
+		return (
+			index < historyData.length - 1 &&
+			historyData[index].lactating_status.toLowerCase() === 'yes'
+		)
+	}
 
-private static isValidLactationCycle(historyData: LactationHistory[], startIndex: number, endIndex: number): boolean {
-    return historyData[startIndex].lactating_status !== historyData[endIndex].lactating_status;
-}
+	private static findLactationEndIndex(
+		historyData: LactationHistory[],
+		startIndex: number,
+	): number {
+		let endIndex = startIndex + 1
+		while (
+			endIndex < historyData.length - 1 &&
+			historyData[endIndex].lactating_status.toLowerCase() !== 'no'
+		) {
+			endIndex++
+		}
+		return endIndex
+	}
 
-private static async calculateMilkYieldForLastCycle(
-    user_id: number,
-    animal_number: string,
-    animal_id: number,
-    lactationCycles: LactationHistory[],
-): Promise<number> {
-    let startDate = '';
-    let endDate = '';
-    let cycleCount = this.getCountLactationCycle(lactationCycles).length;
+	private static isValidLactationCycle(
+		historyData: LactationHistory[],
+		startIndex: number,
+		endIndex: number,
+	): boolean {
+		return (
+			historyData[startIndex].lactating_status !==
+			historyData[endIndex].lactating_status
+		)
+	}
 
-    for (const cycle of lactationCycles) {
-        if (cycle.lactating_status.toLowerCase() === 'yes') {
-            startDate = cycle.date as string;
-        } else if (cycle.lactating_status.toLowerCase() === 'no') {
-            endDate = cycle.date as string;
-        }
+	private static async calculateMilkYieldForLastCycle(
+		user_id: number,
+		animal_number: string,
+		animal_id: number,
+		lactationCycles: LactationHistory[],
+	): Promise<number> {
+		let startDate = ''
+		let endDate = ''
+		let cycleCount = this.getCountLactationCycle(lactationCycles).length
 
-        if (startDate && endDate && cycleCount === 1) {
-            return await this.getTotalMilkYield(user_id, animal_number, animal_id, startDate, endDate);
-        }
-        
-        if (startDate && endDate) {
-            startDate = '';
-            endDate = '';
-            cycleCount--;
-        }
-    }
+		for (const cycle of lactationCycles) {
+			if (cycle.lactating_status.toLowerCase() === 'yes') {
+				startDate = cycle.date as string
+			} else if (cycle.lactating_status.toLowerCase() === 'no') {
+				endDate = cycle.date as string
+			}
 
-    return 0;
-}
+			if (startDate && endDate && cycleCount === 1) {
+				return await this.getTotalMilkYield(
+					user_id,
+					animal_number,
+					animal_id,
+					startDate,
+					endDate,
+				)
+			}
 
-private static async getTotalMilkYield(
-    user_id: number,
-    animal_number: string,
-    animal_id: number,
-    startDate: string,
-    endDate: string,
-): Promise<number> {
-    const dates = this.generateDates(new Date(startDate), new Date(endDate));
+			if (startDate && endDate) {
+				startDate = ''
+				endDate = ''
+				cycleCount--
+			}
+		}
 
-    if (dates.length === 0) {
-        return 0;
-    }
+		return 0
+	}
 
-    const milkResult = (await db.DailyMilkRecord.findOne({
-        where: {
-            user_id,
-            animal_number,
-            animal_id,
-            record_date: { [Op.in]: dates },
-            deleted_at: null,
-        },
-        attributes: [
-            [
-                db.sequelize.fn(
-                    'SUM',
-                    db.sequelize.literal('morning_milk_in_litres + evening_milk_in_litres'),
-                ),
-                'total_milk',
-            ],
-        ],
-        raw: true,
-    })) as unknown as { total_milk: string }
+	private static async getTotalMilkYield(
+		user_id: number,
+		animal_number: string,
+		animal_id: number,
+		startDate: string,
+		endDate: string,
+	): Promise<number> {
+		const dates = this.generateDates(new Date(startDate), new Date(endDate))
 
-    return Number.parseFloat(milkResult?.total_milk || '0');
-}
+		if (dates.length === 0) {
+			return 0
+		}
+
+		const milkResult = (await db.DailyMilkRecord.findOne({
+			where: {
+				user_id,
+				animal_number,
+				animal_id,
+				record_date: { [Op.in]: dates },
+				deleted_at: null,
+			},
+			attributes: [
+				[
+					db.sequelize.fn(
+						'SUM',
+						db.sequelize.literal(
+							'morning_milk_in_litres + evening_milk_in_litres',
+						),
+					),
+					'total_milk',
+				],
+			],
+			raw: true,
+		})) as unknown as { total_milk: string }
+
+		return Number.parseFloat(milkResult?.total_milk || '0')
+	}
 
 	private static getCountLactationCycle(result: LactationHistory[]): unknown[] {
 		const cycles = []
@@ -3958,168 +3592,107 @@ private static async getTotalMilkYield(
 		return breedingMap
 	}
 
-	// private static processAllDatesWithExactLogic(
-	// 	dates: string[],
-	// 	incomeMap: Map<string, IncomeExpenseRecord[]>,
-	// 	expenseMap: Map<string, IncomeExpenseRecord[]>,
-	// 	breedingMap: Map<string, BreedingRecord[]>,
-	// ): ProfitLossRowWithBreedingExpense[] {
-	// 	const resData: ProfitLossRowWithBreedingExpense[] = []
-
-	// 	for (const date of dates) {
-	// 		let profit = 0
-	// 		let loss = 0
-	// 		let totalWithoutSellingAndPurchasePrice = 0
-	// 		let totalIncomeWithoutSellingPrice = 0
-	// 		let totalExpenseWithoutPurchasePrice = 0
-	// 		let totalbreedingExpense = 0
-
-	// 		const incomeRecords = incomeMap.get(date) || []
-	// 		for (const value1 of incomeRecords) {
-	// 			try {
-	// 				const answer = JSON.parse(value1?.answer || '[]') as AnswerItem[]
-	// 				for (const value of answer) {
-	// 					const amount = value?.amount ?? 1
-
-	// 					const price = value.price * amount
-	// 					totalIncomeWithoutSellingPrice =
-	// 						totalIncomeWithoutSellingPrice + price
-	// 				}
-	// 			} catch {
-	// 				continue
-	// 			}
-	// 		}
-
-	// 		const breedingRecords = breedingMap.get(date) || []
-	// 		for (const value1 of breedingRecords) {
-	// 			const answer = Number.parseFloat(value1.answer)
-	// 			totalbreedingExpense = totalbreedingExpense + answer
-	// 		}
-
-	// 		const expenseRecords = expenseMap.get(date) || []
-	// 		for (const value3 of expenseRecords) {
-	// 			try {
-	// 				const answer = JSON.parse(value3?.answer || '[]') as AnswerItem[]
-
-	// 				for (const value of answer) {
-	// 					const amount = value?.amount ?? 1
-	// 					const price = value.price * amount
-	// 					totalExpenseWithoutPurchasePrice =
-	// 						totalExpenseWithoutPurchasePrice + price
-	// 				}
-	// 			} catch {
-	// 				continue
-	// 			}
-	// 		}
-
-	// 		totalWithoutSellingAndPurchasePrice =
-	// 			totalIncomeWithoutSellingPrice -
-	// 			(totalExpenseWithoutPurchasePrice + totalbreedingExpense)
-
-	// 		if (totalWithoutSellingAndPurchasePrice > 0) {
-	// 			profit = totalWithoutSellingAndPurchasePrice
-	// 		} else {
-	// 			loss = totalWithoutSellingAndPurchasePrice
-	// 			loss = Math.abs(loss)
-	// 		}
-
-	// 		resData.push({
-	// 			date: date,
-	// 			profitWithoutSellingAndPurchasePrice: profit.toFixed(2),
-	// 			lossWithoutSellingAndPurchasePrice: Math.floor(loss).toFixed(2),
-	// 			breedingExpense: totalbreedingExpense.toFixed(2),
-	// 		})
-	// 	}
-
-	// 	return resData
-	// }
-
 	private static processAllDatesWithExactLogic(
-    dates: string[],
-    incomeMap: Map<string, IncomeExpenseRecord[]>,
-    expenseMap: Map<string, IncomeExpenseRecord[]>,
-    breedingMap: Map<string, BreedingRecord[]>,
-): ProfitLossRowWithBreedingExpense[] {
-    const resData: ProfitLossRowWithBreedingExpense[] = []
+		dates: string[],
+		incomeMap: Map<string, IncomeExpenseRecord[]>,
+		expenseMap: Map<string, IncomeExpenseRecord[]>,
+		breedingMap: Map<string, BreedingRecord[]>,
+	): ProfitLossRowWithBreedingExpense[] {
+		const resData: ProfitLossRowWithBreedingExpense[] = []
 
-    for (const date of dates) {
-        const result = this.processSingleDate(date, incomeMap, expenseMap, breedingMap);
-        resData.push(result);
-    }
+		for (const date of dates) {
+			const result = this.processSingleDate(
+				date,
+				incomeMap,
+				expenseMap,
+				breedingMap,
+			)
+			resData.push(result)
+		}
 
-    return resData;
-}
+		return resData
+	}
 
-private static processSingleDate(
-    date: string,
-    incomeMap: Map<string, IncomeExpenseRecord[]>,
-    expenseMap: Map<string, IncomeExpenseRecord[]>,
-    breedingMap: Map<string, BreedingRecord[]>,
-): ProfitLossRowWithBreedingExpense {
-    const incomeRecords = incomeMap.get(date) || [];
-    const expenseRecords = expenseMap.get(date) || [];
-    const breedingRecords = breedingMap.get(date) || [];
+	private static processSingleDate(
+		date: string,
+		incomeMap: Map<string, IncomeExpenseRecord[]>,
+		expenseMap: Map<string, IncomeExpenseRecord[]>,
+		breedingMap: Map<string, BreedingRecord[]>,
+	): ProfitLossRowWithBreedingExpense {
+		const incomeRecords = incomeMap.get(date) || []
+		const expenseRecords = expenseMap.get(date) || []
+		const breedingRecords = breedingMap.get(date) || []
 
-    const totalIncomeWithoutSellingPrice = this.calculateTotalFromRecords(incomeRecords);
-    const totalExpenseWithoutPurchasePrice = this.calculateTotalFromRecords(expenseRecords);
-    const totalbreedingExpense = this.calculateBreedingExpense(breedingRecords);
+		const totalIncomeWithoutSellingPrice =
+			this.calculateTotalFromRecords(incomeRecords)
+		const totalExpenseWithoutPurchasePrice =
+			this.calculateTotalFromRecords(expenseRecords)
+		const totalbreedingExpense = this.calculateBreedingExpense(breedingRecords)
 
-    const totalWithoutSellingAndPurchasePrice =
-        totalIncomeWithoutSellingPrice -
-        (totalExpenseWithoutPurchasePrice + totalbreedingExpense);
+		const totalWithoutSellingAndPurchasePrice =
+			totalIncomeWithoutSellingPrice -
+			(totalExpenseWithoutPurchasePrice + totalbreedingExpense)
 
-    const { profit, loss } = this.calculateProfitLoss(totalWithoutSellingAndPurchasePrice);
+		const { profit, loss } = this.calculateProfitLoss(
+			totalWithoutSellingAndPurchasePrice,
+		)
 
-    return {
-        date: date,
-        profitWithoutSellingAndPurchasePrice: profit.toFixed(2),
-        lossWithoutSellingAndPurchasePrice: loss.toFixed(2),
-        breedingExpense: totalbreedingExpense.toFixed(2),
-    };
-}
+		return {
+			date: date,
+			profitWithoutSellingAndPurchasePrice: profit.toFixed(2),
+			lossWithoutSellingAndPurchasePrice: loss.toFixed(2),
+			breedingExpense: totalbreedingExpense.toFixed(2),
+		}
+	}
 
-private static calculateTotalFromRecords(records: IncomeExpenseRecord[]): number {
-    let total = 0;
+	private static calculateTotalFromRecords(
+		records: IncomeExpenseRecord[],
+	): number {
+		let total = 0
 
-    for (const record of records) {
-        try {
-            const answer = JSON.parse(record?.answer || '[]') as AnswerItem[];
-            for (const value of answer) {
-                const amount = value?.amount ?? 1;
-                const price = value.price * amount;
-                total += price;
-            }
-        } catch {
-            continue;
-        }
-    }
+		for (const record of records) {
+			try {
+				const answer = JSON.parse(record?.answer || '[]') as AnswerItem[]
+				for (const value of answer) {
+					const amount = value?.amount ?? 1
+					const price = value.price * amount
+					total += price
+				}
+			} catch {
+				continue
+			}
+		}
 
-    return total;
-}
+		return total
+	}
 
-private static calculateBreedingExpense(breedingRecords: BreedingRecord[]): number {
-    let total = 0;
+	private static calculateBreedingExpense(
+		breedingRecords: BreedingRecord[],
+	): number {
+		let total = 0
 
-    for (const record of breedingRecords) {
-        const answer = Number.parseFloat(record.answer);
-        total += answer;
-    }
+		for (const record of breedingRecords) {
+			const answer = Number.parseFloat(record.answer)
+			total += answer
+		}
 
-    return total;
-}
+		return total
+	}
 
-private static calculateProfitLoss(totalWithoutSellingAndPurchasePrice: number): { profit: number; loss: number } {
-    let profit = 0;
-    let loss = 0;
+	private static calculateProfitLoss(
+		totalWithoutSellingAndPurchasePrice: number,
+	): { profit: number; loss: number } {
+		let profit = 0
+		let loss = 0
 
-    if (totalWithoutSellingAndPurchasePrice > 0) {
-        profit = totalWithoutSellingAndPurchasePrice;
-    } else {
-        loss = Math.abs(totalWithoutSellingAndPurchasePrice);
-    }
+		if (totalWithoutSellingAndPurchasePrice > 0) {
+			profit = totalWithoutSellingAndPurchasePrice
+		} else {
+			loss = Math.abs(totalWithoutSellingAndPurchasePrice)
+		}
 
-    return { profit, loss };
-}
+		return { profit, loss }
+	}
 
 	private static formatDate(date: Date | string): string {
 		if (date instanceof Date) {
@@ -4214,164 +3787,57 @@ private static calculateProfitLoss(totalWithoutSellingAndPurchasePrice: number):
 		}))
 	}
 
-	// private static processAllDatesWithSellingAndPurchaseLogic(
-	// 	dates: string[],
-	// 	incomeMap: Map<string, IncomeExpenseRecord[]>,
-	// 	expenseMap: Map<string, IncomeExpenseRecord[]>,
-	// 	breedingMap: Map<string, BreedingRecord[]>,
-	// ): ProfitLossWithSellingRow[] {
-	// 	const resData: ProfitLossWithSellingRow[] = []
-
-	// 	for (const date of dates) {
-	// 		let profit = 0
-	// 		let loss = 0
-	// 		let totalWithoutSellingAndPurchasePrice = 0
-	// 		let totalIncomeWithoutSellingPrice = 0
-	// 		let totalExpenseWithoutPurchasePrice = 0
-	// 		let totalbreedingExpense = 0
-
-	// 		const incomeRecords = incomeMap.get(date) || []
-	// 		for (const value1 of incomeRecords) {
-	// 			try {
-	// 				const answer = JSON.parse(value1?.answer || '[]') as AnswerItem[]
-	// 				for (const value of answer) {
-	// 					const amount = value?.amount ?? 1
-	// 					const price = value.price * amount
-	// 					totalIncomeWithoutSellingPrice =
-	// 						totalIncomeWithoutSellingPrice + price
-	// 				}
-	// 			} catch {
-	// 				continue
-	// 			}
-	// 		}
-
-	// 		const breedingRecords = breedingMap.get(date) || []
-	// 		for (const value1 of breedingRecords) {
-	// 			const answer = Number.parseFloat(value1.answer)
-	// 			totalbreedingExpense = totalbreedingExpense + answer
-	// 		}
-
-	// 		const expenseRecords = expenseMap.get(date) || []
-	// 		for (const value3 of expenseRecords) {
-	// 			try {
-	// 				const answer = JSON.parse(value3?.answer || '[]') as AnswerItem[]
-	// 				for (const valuea of answer) {
-	// 					const amount: number = valuea.amount ?? 1
-	// 					const price = valuea.price * amount
-	// 					totalExpenseWithoutPurchasePrice =
-	// 						totalExpenseWithoutPurchasePrice + price
-	// 				}
-	// 			} catch {
-	// 				continue
-	// 			}
-	// 		}
-
-	// 		totalWithoutSellingAndPurchasePrice =
-	// 			totalIncomeWithoutSellingPrice -
-	// 			(totalExpenseWithoutPurchasePrice + totalbreedingExpense)
-
-	// 		if (totalWithoutSellingAndPurchasePrice > 0) {
-	// 			profit = totalWithoutSellingAndPurchasePrice
-	// 		} else {
-	// 			loss = totalWithoutSellingAndPurchasePrice
-	// 			loss = Math.abs(loss)
-	// 		}
-
-	// 		resData.push({
-	// 			date: date,
-	// 			profitWithSellingAndPurchasePrice: profit.toFixed(2),
-	// 			lossWithSellingAndPurchasePrice: Math.floor(loss).toFixed(2),
-	// 		})
-	// 	}
-
-	// 	return resData
-	// }
-
 	private static processAllDatesWithSellingAndPurchaseLogic(
-    dates: string[],
-    incomeMap: Map<string, IncomeExpenseRecord[]>,
-    expenseMap: Map<string, IncomeExpenseRecord[]>,
-    breedingMap: Map<string, BreedingRecord[]>,
-): ProfitLossWithSellingRow[] {
-    const resData: ProfitLossWithSellingRow[] = []
+		dates: string[],
+		incomeMap: Map<string, IncomeExpenseRecord[]>,
+		expenseMap: Map<string, IncomeExpenseRecord[]>,
+		breedingMap: Map<string, BreedingRecord[]>,
+	): ProfitLossWithSellingRow[] {
+		const resData: ProfitLossWithSellingRow[] = []
 
-    for (const date of dates) {
-        const result = this.processSingleDateWithSelling(date, incomeMap, expenseMap, breedingMap);
-        resData.push(result);
-    }
+		for (const date of dates) {
+			const result = this.processSingleDateWithSelling(
+				date,
+				incomeMap,
+				expenseMap,
+				breedingMap,
+			)
+			resData.push(result)
+		}
 
-    return resData;
-}
+		return resData
+	}
 
-private static processSingleDateWithSelling(
-    date: string,
-    incomeMap: Map<string, IncomeExpenseRecord[]>,
-    expenseMap: Map<string, IncomeExpenseRecord[]>,
-    breedingMap: Map<string, BreedingRecord[]>,
-): ProfitLossWithSellingRow {
-    const incomeRecords = incomeMap.get(date) || [];
-    const expenseRecords = expenseMap.get(date) || [];
-    const breedingRecords = breedingMap.get(date) || [];
+	private static processSingleDateWithSelling(
+		date: string,
+		incomeMap: Map<string, IncomeExpenseRecord[]>,
+		expenseMap: Map<string, IncomeExpenseRecord[]>,
+		breedingMap: Map<string, BreedingRecord[]>,
+	): ProfitLossWithSellingRow {
+		const incomeRecords = incomeMap.get(date) || []
+		const expenseRecords = expenseMap.get(date) || []
+		const breedingRecords = breedingMap.get(date) || []
 
-    const totalIncomeWithoutSellingPrice = this.calculateTotalFromRecords(incomeRecords);
-    const totalExpenseWithoutPurchasePrice = this.calculateTotalFromRecords(expenseRecords);
-    const totalbreedingExpense = this.calculateBreedingExpense(breedingRecords);
+		const totalIncomeWithoutSellingPrice =
+			this.calculateTotalFromRecords(incomeRecords)
+		const totalExpenseWithoutPurchasePrice =
+			this.calculateTotalFromRecords(expenseRecords)
+		const totalbreedingExpense = this.calculateBreedingExpense(breedingRecords)
 
-    const totalWithoutSellingAndPurchasePrice =
-        totalIncomeWithoutSellingPrice -
-        (totalExpenseWithoutPurchasePrice + totalbreedingExpense);
+		const totalWithoutSellingAndPurchasePrice =
+			totalIncomeWithoutSellingPrice -
+			(totalExpenseWithoutPurchasePrice + totalbreedingExpense)
 
-    const { profit, loss } = this.calculateProfitLoss(totalWithoutSellingAndPurchasePrice);
+		const { profit, loss } = this.calculateProfitLoss(
+			totalWithoutSellingAndPurchasePrice,
+		)
 
-    return {
-        date: date,
-        profitWithSellingAndPurchasePrice: profit.toFixed(2),
-        lossWithSellingAndPurchasePrice: Math.floor(loss).toFixed(2),
-    };
-}
-
-// private static calculateTotalFromRecords(records: IncomeExpenseRecord[]): number {
-//     let total = 0;
-
-//     for (const record of records) {
-//         try {
-//             const answer = JSON.parse(record?.answer || '[]') as AnswerItem[];
-//             for (const value of answer) {
-//                 const amount = value?.amount ?? 1;
-//                 const price = value.price * amount;
-//                 total += price;
-//             }
-//         } catch {
-//             continue;
-//         }
-//     }
-
-//     return total;
-// }
-
-// private static calculateBreedingExpense(breedingRecords: BreedingRecord[]): number {
-//     let total = 0;
-
-//     for (const record of breedingRecords) {
-//         const answer = Number.parseFloat(record.answer);
-//         total += answer;
-//     }
-
-//     return total;
-// }
-
-// private static calculateProfitLoss(totalWithoutSellingAndPurchasePrice: number): { profit: number; loss: number } {
-//     let profit = 0;
-//     let loss = 0;
-
-//     if (totalWithoutSellingAndPurchasePrice > 0) {
-//         profit = totalWithoutSellingAndPurchasePrice;
-//     } else {
-//         loss = Math.abs(totalWithoutSellingAndPurchasePrice);
-//     }
-
-//     return { profit, loss };
-// }
+		return {
+			date: date,
+			profitWithSellingAndPurchasePrice: profit.toFixed(2),
+			lossWithSellingAndPurchasePrice: Math.floor(loss).toFixed(2),
+		}
+	}
 
 	// milk production quantity graph
 	public static async milkProductionQuantityGraphData(
@@ -4601,148 +4067,16 @@ private static processSingleDateWithSelling(
 	}
 
 	// milk aggregate
-	// public static async milkAggregateAverage(
-	// 	user_id: number,
-	// 	start_date: string,
-	// 	end_date: string,
-	// ): Promise<MilkAggregateAverage> {
-	// 	const [morningRecords, eveningRecords, daysCountResult] = await Promise.all(
-	// 		[
-	// 			// Morning milk query
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT dqa.answer
-	// 				FROM daily_record_questions drq
-    //                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
-    //                 INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //                 WHERE dqa.user_id = :user_id
-    //                 AND qtm.question_tag_id = 26
-    //                 AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			    AND drq.delete_status <>1
-    //                 ORDER BY dqa.answer_date DESC
-    //             `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as { answer: string }[],
-
-	// 			// Evening milk query
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT dqa.answer
-    //                 FROM daily_record_questions drq
-    //                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
-    //                 INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //                 WHERE dqa.user_id = :user_id
-    //                 AND qtm.question_tag_id = 27
-    //                 AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			    AND drq.delete_status <>1
-    //                 ORDER BY dqa.answer_date DESC
-    //             `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as { answer: string }[],
-
-	// 			// Days count query
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT COUNT(DISTINCT DATE(answer_date)) as count
-    //                 FROM daily_record_question_answer
-    //                 WHERE user_id = :user_id
-    //                 AND DATE(answer_date) BETWEEN :start_date AND :end_date
-	// 				AND deleted_at IS NULL
-    //                 `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as { count: number }[],
-	// 		],
-	// 	)
-
-	// 	const noOfDays =
-	// 		daysCountResult[0]?.count > 0 ? daysCountResult[0].count : 1
-
-	// 	let TotalLitresInMorning = 0
-	// 	let milkProdCostMorning = 0
-	// 	// morningRecords.forEach((record: { answer: string }) => {
-	// 	for (const record of morningRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-
-	// 		if (Array.isArray(answer) && answer.length > 0) {
-	// 			const firstRecord = answer[0] as { amount: number; price: number }
-
-	// 			const amount =
-	// 				typeof firstRecord?.amount === 'number' ? firstRecord.amount : 0
-	// 			const price =
-	// 				typeof firstRecord?.price === 'number' ? firstRecord.price : 0
-
-	// 			TotalLitresInMorning += amount
-	// 			milkProdCostMorning += price * amount
-	// 		}
-	// 		// })
-	// 	}
-	// 	let TotalLitresInEvening = 0
-	// 	let milkProdCostEvening = 0
-	// 	// eveningRecords.forEach((record) => {
-	// 	for (const record of eveningRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-	// 		if (Array.isArray(answer) && answer.length > 0) {
-	// 			const firstRecord = answer[0] as { amount: number; price: number }
-
-	// 			const amount =
-	// 				typeof firstRecord?.amount === 'number' ? firstRecord.amount : 0
-	// 			const price =
-	// 				typeof firstRecord?.price === 'number' ? firstRecord.price : 0
-
-	// 			TotalLitresInEvening += amount
-	// 			milkProdCostEvening += price * amount
-	// 		}
-	// 		// })
-	// 	}
-	// 	return {
-	// 		aggregate: {
-	// 			milkProdQtyMorning: TotalLitresInMorning.toFixed(2),
-	// 			milkProdQtyEvening: TotalLitresInEvening.toFixed(2),
-	// 			milkProdQtyTotal: (TotalLitresInMorning + TotalLitresInEvening).toFixed(
-	// 				2,
-	// 			),
-	// 			milkProdCostMorning: milkProdCostMorning.toFixed(2),
-	// 			milkProdCostEvening: milkProdCostEvening.toFixed(2),
-	// 			milkProdCostTotal: (milkProdCostMorning + milkProdCostEvening).toFixed(
-	// 				2,
-	// 			),
-	// 		},
-	// 		average: {
-	// 			milkProdQtyMorning: (TotalLitresInMorning / noOfDays).toFixed(2),
-	// 			milkProdQtyEvening: (TotalLitresInEvening / noOfDays).toFixed(2),
-	// 			milkProdQtyTotal: (
-	// 				(TotalLitresInMorning + TotalLitresInEvening) /
-	// 				noOfDays
-	// 			).toFixed(2),
-	// 			milkProdCostMorning: (milkProdCostMorning / noOfDays).toFixed(2),
-	// 			milkProdCostEvening: (milkProdCostEvening / noOfDays).toFixed(2),
-	// 			milkProdCostTotal: (
-	// 				(milkProdCostMorning + milkProdCostEvening) /
-	// 				noOfDays
-	// 			).toFixed(2),
-	// 		},
-	// 	}
-	// }
-
 	public static async milkAggregateAverage(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-): Promise<MilkAggregateAverage> {
-    const [morningRecords, eveningRecords, daysCountResult] = await Promise.all(
-        [
-            // Morning milk query
-            db.sequelize.query(
-                `
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<MilkAggregateAverage> {
+		const [morningRecords, eveningRecords, daysCountResult] = await Promise.all(
+			[
+				// Morning milk query
+				db.sequelize.query(
+					`
                 SELECT dqa.answer
                 FROM daily_record_questions drq
                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
@@ -4753,15 +4087,15 @@ private static processSingleDateWithSelling(
                 AND drq.delete_status <>1
                 ORDER BY dqa.answer_date DESC
             `,
-                {
-                    replacements: { user_id, start_date, end_date },
-                    type: QueryTypes.SELECT,
-                },
-            ) as unknown as { answer: string }[],
+					{
+						replacements: { user_id, start_date, end_date },
+						type: QueryTypes.SELECT,
+					},
+				) as unknown as { answer: string }[],
 
-            // Evening milk query
-            db.sequelize.query(
-                `
+				// Evening milk query
+				db.sequelize.query(
+					`
                 SELECT dqa.answer
                 FROM daily_record_questions drq
                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
@@ -4772,562 +4106,153 @@ private static processSingleDateWithSelling(
                 AND drq.delete_status <>1
                 ORDER BY dqa.answer_date DESC
             `,
-                {
-                    replacements: { user_id, start_date, end_date },
-                    type: QueryTypes.SELECT,
-                },
-            ) as unknown as { answer: string }[],
+					{
+						replacements: { user_id, start_date, end_date },
+						type: QueryTypes.SELECT,
+					},
+				) as unknown as { answer: string }[],
 
-            // Days count query
-            db.sequelize.query(
-                `
+				// Days count query
+				db.sequelize.query(
+					`
                 SELECT COUNT(DISTINCT DATE(answer_date)) as count
                 FROM daily_record_question_answer
                 WHERE user_id = :user_id
                 AND DATE(answer_date) BETWEEN :start_date AND :end_date
                 AND deleted_at IS NULL
                 `,
-                {
-                    replacements: { user_id, start_date, end_date },
-                    type: QueryTypes.SELECT,
-                },
-            ) as unknown as { count: number }[],
-        ],
-    )
+					{
+						replacements: { user_id, start_date, end_date },
+						type: QueryTypes.SELECT,
+					},
+				) as unknown as { count: number }[],
+			],
+		)
 
-    const noOfDays = daysCountResult[0]?.count > 0 ? daysCountResult[0].count : 1
+		const noOfDays =
+			daysCountResult[0]?.count > 0 ? daysCountResult[0].count : 1
 
-    const morningData = this.processMilkRecords(morningRecords);
-    const eveningData = this.processMilkRecords(eveningRecords);
+		const morningData = this.processMilkRecords(morningRecords)
+		const eveningData = this.processMilkRecords(eveningRecords)
 
-    return this.calculateAggregateAndAverage(morningData, eveningData, noOfDays);
-}
+		return this.calculateAggregateAndAverage(morningData, eveningData, noOfDays)
+	}
 
-private static processMilkRecords(records: { answer: string }[]): { totalLitres: number; totalCost: number } {
-    let totalLitres = 0;
-    let totalCost = 0;
+	private static processMilkRecords(records: { answer: string }[]): {
+		totalLitres: number
+		totalCost: number
+	} {
+		let totalLitres = 0
+		let totalCost = 0
 
-    for (const record of records) {
-        const answer = JSON.parse(record.answer) as unknown;
+		for (const record of records) {
+			const answer = JSON.parse(record.answer) as unknown
 
-        if (Array.isArray(answer) && answer.length > 0) {
-            const firstRecord = answer[0] as { amount: number; price: number };
+			if (Array.isArray(answer) && answer.length > 0) {
+				const firstRecord = answer[0] as { amount: number; price: number }
 
-            const amount = typeof firstRecord?.amount === 'number' ? firstRecord.amount : 0;
-            const price = typeof firstRecord?.price === 'number' ? firstRecord.price : 0;
+				const amount =
+					typeof firstRecord?.amount === 'number' ? firstRecord.amount : 0
+				const price =
+					typeof firstRecord?.price === 'number' ? firstRecord.price : 0
 
-            totalLitres += amount;
-            totalCost += price * amount;
-        }
-    }
+				totalLitres += amount
+				totalCost += price * amount
+			}
+		}
 
-    return { totalLitres, totalCost };
-}
+		return { totalLitres, totalCost }
+	}
 
-private static calculateAggregateAndAverage(
-    morningData: { totalLitres: number; totalCost: number },
-    eveningData: { totalLitres: number; totalCost: number },
-    noOfDays: number
-): MilkAggregateAverage {
-    const totalLitresMorning = morningData.totalLitres;
-    const totalLitresEvening = eveningData.totalLitres;
-    const totalCostMorning = morningData.totalCost;
-    const totalCostEvening = eveningData.totalCost;
+	private static calculateAggregateAndAverage(
+		morningData: { totalLitres: number; totalCost: number },
+		eveningData: { totalLitres: number; totalCost: number },
+		noOfDays: number,
+	): MilkAggregateAverage {
+		const totalLitresMorning = morningData.totalLitres
+		const totalLitresEvening = eveningData.totalLitres
+		const totalCostMorning = morningData.totalCost
+		const totalCostEvening = eveningData.totalCost
 
-    const totalLitres = totalLitresMorning + totalLitresEvening;
-    const totalCost = totalCostMorning + totalCostEvening;
+		const totalLitres = totalLitresMorning + totalLitresEvening
+		const totalCost = totalCostMorning + totalCostEvening
 
-    return {
-        aggregate: {
-            milkProdQtyMorning: totalLitresMorning.toFixed(2),
-            milkProdQtyEvening: totalLitresEvening.toFixed(2),
-            milkProdQtyTotal: totalLitres.toFixed(2),
-            milkProdCostMorning: totalCostMorning.toFixed(2),
-            milkProdCostEvening: totalCostEvening.toFixed(2),
-            milkProdCostTotal: totalCost.toFixed(2),
-        },
-        average: {
-            milkProdQtyMorning: (totalLitresMorning / noOfDays).toFixed(2),
-            milkProdQtyEvening: (totalLitresEvening / noOfDays).toFixed(2),
-            milkProdQtyTotal: (totalLitres / noOfDays).toFixed(2),
-            milkProdCostMorning: (totalCostMorning / noOfDays).toFixed(2),
-            milkProdCostEvening: (totalCostEvening / noOfDays).toFixed(2),
-            milkProdCostTotal: (totalCost / noOfDays).toFixed(2),
-        },
-    };
-}
-
-	// public static async expenseAggregateAverage(
-	// 	user_id: number,
-	// 	start_date: string,
-	// 	end_date: string,
-	// ): Promise<ExpenseAggregateAverage> {
-	// 	const [
-	// 		expenseRecords,
-	// 		greenFeedRecords,
-	// 		cattleFeedRecords,
-	// 		dryFeedRecords,
-	// 		supplementRecords,
-	// 		daysCountResult,
-	// 	] = await Promise.all([
-	// 		// Expense query (question_tag_id = 1)
-	// 		db.sequelize.query(
-	// 			`
-    //             SELECT dqa.answer
-    //             FROM daily_record_questions drq
-    //             INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
-    //             INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //             WHERE dqa.user_id = :user_id
-    //             AND qtm.question_tag_id = 1
-    //             AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			AND drq.delete_status <>1
-    //             ORDER BY dqa.answer_date DESC
-    //         `,
-	// 			{
-	// 				replacements: { user_id, start_date, end_date },
-	// 				type: QueryTypes.SELECT,
-	// 			},
-	// 		) as unknown as { answer: string }[],
-
-	// 		// Green Feed query (question_tag_id = 30)
-	// 		db.sequelize.query(
-	// 			`
-    //               SELECT dqa.answer
-    //             FROM daily_record_questions drq
-    //             INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
-    //             INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //             WHERE dqa.user_id = :user_id
-    //             AND qtm.question_tag_id = 30
-    //             AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			AND drq.delete_status <>1
-    //             ORDER BY dqa.answer_date DESC
-    //         `,
-	// 			{
-	// 				replacements: { user_id, start_date, end_date },
-	// 				type: QueryTypes.SELECT,
-	// 			},
-	// 		) as unknown as { answer: string }[],
-
-	// 		// Cattle Feed query (question_tag_id = 31)
-	// 		db.sequelize.query(
-	// 			`
-    //               SELECT dqa.answer
-    //             FROM daily_record_questions drq
-    //             INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
-    //             INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //             WHERE dqa.user_id = :user_id
-    //             AND qtm.question_tag_id = 31
-    //             AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			AND drq.delete_status <>1
-    //             ORDER BY dqa.answer_date DESC
-    //         `,
-	// 			{
-	// 				replacements: { user_id, start_date, end_date },
-	// 				type: QueryTypes.SELECT,
-	// 			},
-	// 		) as unknown as { answer: string }[],
-
-	// 		// Dry Feed query (question_tag_id = 32)
-	// 		db.sequelize.query(
-	// 			`
-    //              SELECT dqa.answer
-    //             FROM daily_record_questions drq
-    //             INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
-    //             INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //             WHERE dqa.user_id = :user_id
-    //             AND qtm.question_tag_id = 32
-    //             AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			AND drq.delete_status <>1
-    //             ORDER BY dqa.answer_date DESC
-    //         `,
-	// 			{
-	// 				replacements: { user_id, start_date, end_date },
-	// 				type: QueryTypes.SELECT,
-	// 			},
-	// 		) as unknown as { answer: string }[],
-
-	// 		// Supplement query (question_tag_id = 33)
-	// 		db.sequelize.query(
-	// 			`
-    //             SELECT dqa.answer
-    //             FROM daily_record_questions drq
-    //             INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
-    //             INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //             WHERE dqa.user_id = :user_id
-    //             AND qtm.question_tag_id = 33
-    //             AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			AND drq.delete_status <>1
-    //             ORDER BY dqa.answer_date DESC
-    //         `,
-	// 			{
-	// 				replacements: { user_id, start_date, end_date },
-	// 				type: QueryTypes.SELECT,
-	// 			},
-	// 		) as unknown as { answer: string }[],
-
-	// 		// Days count query
-	// 		db.sequelize.query(
-	// 			`
-    //             SELECT COUNT(DISTINCT DATE(answer_date)) as count
-    //             FROM daily_record_question_answer
-    //             WHERE user_id = :user_id
-    //             AND DATE(answer_date) BETWEEN :start_date AND :end_date
-	// 			AND deleted_at IS NULL
-    //         `,
-	// 			{
-	// 				replacements: { user_id, start_date, end_date },
-	// 				type: QueryTypes.SELECT,
-	// 			},
-	// 		) as unknown as { count: number }[],
-	// 	])
-
-	// 	const noOfDays =
-	// 		daysCountResult[0]?.count > 0 ? daysCountResult[0].count : 1
-
-	// 	// Process expense records
-	// 	let totalExpense = 0
-	// 	// expenseRecords.forEach((record) => {
-	// 	for (const record of expenseRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach(
-	// 			// 	(item: { amount: number | string; price: number | string }) => {
-	// 			for (const item of answer as {
-	// 				amount: number | string
-	// 				price: number | string
-	// 			}[]) {
-	// 				const rawAmount = item?.amount
-	// 				const rawPrice = item?.price
-
-	// 				// const amount =
-	// 				// 	typeof rawAmount === 'number'
-	// 				// 		? rawAmount
-	// 				// 		: typeof rawAmount === 'string'
-	// 				// 			? Number.parseFloat(rawAmount) || 1
-	// 				// 			: 1
-
-	// 				let amount: number
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-
-	// 				// const price =
-	// 				// 	typeof rawPrice === 'number'
-	// 				// 		? rawPrice
-	// 				// 		: typeof rawPrice === 'string'
-	// 				// 			? Number.parseFloat(rawPrice) || 0
-	// 				// 			: 0
-
-	// 				let price: number
-	// 				if (typeof rawPrice === 'number') {
-	// 					price = rawPrice
-	// 				} else if (typeof rawPrice === 'string') {
-	// 					price = Number.parseFloat(rawPrice) || 0
-	// 				} else {
-	// 					price = 0
-	// 				}
-
-	// 				totalExpense += price * amount
-	// 				// },
-	// 				// )
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process green feed records
-	// 	let totalGreenFeed = 0
-	// 	let greenFeedQty = 0
-	// 	// greenFeedRecords.forEach((record) => {
-	// 	for (const record of greenFeedRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach(
-	// 			// 	(item: { amount: string | number; price: string | number }) => {
-	// 			for (const item of answer as Array<{
-	// 				amount: string | number
-	// 				price: string | number
-	// 			}>) {
-	// 				const rawAmount = item?.amount
-	// 				const rawPrice = item?.price
-
-	// 				let amount: number
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-
-	// 				let price: number
-	// 				if (typeof rawPrice === 'number') {
-	// 					price = rawPrice
-	// 				} else if (typeof rawPrice === 'string') {
-	// 					price = Number.parseFloat(rawPrice) || 0
-	// 				} else {
-	// 					price = 0
-	// 				}
-
-	// 				totalGreenFeed += price * amount
-	// 				greenFeedQty += amount
-	// 				// },
-	// 				// )
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process cattle feed records
-	// 	let totalCattleFeed = 0
-	// 	let cattleFeedQty = 0
-	// 	// cattleFeedRecords.forEach((record) => {
-	// 	for (const record of cattleFeedRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach(
-	// 			// 	(item: { amount: string | number; price: string | number }) => {
-	// 			for (const item of answer as Array<{
-	// 				amount: string | number
-	// 				price: string | number
-	// 			}>) {
-	// 				const rawAmount = item?.amount
-	// 				const rawPrice = item?.price
-
-	// 				// const amount =
-	// 				// 	typeof rawAmount === 'number'
-	// 				// 		? rawAmount
-	// 				// 		: typeof rawAmount === 'string'
-	// 				// 			? Number.parseFloat(rawAmount) || 1
-	// 				// 			: 1
-
-	// 				let amount: number
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-
-	// 				// const price =
-	// 				// 	typeof rawPrice === 'number'
-	// 				// 		? rawPrice
-	// 				// 		: typeof rawPrice === 'string'
-	// 				// 			? Number.parseFloat(rawPrice) || 0
-	// 				// 			: 0
-
-	// 				let price: number
-	// 				if (typeof rawPrice === 'number') {
-	// 					price = rawPrice
-	// 				} else if (typeof rawPrice === 'string') {
-	// 					price = Number.parseFloat(rawPrice) || 0
-	// 				} else {
-	// 					price = 0
-	// 				}
-
-	// 				totalCattleFeed += price * amount
-	// 				cattleFeedQty += amount
-	// 				// },
-	// 				// )
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process dry feed records
-	// 	let totalDryFeed = 0
-	// 	let dryFeedQty = 0
-	// 	// dryFeedRecords.forEach((record) => {
-	// 	for (const record of dryFeedRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach(
-	// 			// 	(item: { amount: string | number; price: string | number }) => {
-	// 			for (const item of answer) {
-	// 				const feedItem = item as FeedItem
-	// 				const rawAmount = feedItem?.amount
-	// 				const rawPrice = feedItem?.price
-
-	// 				// const amount =
-	// 				// 	typeof rawAmount === 'number'
-	// 				// 		? rawAmount
-	// 				// 		: typeof rawAmount === 'string'
-	// 				// 			? Number.parseFloat(rawAmount) || 1
-	// 				// 			: 1
-	// 				// const price =
-	// 				// 	typeof rawPrice === 'number'
-	// 				// 		? rawPrice
-	// 				// 		: typeof rawPrice === 'string'
-	// 				// 			? Number.parseFloat(rawPrice) || 0
-	// 				// 			: 0
-
-	// 				let amount: number
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-
-	// 				let price: number
-	// 				if (typeof rawPrice === 'number') {
-	// 					price = rawPrice
-	// 				} else if (typeof rawPrice === 'string') {
-	// 					price = Number.parseFloat(rawPrice) || 0
-	// 				} else {
-	// 					price = 0
-	// 				}
-	// 				totalDryFeed += price * amount
-	// 				dryFeedQty += amount
-	// 				// },
-	// 				// )
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process supplement records
-	// 	let totalSupplement = 0
-	// 	let supplementQty = 0
-	// 	// supplementRecords.forEach((record) => {
-	// 	for (const record of supplementRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach(
-	// 			// 	(item: { amount: string | number; price: string | number }) => {
-	// 			for (const item of answer) {
-	// 				const feedItem = item as FeedItem
-	// 				const rawAmount = feedItem?.amount
-	// 				const rawPrice = feedItem?.price
-
-	// 				// const amount =
-	// 				// 	typeof rawAmount === 'number'
-	// 				// 		? rawAmount
-	// 				// 		: typeof rawAmount === 'string'
-	// 				// 			? Number.parseFloat(rawAmount) || 1
-	// 				// 			: 1
-	// 				// const price =
-	// 				// 	typeof rawPrice === 'number'
-	// 				// 		? rawPrice
-	// 				// 		: typeof rawPrice === 'string'
-	// 				// 			? Number.parseFloat(rawPrice) || 0
-	// 				// 			: 0
-
-	// 				let amount: number
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-
-	// 				let price: number
-	// 				if (typeof rawPrice === 'number') {
-	// 					price = rawPrice
-	// 				} else if (typeof rawPrice === 'string') {
-	// 					price = Number.parseFloat(rawPrice) || 0
-	// 				} else {
-	// 					price = 0
-	// 				}
-	// 				totalSupplement += price * amount
-	// 				supplementQty += amount
-	// 				// },
-	// 				// )
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-	// 	const otherExpense =
-	// 		totalExpense -
-	// 		(totalGreenFeed + totalCattleFeed + totalDryFeed + totalSupplement)
-
-	// 	return {
-	// 		aggregate: {
-	// 			greenFeedQty: greenFeedQty.toFixed(2),
-	// 			dryFeedQty: dryFeedQty.toFixed(2),
-	// 			cattleFeedQty: cattleFeedQty.toFixed(2),
-	// 			supplementQty: supplementQty.toFixed(2),
-	// 			greenFeedCost: totalGreenFeed.toFixed(2),
-	// 			dryFeedCost: totalDryFeed.toFixed(2),
-	// 			cattleFeedCost: totalCattleFeed.toFixed(2),
-	// 			supplementCost: totalSupplement.toFixed(2),
-	// 			otherExpense: otherExpense.toFixed(2),
-	// 			totalExpense: totalExpense.toFixed(2),
-	// 		},
-	// 		average: {
-	// 			greenFeedQty: (greenFeedQty / noOfDays).toFixed(2),
-	// 			dryFeedQty: (dryFeedQty / noOfDays).toFixed(2),
-	// 			cattleFeedQty: (cattleFeedQty / noOfDays).toFixed(2),
-	// 			supplementQty: (supplementQty / noOfDays).toFixed(2),
-	// 			greenFeedCost: (totalGreenFeed / noOfDays).toFixed(2),
-	// 			dryFeedCost: (totalDryFeed / noOfDays).toFixed(2),
-	// 			cattleFeedCost: (totalCattleFeed / noOfDays).toFixed(2),
-	// 			supplementCost: (totalSupplement / noOfDays).toFixed(2),
-	// 			otherExpense: (otherExpense / noOfDays).toFixed(2),
-	// 			totalExpense: (totalExpense / noOfDays).toFixed(2),
-	// 		},
-	// 	}
-	// }
+		return {
+			aggregate: {
+				milkProdQtyMorning: totalLitresMorning.toFixed(2),
+				milkProdQtyEvening: totalLitresEvening.toFixed(2),
+				milkProdQtyTotal: totalLitres.toFixed(2),
+				milkProdCostMorning: totalCostMorning.toFixed(2),
+				milkProdCostEvening: totalCostEvening.toFixed(2),
+				milkProdCostTotal: totalCost.toFixed(2),
+			},
+			average: {
+				milkProdQtyMorning: (totalLitresMorning / noOfDays).toFixed(2),
+				milkProdQtyEvening: (totalLitresEvening / noOfDays).toFixed(2),
+				milkProdQtyTotal: (totalLitres / noOfDays).toFixed(2),
+				milkProdCostMorning: (totalCostMorning / noOfDays).toFixed(2),
+				milkProdCostEvening: (totalCostEvening / noOfDays).toFixed(2),
+				milkProdCostTotal: (totalCost / noOfDays).toFixed(2),
+			},
+		}
+	}
 
 	public static async expenseAggregateAverage(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-): Promise<ExpenseAggregateAverage> {
-    const [
-        expenseRecords,
-        greenFeedRecords,
-        cattleFeedRecords,
-        dryFeedRecords,
-        supplementRecords,
-        daysCountResult,
-    ] = await Promise.all([
-        this.executeExpenseQuery(user_id, start_date, end_date, 1),
-        this.executeExpenseQuery(user_id, start_date, end_date, 30),
-        this.executeExpenseQuery(user_id, start_date, end_date, 31),
-        this.executeExpenseQuery(user_id, start_date, end_date, 32),
-        this.executeExpenseQuery(user_id, start_date, end_date, 33),
-        this.executeDaysCountQuery(user_id, start_date, end_date),
-    ])
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<ExpenseAggregateAverage> {
+		const [
+			expenseRecords,
+			greenFeedRecords,
+			cattleFeedRecords,
+			dryFeedRecords,
+			supplementRecords,
+			daysCountResult,
+		] = await Promise.all([
+			this.executeExpenseQuery(user_id, start_date, end_date, 1),
+			this.executeExpenseQuery(user_id, start_date, end_date, 30),
+			this.executeExpenseQuery(user_id, start_date, end_date, 31),
+			this.executeExpenseQuery(user_id, start_date, end_date, 32),
+			this.executeExpenseQuery(user_id, start_date, end_date, 33),
+			this.executeDaysCountQuery(user_id, start_date, end_date),
+		])
 
-    const noOfDays = daysCountResult[0]?.count > 0 ? daysCountResult[0].count : 1
+		const noOfDays =
+			daysCountResult[0]?.count > 0 ? daysCountResult[0].count : 1
 
-    const expenseData = this.processExpenseRecords(expenseRecords);
-    const greenFeedData = this.processFeedRecords(greenFeedRecords);
-    const cattleFeedData = this.processFeedRecords(cattleFeedRecords);
-    const dryFeedData = this.processFeedRecords(dryFeedRecords);
-    const supplementData = this.processFeedRecords(supplementRecords);
+		const expenseData = this.processExpenseRecords(expenseRecords)
+		const greenFeedData = this.processFeedRecords(greenFeedRecords)
+		const cattleFeedData = this.processFeedRecords(cattleFeedRecords)
+		const dryFeedData = this.processFeedRecords(dryFeedRecords)
+		const supplementData = this.processFeedRecords(supplementRecords)
 
-    const otherExpense =
-        expenseData.totalCost -
-        (greenFeedData.totalCost + cattleFeedData.totalCost + dryFeedData.totalCost + supplementData.totalCost)
+		const otherExpense =
+			expenseData.totalCost -
+			(greenFeedData.totalCost +
+				cattleFeedData.totalCost +
+				dryFeedData.totalCost +
+				supplementData.totalCost)
 
-    return this.calculateExpenseAggregateAndAverage(
-        greenFeedData,
-        dryFeedData,
-        cattleFeedData,
-        supplementData,
-        expenseData.totalCost,
-        otherExpense,
-        noOfDays
-    );
-}
+		return this.calculateExpenseAggregateAndAverage(
+			greenFeedData,
+			dryFeedData,
+			cattleFeedData,
+			supplementData,
+			expenseData.totalCost,
+			otherExpense,
+			noOfDays,
+		)
+	}
 
-private static executeExpenseQuery(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-    questionTagId: number
-): Promise<{ answer: string }[]> {
-    return db.sequelize.query(
-        `
+	private static executeExpenseQuery(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+		questionTagId: number,
+	): Promise<{ answer: string }[]> {
+		return db.sequelize.query(
+			`
         SELECT dqa.answer
         FROM daily_record_questions drq
         INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL 
@@ -5338,261 +4263,157 @@ private static executeExpenseQuery(
         AND drq.delete_status <>1
         ORDER BY dqa.answer_date DESC
     `,
-        {
-            replacements: { user_id, start_date, end_date, questionTagId },
-            type: QueryTypes.SELECT,
-        },
-    ) as unknown as Promise<{ answer: string }[]>;
-}
+			{
+				replacements: { user_id, start_date, end_date, questionTagId },
+				type: QueryTypes.SELECT,
+			},
+		) as unknown as Promise<{ answer: string }[]>
+	}
 
-private static executeDaysCountQuery(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-): Promise<{ count: number }[]> {
-    return db.sequelize.query(
-        `
+	private static executeDaysCountQuery(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<{ count: number }[]> {
+		return db.sequelize.query(
+			`
         SELECT COUNT(DISTINCT DATE(answer_date)) as count
         FROM daily_record_question_answer
         WHERE user_id = :user_id
         AND DATE(answer_date) BETWEEN :start_date AND :end_date
         AND deleted_at IS NULL
     `,
-        {
-            replacements: { user_id, start_date, end_date },
-            type: QueryTypes.SELECT,
-        },
-    ) as unknown as Promise<{ count: number }[]>;
-}
+			{
+				replacements: { user_id, start_date, end_date },
+				type: QueryTypes.SELECT,
+			},
+		) as unknown as Promise<{ count: number }[]>
+	}
 
-private static processExpenseRecords(records: { answer: string }[]): { totalCost: number } {
-    let totalCost = 0;
+	private static processExpenseRecords(records: { answer: string }[]): {
+		totalCost: number
+	} {
+		let totalCost = 0
 
-    for (const record of records) {
-        const answer = JSON.parse(record.answer) as unknown;
-        if (Array.isArray(answer)) {
-            for (const item of answer as { amount: number | string; price: number | string }[]) {
-                const amount = this.parseNumber(item?.amount, 1);
-                const price = this.parseNumber(item?.price, 0);
-                totalCost += price * amount;
-            }
-        }
-    }
+		for (const record of records) {
+			const answer = JSON.parse(record.answer) as unknown
+			if (Array.isArray(answer)) {
+				for (const item of answer as {
+					amount: number | string
+					price: number | string
+				}[]) {
+					const amount = this.parseNumber(item?.amount, 1)
+					const price = this.parseNumber(item?.price, 0)
+					totalCost += price * amount
+				}
+			}
+		}
 
-    return { totalCost };
-}
+		return { totalCost }
+	}
 
-private static processFeedRecords(records: { answer: string }[]): { totalCost: number; totalQty: number } {
-    let totalCost = 0;
-    let totalQty = 0;
+	private static processFeedRecords(records: { answer: string }[]): {
+		totalCost: number
+		totalQty: number
+	} {
+		let totalCost = 0
+		let totalQty = 0
 
-    for (const record of records) {
-        const answer = JSON.parse(record.answer) as unknown;
-        if (Array.isArray(answer)) {
-            for (const item of answer as { amount: number | string; price: number | string }[]) {
-                const amount = this.parseNumber(item?.amount, 1);
-                const price = this.parseNumber(item?.price, 0);
-                totalCost += price * amount;
-                totalQty += amount;
-            }
-        }
-    }
+		for (const record of records) {
+			const answer = JSON.parse(record.answer) as unknown
+			if (Array.isArray(answer)) {
+				for (const item of answer as {
+					amount: number | string
+					price: number | string
+				}[]) {
+					const amount = this.parseNumber(item?.amount, 1)
+					const price = this.parseNumber(item?.price, 0)
+					totalCost += price * amount
+					totalQty += amount
+				}
+			}
+		}
 
-    return { totalCost, totalQty };
-}
+		return { totalCost, totalQty }
+	}
 
-private static parseNumber(value: number | string | undefined, defaultValue: number): number {
-    if (typeof value === 'number') {
-        return value;
-    } else if (typeof value === 'string') {
-        return Number.parseFloat(value) || defaultValue;
-    } else {
-        return defaultValue;
-    }
-}
+	private static parseNumber(
+		value: number | string | undefined,
+		defaultValue: number,
+	): number {
+		if (typeof value === 'number') {
+			return value
+		} else if (typeof value === 'string') {
+			return Number.parseFloat(value) || defaultValue
+		} else {
+			return defaultValue
+		}
+	}
 
-private static calculateExpenseAggregateAndAverage(
-    greenFeedData: { totalCost: number; totalQty: number },
-    dryFeedData: { totalCost: number; totalQty: number },
-    cattleFeedData: { totalCost: number; totalQty: number },
-    supplementData: { totalCost: number; totalQty: number },
-    totalExpense: number,
-    otherExpense: number,
-    noOfDays: number
-): ExpenseAggregateAverage {
-    return {
-        aggregate: {
-            greenFeedQty: greenFeedData.totalQty.toFixed(2),
-            dryFeedQty: dryFeedData.totalQty.toFixed(2),
-            cattleFeedQty: cattleFeedData.totalQty.toFixed(2),
-            supplementQty: supplementData.totalQty.toFixed(2),
-            greenFeedCost: greenFeedData.totalCost.toFixed(2),
-            dryFeedCost: dryFeedData.totalCost.toFixed(2),
-            cattleFeedCost: cattleFeedData.totalCost.toFixed(2),
-            supplementCost: supplementData.totalCost.toFixed(2),
-            otherExpense: otherExpense.toFixed(2),
-            totalExpense: totalExpense.toFixed(2),
-        },
-        average: {
-            greenFeedQty: (greenFeedData.totalQty / noOfDays).toFixed(2),
-            dryFeedQty: (dryFeedData.totalQty / noOfDays).toFixed(2),
-            cattleFeedQty: (cattleFeedData.totalQty / noOfDays).toFixed(2),
-            supplementQty: (supplementData.totalQty / noOfDays).toFixed(2),
-            greenFeedCost: (greenFeedData.totalCost / noOfDays).toFixed(2),
-            dryFeedCost: (dryFeedData.totalCost / noOfDays).toFixed(2),
-            cattleFeedCost: (cattleFeedData.totalCost / noOfDays).toFixed(2),
-            supplementCost: (supplementData.totalCost / noOfDays).toFixed(2),
-            otherExpense: (otherExpense / noOfDays).toFixed(2),
-            totalExpense: (totalExpense / noOfDays).toFixed(2),
-        },
-    };
-}
-
-	// public static async incomeExpenseOnSalePurchaseAnimal(
-	// 	user_id: number,
-	// 	start_date: string,
-	// 	end_date: string,
-	// ): Promise<IncomeExpenseOnSalePurchaseAnimal> {
-	// 	const [purchaseRecords, saleRecords] = await Promise.all([
-	// 		// Purchase animals query (question_tag_id = 22)
-	// 		db.sequelize.query(
-	// 			`
-    //             SELECT dqa.answer
-    //             FROM daily_record_questions drq
-    //             INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
-    //             INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //             WHERE dqa.user_id = :user_id
-    //             AND qtm.question_tag_id = 22
-    //             AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			AND drq.delete_status <> 1
-    //             ORDER BY dqa.answer_date DESC
-    //         `,
-	// 			{
-	// 				replacements: { user_id, start_date, end_date },
-	// 				type: QueryTypes.SELECT,
-	// 			},
-	// 		) as unknown as { answer: string }[],
-
-	// 		// Sale animals query (question_tag_id = 28)
-	// 		db.sequelize.query(
-	// 			`
-    //             SELECT dqa.answer
-    //             FROM daily_record_questions drq
-    //             INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
-    //             INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //             WHERE dqa.user_id = :user_id
-    //             AND qtm.question_tag_id = 28
-    //             AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 			AND drq.delete_status <> 1
-    //             AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-    //             ORDER BY dqa.answer_date DESC
-    //         `,
-	// 			{
-	// 				replacements: { user_id, start_date, end_date },
-	// 				type: QueryTypes.SELECT,
-	// 			},
-	// 		) as unknown as { answer: string }[],
-	// 	])
-	// 	// Process purchase records
-	// 	let expenseForPurchaseAnimals = 0
-	// 	// purchaseRecords.forEach((record) => {
-	// 	for (const record of purchaseRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach((item: { amount: string | number }) => {
-	// 			for (const item of answer as { amount: string | number }[]) {
-	// 				const rawAmount = item?.amount
-
-	// 				// const amount =
-	// 				// 	typeof rawAmount === 'number'
-	// 				// 		? rawAmount
-	// 				// 		: typeof rawAmount === 'string'
-	// 				// 			? Number.parseFloat(rawAmount) || 1
-	// 				// 			: 1
-
-	// 				let amount: number
-
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-	// 				expenseForPurchaseAnimals += amount
-	// 				// })
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process sale records
-	// 	let incomeForSaleAnimals = 0
-	// 	// saleRecords.forEach((record) => {
-	// 	for (const record of saleRecords) {
-	// 		const answer = JSON.parse(record.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach((item: { amount: string | number }) => {
-	// 			for (const item of answer as { amount: string | number }[]) {
-	// 				const rawAmount = item?.amount
-
-	// 				// const amount =
-	// 				// 	typeof rawAmount === 'number'
-	// 				// 		? rawAmount
-	// 				// 		: typeof rawAmount === 'string'
-	// 				// 			? Number.parseFloat(rawAmount) || 1
-	// 				// 			: 1
-
-	// 				// Extract nested ternary into independent statement
-	// 				let amount: number
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-
-	// 				incomeForSaleAnimals += amount
-	// 				// })
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	return {
-	// 		income_for_sale_animals: incomeForSaleAnimals.toFixed(2),
-	// 		expense_for_purchase_animals: expenseForPurchaseAnimals.toFixed(2),
-	// 	}
-	// }
+	private static calculateExpenseAggregateAndAverage(
+		greenFeedData: { totalCost: number; totalQty: number },
+		dryFeedData: { totalCost: number; totalQty: number },
+		cattleFeedData: { totalCost: number; totalQty: number },
+		supplementData: { totalCost: number; totalQty: number },
+		totalExpense: number,
+		otherExpense: number,
+		noOfDays: number,
+	): ExpenseAggregateAverage {
+		return {
+			aggregate: {
+				greenFeedQty: greenFeedData.totalQty.toFixed(2),
+				dryFeedQty: dryFeedData.totalQty.toFixed(2),
+				cattleFeedQty: cattleFeedData.totalQty.toFixed(2),
+				supplementQty: supplementData.totalQty.toFixed(2),
+				greenFeedCost: greenFeedData.totalCost.toFixed(2),
+				dryFeedCost: dryFeedData.totalCost.toFixed(2),
+				cattleFeedCost: cattleFeedData.totalCost.toFixed(2),
+				supplementCost: supplementData.totalCost.toFixed(2),
+				otherExpense: otherExpense.toFixed(2),
+				totalExpense: totalExpense.toFixed(2),
+			},
+			average: {
+				greenFeedQty: (greenFeedData.totalQty / noOfDays).toFixed(2),
+				dryFeedQty: (dryFeedData.totalQty / noOfDays).toFixed(2),
+				cattleFeedQty: (cattleFeedData.totalQty / noOfDays).toFixed(2),
+				supplementQty: (supplementData.totalQty / noOfDays).toFixed(2),
+				greenFeedCost: (greenFeedData.totalCost / noOfDays).toFixed(2),
+				dryFeedCost: (dryFeedData.totalCost / noOfDays).toFixed(2),
+				cattleFeedCost: (cattleFeedData.totalCost / noOfDays).toFixed(2),
+				supplementCost: (supplementData.totalCost / noOfDays).toFixed(2),
+				otherExpense: (otherExpense / noOfDays).toFixed(2),
+				totalExpense: (totalExpense / noOfDays).toFixed(2),
+			},
+		}
+	}
 
 	public static async incomeExpenseOnSalePurchaseAnimal(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-): Promise<IncomeExpenseOnSalePurchaseAnimal> {
-    const [purchaseRecords, saleRecords] = await Promise.all([
-        this.executeAnimalQuery(user_id, start_date, end_date, 22),
-        this.executeAnimalQuery(user_id, start_date, end_date, 28),
-    ])
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<IncomeExpenseOnSalePurchaseAnimal> {
+		const [purchaseRecords, saleRecords] = await Promise.all([
+			this.executeAnimalQuery(user_id, start_date, end_date, 22),
+			this.executeAnimalQuery(user_id, start_date, end_date, 28),
+		])
 
-    const expenseForPurchaseAnimals = this.processAnimalRecords(purchaseRecords);
-    const incomeForSaleAnimals = this.processAnimalRecords(saleRecords);
+		const expenseForPurchaseAnimals = this.processAnimalRecords(purchaseRecords)
+		const incomeForSaleAnimals = this.processAnimalRecords(saleRecords)
 
-    return {
-        income_for_sale_animals: incomeForSaleAnimals.toFixed(2),
-        expense_for_purchase_animals: expenseForPurchaseAnimals.toFixed(2),
-    }
-}
+		return {
+			income_for_sale_animals: incomeForSaleAnimals.toFixed(2),
+			expense_for_purchase_animals: expenseForPurchaseAnimals.toFixed(2),
+		}
+	}
 
-private static executeAnimalQuery(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-    questionTagId: number
-): Promise<{ answer: string }[]> {
-    return db.sequelize.query(
-        `
+	private static executeAnimalQuery(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+		questionTagId: number,
+	): Promise<{ answer: string }[]> {
+		return db.sequelize.query(
+			`
         SELECT dqa.answer
         FROM daily_record_questions drq
         INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
@@ -5603,38 +4424,38 @@ private static executeAnimalQuery(
         AND drq.delete_status <> 1
         ORDER BY dqa.answer_date DESC
     `,
-        {
-            replacements: { user_id, start_date, end_date, questionTagId },
-            type: QueryTypes.SELECT,
-        },
-    ) as unknown as Promise<{ answer: string }[]>;
-}
+			{
+				replacements: { user_id, start_date, end_date, questionTagId },
+				type: QueryTypes.SELECT,
+			},
+		) as unknown as Promise<{ answer: string }[]>
+	}
 
-private static processAnimalRecords(records: { answer: string }[]): number {
-    let total = 0;
+	private static processAnimalRecords(records: { answer: string }[]): number {
+		let total = 0
 
-    for (const record of records) {
-        const answer = JSON.parse(record.answer) as unknown;
-        if (Array.isArray(answer)) {
-            for (const item of answer as { amount: string | number }[]) {
-                const amount = this.parseAmount(item?.amount);
-                total += amount;
-            }
-        }
-    }
+		for (const record of records) {
+			const answer = JSON.parse(record.answer) as unknown
+			if (Array.isArray(answer)) {
+				for (const item of answer as { amount: string | number }[]) {
+					const amount = this.parseAmount(item?.amount)
+					total += amount
+				}
+			}
+		}
 
-    return total;
-}
+		return total
+	}
 
-private static parseAmount(rawAmount: string | number | undefined): number {
-    if (typeof rawAmount === 'number') {
-        return rawAmount;
-    } else if (typeof rawAmount === 'string') {
-        return Number.parseFloat(rawAmount) || 1;
-    } else {
-        return 1;
-    }
-}
+	private static parseAmount(rawAmount: string | number | undefined): number {
+		if (typeof rawAmount === 'number') {
+			return rawAmount
+		} else if (typeof rawAmount === 'string') {
+			return Number.parseFloat(rawAmount) || 1
+		} else {
+			return 1
+		}
+	}
 
 	// Get milk average aggregate record
 	public static async getMilkAverageAggregateRecord(
@@ -5763,529 +4584,68 @@ private static parseAmount(rawAmount: string | number | undefined): number {
 	}
 
 	// Aggregate and average for income
-	// public static async incomeAggregateAverage(
-	// 	user_id: number,
-	// 	start_date: string,
-	// 	end_date: string,
-	// ): Promise<IncomeAggregateAverageResult> {
-	// 	// Execute all queries in parallel for better performance
-	// 	const [morning, evening, manure, selling, income, daysCount] =
-	// 		await Promise.all([
-	// 			// Morning milk query (question_tag_id = 26)
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT drq.question, dqa.answer, dqa.answer_date, dqa.daily_record_question_id
-    //                 FROM daily_record_questions drq
-    //                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
-    //                 INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //                 WHERE dqa.user_id = :user_id
-    //                 AND qtm.question_tag_id = 26
-    //                 AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 				AND drq.delete_status <> 1
-    //                 ORDER BY dqa.answer_date DESC
-    //                 `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as Promise<
-	// 				{
-	// 					question: string
-	// 					answer: string
-	// 					answer_date: string
-	// 					daily_record_question_id: number
-	// 				}[]
-	// 			>,
-
-	// 			// Evening milk query (question_tag_id = 27)
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT drq.question, dqa.answer, dqa.answer_date, dqa.daily_record_question_id
-    //                 FROM daily_record_questions drq
-    //                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
-    //                 INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //                 WHERE dqa.user_id = :user_id
-    //                 AND qtm.question_tag_id = 27
-    //                 AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 				AND drq.delete_status <> 1
-    //                 ORDER BY dqa.answer_date DESC
-    //                 `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as Promise<
-	// 				{
-	// 					question: string
-	// 					answer: string
-	// 					answer_date: string
-	// 					daily_record_question_id: number
-	// 				}[]
-	// 			>,
-
-	// 			// Manure production query (question_tag_id = 29)
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT drq.question, dqa.answer, dqa.answer_date, dqa.daily_record_question_id, qt.name
-    //                 FROM daily_record_questions drq
-    //                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
-    //                 INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //                 INNER JOIN question_tags qt ON qt.id = qtm.question_tag_id AND qt.deleted_at IS NULL
-    //                 WHERE dqa.user_id = :user_id
-    //                 AND qtm.question_tag_id = 29
-    //                 AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 				AND drq.delete_status <> 1
-    //                 ORDER BY dqa.answer_date DESC
-    //                 `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as Promise<
-	// 				{
-	// 					question: string
-	// 					answer: string
-	// 					answer_date: string
-	// 					daily_record_question_id: number
-	// 					name: string
-	// 				}[]
-	// 			>,
-
-	// 			// Selling price query (question_tag_id = 28) with DISTINCT
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT DISTINCT(dqa.daily_record_question_id), drq.question, dqa.answer, dqa.answer_date
-    //                 FROM daily_record_questions drq
-    //                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
-    //                 INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //                 WHERE dqa.user_id = :user_id
-    //                 AND qtm.question_tag_id = 28
-    //                 AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 				AND drq.delete_status <> 1
-    //                 ORDER BY dqa.answer_date DESC
-    //                 `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as Promise<
-	// 				{
-	// 					daily_record_question_id: number
-	// 					question: string
-	// 					answer: string
-	// 					answer_date: string
-	// 				}[]
-	// 			>,
-
-	// 			// Income query (question_tag_id = 2) with DISTINCT
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT DISTINCT(dqa.daily_record_question_id), drq.question, dqa.answer, dqa.answer_date
-    //                 FROM daily_record_questions drq
-    //                 INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
-    //                 INNER JOIN question_tag_mapping qtm ON qtm.question_id = drq.id AND qtm.deleted_at IS NULL
-    //                 WHERE dqa.user_id = :user_id
-    //                 AND qtm.question_tag_id = 2
-    //                 AND DATE(dqa.answer_date) BETWEEN :start_date AND :end_date
-	// 				AND drq.delete_status <> 1
-    //                 ORDER BY dqa.answer_date DESC
-    //                 `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as Promise<
-	// 				{
-	// 					daily_record_question_id: number
-	// 					question: string
-	// 					answer: string
-	// 					answer_date: string
-	// 				}[]
-	// 			>,
-
-	// 			// Days count query - COUNT DISTINCT answer_date
-	// 			db.sequelize.query(
-	// 				`
-    //                 SELECT COUNT(DISTINCT(DATE(answer_date))) as count
-    //                 FROM daily_record_question_answer
-    //                 WHERE user_id = :user_id
-    //                 AND DATE(answer_date) BETWEEN :start_date AND :end_date
-	// 				AND deleted_at IS NULL
-    //                 `,
-	// 				{
-	// 					replacements: { user_id, start_date, end_date },
-	// 					type: QueryTypes.SELECT,
-	// 				},
-	// 			) as unknown as Promise<{ count: number }[]>,
-	// 		])
-
-	// 	// Initialize variables
-	// 	let TotalLitresInMorning = 0
-	// 	let TotalLitresInEvening = 0
-	// 	let milkProdCostMorning = 0
-	// 	let milkProdCostEvening = 0
-	// 	let totalmanureProduction = 0
-	// 	let totalmanureProductionPrice = 0
-	// 	let totalsellingPrice = 0
-	// 	let totalIncome = 0
-
-	// 	// Process morning milk data
-	// 	// morning.forEach((value) => {
-	// 	for (const value of morning) {
-	// 		const answer = JSON.parse(value.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			const firstItem = answer[0] as {
-	// 				amount?: string | number
-	// 				price?: string | number
-	// 			}
-	// 			// const amount =
-	// 			// 	typeof firstItem?.amount === 'number'
-	// 			// 		? firstItem.amount
-	// 			// 		: typeof firstItem?.amount === 'string'
-	// 			// 			? Number.parseFloat(firstItem.amount) || 0
-	// 			// 			: 0
-	// 			// const price =
-	// 			// 	typeof firstItem?.price === 'number'
-	// 			// 		? firstItem.price
-	// 			// 		: typeof firstItem?.price === 'string'
-	// 			// 			? Number.parseFloat(firstItem.price) || 0
-	// 			// 			: 0
-
-	// 			let amount: number
-	// 			if (typeof firstItem?.amount === 'number') {
-	// 				amount = firstItem.amount
-	// 			} else if (typeof firstItem?.amount === 'string') {
-	// 				amount = Number.parseFloat(firstItem.amount) || 0
-	// 			} else {
-	// 				amount = 0
-	// 			}
-
-	// 			let price: number
-	// 			if (typeof firstItem?.price === 'number') {
-	// 				price = firstItem.price
-	// 			} else if (typeof firstItem?.price === 'string') {
-	// 				price = Number.parseFloat(firstItem.price) || 0
-	// 			} else {
-	// 				price = 0
-	// 			}
-
-	// 			TotalLitresInMorning += amount
-	// 			milkProdCostMorning += price * amount
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process evening milk data
-	// 	// evening.forEach((value) => {
-	// 	for (const value of evening) {
-	// 		const answer = JSON.parse(value.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			const firstItem = answer[0] as {
-	// 				amount?: string | number
-	// 				price?: string | number
-	// 			}
-	// 			// const amount =
-	// 			// 	typeof firstItem?.amount === 'number'
-	// 			// 		? firstItem.amount
-	// 			// 		: typeof firstItem?.amount === 'string'
-	// 			// 			? Number.parseFloat(firstItem.amount) || 0
-	// 			// 			: 0
-	// 			// const price =
-	// 			// 	typeof firstItem?.price === 'number'
-	// 			// 		? firstItem.price
-	// 			// 		: typeof firstItem?.price === 'string'
-	// 			// 			? Number.parseFloat(firstItem.price) || 0
-	// 			// 			: 0
-
-	// 			let amount: number
-	// 			if (typeof firstItem?.amount === 'number') {
-	// 				amount = firstItem.amount
-	// 			} else if (typeof firstItem?.amount === 'string') {
-	// 				amount = Number.parseFloat(firstItem.amount) || 0
-	// 			} else {
-	// 				amount = 0
-	// 			}
-
-	// 			// Extract price calculation
-	// 			let price: number
-	// 			if (typeof firstItem?.price === 'number') {
-	// 				price = firstItem.price
-	// 			} else if (typeof firstItem?.price === 'string') {
-	// 				price = Number.parseFloat(firstItem.price) || 0
-	// 			} else {
-	// 				price = 0
-	// 			}
-
-	// 			TotalLitresInEvening += amount
-	// 			milkProdCostEvening += price * amount
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process manure production data
-	// 	// manure.forEach((value) => {
-	// 	for (const value of manure) {
-	// 		const answer = JSON.parse(value.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			const firstItem = answer[0] as {
-	// 				amount?: string | number
-	// 				price?: string | number
-	// 			}
-	// 			// const amount =
-	// 			// 	typeof firstItem?.amount === 'number'
-	// 			// 		? firstItem.amount
-	// 			// 		: typeof firstItem?.amount === 'string'
-	// 			// 			? Number.parseFloat(firstItem.amount) || 0
-	// 			// 			: 0
-	// 			// const price =
-	// 			// 	typeof firstItem?.price === 'number'
-	// 			// 		? firstItem.price
-	// 			// 		: typeof firstItem?.price === 'string'
-	// 			// 			? Number.parseFloat(firstItem.price) || 0
-	// 			// 			: 0
-
-	// 			let amount: number
-	// 			if (typeof firstItem?.amount === 'number') {
-	// 				amount = firstItem.amount
-	// 			} else if (typeof firstItem?.amount === 'string') {
-	// 				amount = Number.parseFloat(firstItem.amount) || 0
-	// 			} else {
-	// 				amount = 0
-	// 			}
-
-	// 			// Extract price calculation
-	// 			let price: number
-	// 			if (typeof firstItem?.price === 'number') {
-	// 				price = firstItem.price
-	// 			} else if (typeof firstItem?.price === 'string') {
-	// 				price = Number.parseFloat(firstItem.price) || 0
-	// 			} else {
-	// 				price = 0
-	// 			}
-
-	// 			totalmanureProduction += amount
-	// 			totalmanureProductionPrice += price * amount
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process selling price data
-	// 	// selling.forEach((value) => {
-	// 	for (const value of selling) {
-	// 		const answer = JSON.parse(value.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach(
-	// 			// 	(item: { price?: string | number; amount?: string | number }) => {
-	// 			for (const item of answer as Array<{
-	// 				price?: string | number
-	// 				amount?: string | number
-	// 			}>) {
-	// 				const rawAmount = item?.amount
-	// 				const rawPrice = item?.price
-
-	// 				// const amount =
-	// 				// 	typeof rawAmount === 'number'
-	// 				// 		? rawAmount
-	// 				// 		: typeof rawAmount === 'string'
-	// 				// 			? Number.parseFloat(rawAmount) || 1
-	// 				// 			: 1
-	// 				// const price =
-	// 				// 	typeof rawPrice === 'number'
-	// 				// 		? rawPrice
-	// 				// 		: typeof rawPrice === 'string'
-	// 				// 			? Number.parseFloat(rawPrice) || 0
-	// 				// 			: 0
-
-	// 				let amount: number
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-
-	// 				// Extract nested ternary for price
-	// 				let price: number
-	// 				if (typeof rawPrice === 'number') {
-	// 					price = rawPrice
-	// 				} else if (typeof rawPrice === 'string') {
-	// 					price = Number.parseFloat(rawPrice) || 0
-	// 				} else {
-	// 					price = 0
-	// 				}
-	// 				totalsellingPrice += price * amount
-	// 				// },
-	// 				// )
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Process income data
-	// 	// income.forEach((value) => {
-	// 	for (const value of income) {
-	// 		const answer = JSON.parse(value.answer) as unknown
-	// 		if (Array.isArray(answer)) {
-	// 			// answer.forEach(
-	// 			// 	(item: { price?: string | number; amount?: string | number }) => {
-	// 			for (const item of answer as Array<{
-	// 				price?: string | number
-	// 				amount?: string | number
-	// 			}>) {
-	// 				const rawAmount = item?.amount
-	// 				const rawPrice = item?.price
-
-	// 				// const amount =
-	// 				// 	typeof rawAmount === 'number'
-	// 				// 		? rawAmount
-	// 				// 		: typeof rawAmount === 'string'
-	// 				// 			? Number.parseFloat(rawAmount) || 1
-	// 				// 			: 1
-	// 				// const price =
-	// 				// 	typeof rawPrice === 'number'
-	// 				// 		? rawPrice
-	// 				// 		: typeof rawPrice === 'string'
-	// 				// 			? Number.parseFloat(rawPrice) || 0
-	// 				// 			: 0
-
-	// 				// Extract nested ternary for price
-	// 				let amount: number
-	// 				if (typeof rawAmount === 'number') {
-	// 					amount = rawAmount
-	// 				} else if (typeof rawAmount === 'string') {
-	// 					amount = Number.parseFloat(rawAmount) || 1
-	// 				} else {
-	// 					amount = 1
-	// 				}
-
-	// 				// Extract nested ternary for price
-	// 				let price: number
-	// 				if (typeof rawPrice === 'number') {
-	// 					price = rawPrice
-	// 				} else if (typeof rawPrice === 'string') {
-	// 					price = Number.parseFloat(rawPrice) || 0
-	// 				} else {
-	// 					price = 0
-	// 				}
-
-	// 				totalIncome += price * amount
-	// 				// },
-	// 				// )
-	// 			}
-	// 		}
-	// 		// })
-	// 	}
-
-	// 	// Calculate number of days
-	// 	const noOfDays = daysCount[0]?.count > 0 ? daysCount[0].count : 1
-
-	// 	// Calculate other income amount (exactly as in PHP)
-	// 	const OtherIncomeAmount =
-	// 		totalIncome +
-	// 		totalsellingPrice -
-	// 		(totalmanureProductionPrice +
-	// 			milkProdCostMorning +
-	// 			milkProdCostEvening +
-	// 			totalsellingPrice)
-
-	// 	// Format numbers to match PHP's number_format behavior
-	// 	const formatNumber = (num: number): string => {
-	// 		return Number.parseFloat(num.toFixed(2)).toString()
-	// 	}
-
-	// 	const aggregate = {
-	// 		milkProdQtyMorning: formatNumber(TotalLitresInMorning),
-	// 		milkProdQtyEvening: formatNumber(TotalLitresInEvening),
-	// 		milkProdQtyTotal: formatNumber(
-	// 			TotalLitresInMorning + TotalLitresInEvening,
-	// 		),
-	// 		milkProdCostMorning: formatNumber(milkProdCostMorning),
-	// 		milkProdCostEvening: formatNumber(milkProdCostEvening),
-	// 		milkProdCostTotal: formatNumber(
-	// 			milkProdCostMorning + milkProdCostEvening,
-	// 		),
-	// 		manureProductionQuantity: formatNumber(totalmanureProduction),
-	// 		manureProductionAmount: formatNumber(totalmanureProductionPrice),
-	// 		sellingPriceAmount: formatNumber(totalsellingPrice),
-	// 		OtherIncomeAmount: formatNumber(OtherIncomeAmount),
-	// 	}
-
-	// 	const average = {
-	// 		milkProdQtyMorning: formatNumber(TotalLitresInMorning / noOfDays),
-	// 		milkProdQtyEvening: formatNumber(TotalLitresInEvening / noOfDays),
-	// 		milkProdQtyTotal: formatNumber(
-	// 			(TotalLitresInMorning + TotalLitresInEvening) / noOfDays,
-	// 		),
-	// 		milkProdCostMorning: formatNumber(milkProdCostMorning / noOfDays),
-	// 		milkProdCostEvening: formatNumber(milkProdCostEvening / noOfDays),
-	// 		milkProdCostTotal: formatNumber(
-	// 			(milkProdCostMorning + milkProdCostEvening) / noOfDays,
-	// 		),
-	// 		manureProductionQuantity: formatNumber(totalmanureProduction / noOfDays),
-	// 		manureProductionAmount: formatNumber(
-	// 			totalmanureProductionPrice / noOfDays,
-	// 		),
-	// 		sellingPriceAmount: formatNumber(totalsellingPrice / noOfDays),
-	// 		OtherIncomeAmount: formatNumber(OtherIncomeAmount / noOfDays),
-	// 	}
-
-	// 	return { aggregate, average }
-	// }
-
 	public static async incomeAggregateAverage(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-): Promise<IncomeAggregateAverageResult> {
-    const [morning, evening, manure, selling, income, daysCount] =
-        await Promise.all([
-            this.executeIncomeQuery(user_id, start_date, end_date, 26),
-            this.executeIncomeQuery(user_id, start_date, end_date, 27),
-            this.executeManureQuery(user_id, start_date, end_date),
-            this.executeIncomeQuery(user_id, start_date, end_date, 28, true),
-            this.executeIncomeQuery(user_id, start_date, end_date, 2, true),
-            this.executeDaysCountQuery(user_id, start_date, end_date),
-        ])
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<IncomeAggregateAverageResult> {
+		const [morning, evening, manure, selling, income, daysCount] =
+			await Promise.all([
+				this.executeIncomeQuery(user_id, start_date, end_date, 26),
+				this.executeIncomeQuery(user_id, start_date, end_date, 27),
+				this.executeManureQuery(user_id, start_date, end_date),
+				this.executeIncomeQuery(user_id, start_date, end_date, 28, true),
+				this.executeIncomeQuery(user_id, start_date, end_date, 2, true),
+				this.executeDaysCountQuery(user_id, start_date, end_date),
+			])
 
-    const morningData = this.processMilksRecords(morning);
-    const eveningData = this.processMilksRecords(evening);
-    const manureData = this.processMilksRecords(manure);
-    const sellingData = this.processIncomeRecords(selling);
-    const incomeData = this.processIncomeRecords(income);
+		const morningData = this.processMilksRecords(morning)
+		const eveningData = this.processMilksRecords(evening)
+		const manureData = this.processMilksRecords(manure)
+		const sellingData = this.processIncomeRecords(selling)
+		const incomeData = this.processIncomeRecords(income)
 
-    const noOfDays = daysCount[0]?.count > 0 ? daysCount[0].count : 1
+		const noOfDays = daysCount[0]?.count > 0 ? daysCount[0].count : 1
 
-    const OtherIncomeAmount =
-        incomeData.totalCost +
-        sellingData.totalCost -
-        (manureData.totalCost +
-            morningData.totalCost +
-            eveningData.totalCost +
-            sellingData.totalCost)
+		const OtherIncomeAmount =
+			incomeData.totalCost +
+			sellingData.totalCost -
+			(manureData.totalCost +
+				morningData.totalCost +
+				eveningData.totalCost +
+				sellingData.totalCost)
 
-    return this.calculateIncomeAggregateAndAverage(
-        morningData,
-        eveningData,
-        manureData,
-        sellingData,
-        incomeData.totalCost,
-        OtherIncomeAmount,
-        noOfDays
-    );
-}
+		return this.calculateIncomeAggregateAndAverage(
+			morningData,
+			eveningData,
+			manureData,
+			sellingData,
+			incomeData.totalCost,
+			OtherIncomeAmount,
+			noOfDays,
+		)
+	}
 
-private static executeIncomeQuery(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-    questionTagId: number,
-    distinct: boolean = false
-): Promise<{ question: string; answer: string; answer_date: string; daily_record_question_id: number }[]> {
-    const distinctClause = distinct ? 'DISTINCT(dqa.daily_record_question_id),' : '';
-    
-    return db.sequelize.query(
-        `
+	private static executeIncomeQuery(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+		questionTagId: number,
+		distinct: boolean = false,
+	): Promise<
+		{
+			question: string
+			answer: string
+			answer_date: string
+			daily_record_question_id: number
+		}[]
+	> {
+		const distinctClause = distinct
+			? 'DISTINCT(dqa.daily_record_question_id),'
+			: ''
+
+		return db.sequelize.query(
+			`
         SELECT ${distinctClause} drq.question, dqa.answer, dqa.answer_date, dqa.daily_record_question_id
         FROM daily_record_questions drq
         INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
@@ -6296,20 +4656,35 @@ private static executeIncomeQuery(
         AND drq.delete_status <> 1
         ORDER BY dqa.answer_date DESC
         `,
-        {
-            replacements: { user_id, start_date, end_date, questionTagId },
-            type: QueryTypes.SELECT,
-        },
-    ) as unknown as Promise<{ question: string; answer: string; answer_date: string; daily_record_question_id: number }[]>;
-}
+			{
+				replacements: { user_id, start_date, end_date, questionTagId },
+				type: QueryTypes.SELECT,
+			},
+		) as unknown as Promise<
+			{
+				question: string
+				answer: string
+				answer_date: string
+				daily_record_question_id: number
+			}[]
+		>
+	}
 
-private static executeManureQuery(
-    user_id: number,
-    start_date: string,
-    end_date: string,
-): Promise<{ question: string; answer: string; answer_date: string; daily_record_question_id: number; name: string }[]> {
-    return db.sequelize.query(
-        `
+	private static executeManureQuery(
+		user_id: number,
+		start_date: string,
+		end_date: string,
+	): Promise<
+		{
+			question: string
+			answer: string
+			answer_date: string
+			daily_record_question_id: number
+			name: string
+		}[]
+	> {
+		return db.sequelize.query(
+			`
         SELECT drq.question, dqa.answer, dqa.answer_date, dqa.daily_record_question_id, qt.name
         FROM daily_record_questions drq
         INNER JOIN daily_record_question_answer dqa ON dqa.daily_record_question_id = drq.id AND dqa.deleted_at IS NULL
@@ -6321,120 +4696,109 @@ private static executeManureQuery(
         AND drq.delete_status <> 1
         ORDER BY dqa.answer_date DESC
         `,
-        {
-            replacements: { user_id, start_date, end_date },
-            type: QueryTypes.SELECT,
-        },
-    ) as unknown as Promise<{ question: string; answer: string; answer_date: string; daily_record_question_id: number; name: string }[]>;
-}
+			{
+				replacements: { user_id, start_date, end_date },
+				type: QueryTypes.SELECT,
+			},
+		) as unknown as Promise<
+			{
+				question: string
+				answer: string
+				answer_date: string
+				daily_record_question_id: number
+				name: string
+			}[]
+		>
+	}
 
-// private static executeDaysCountQuery(
-//     user_id: number,
-//     start_date: string,
-//     end_date: string,
-// ): Promise<{ count: number }[]> {
-//     return db.sequelize.query(
-//         `
-//         SELECT COUNT(DISTINCT(DATE(answer_date))) as count
-//         FROM daily_record_question_answer
-//         WHERE user_id = :user_id
-//         AND DATE(answer_date) BETWEEN :start_date AND :end_date
-//         AND deleted_at IS NULL
-//         `,
-//         {
-//             replacements: { user_id, start_date, end_date },
-//             type: QueryTypes.SELECT,
-//         },
-//     ) as unknown as Promise<{ count: number }[]>;
-// }
+	private static processMilksRecords(records: { answer: string }[]): {
+		totalQty: number
+		totalCost: number
+	} {
+		let totalQty = 0
+		let totalCost = 0
 
-private static processMilksRecords(records: { answer: string }[]): { totalQty: number; totalCost: number } {
-    let totalQty = 0;
-    let totalCost = 0;
+		for (const record of records) {
+			const answer = JSON.parse(record.answer) as unknown
+			if (Array.isArray(answer)) {
+				const firstItem = answer[0] as {
+					amount?: string | number
+					price?: string | number
+				}
+				const amount = this.parseNumber(firstItem?.amount, 0)
+				const price = this.parseNumber(firstItem?.price, 0)
+				totalQty += amount
+				totalCost += price * amount
+			}
+		}
 
-    for (const record of records) {
-        const answer = JSON.parse(record.answer) as unknown;
-        if (Array.isArray(answer)) {
-            const firstItem = answer[0] as { amount?: string | number; price?: string | number };
-            const amount = this.parseNumber(firstItem?.amount, 0);
-            const price = this.parseNumber(firstItem?.price, 0);
-            totalQty += amount;
-            totalCost += price * amount;
-        }
-    }
+		return { totalQty, totalCost }
+	}
 
-    return { totalQty, totalCost };
-}
+	private static processIncomeRecords(records: { answer: string }[]): {
+		totalCost: number
+	} {
+		let totalCost = 0
 
-private static processIncomeRecords(records: { answer: string }[]): { totalCost: number } {
-    let totalCost = 0;
+		for (const record of records) {
+			const answer = JSON.parse(record.answer) as unknown
+			if (Array.isArray(answer)) {
+				for (const item of answer as {
+					amount?: string | number
+					price?: string | number
+				}[]) {
+					const amount = this.parseNumber(item?.amount, 1)
+					const price = this.parseNumber(item?.price, 0)
+					totalCost += price * amount
+				}
+			}
+		}
 
-    for (const record of records) {
-        const answer = JSON.parse(record.answer) as unknown;
-        if (Array.isArray(answer)) {
-            for (const item of answer as { amount?: string | number; price?: string | number }[]) {
-                const amount = this.parseNumber(item?.amount, 1);
-                const price = this.parseNumber(item?.price, 0);
-                totalCost += price * amount;
-            }
-        }
-    }
+		return { totalCost }
+	}
 
-    return { totalCost };
-}
+	private static calculateIncomeAggregateAndAverage(
+		morningData: { totalQty: number; totalCost: number },
+		eveningData: { totalQty: number; totalCost: number },
+		manureData: { totalQty: number; totalCost: number },
+		sellingData: { totalCost: number },
+		totalIncome: number,
+		otherIncomeAmount: number,
+		noOfDays: number,
+	): IncomeAggregateAverageResult {
+		const formatNumber = (num: number): string => {
+			return Number.parseFloat(num.toFixed(2)).toString()
+		}
 
-// private static parseNumber(value: string | number | undefined, defaultValue: number): number {
-//     if (typeof value === 'number') {
-//         return value;
-//     } else if (typeof value === 'string') {
-//         return Number.parseFloat(value) || defaultValue;
-//     } else {
-//         return defaultValue;
-//     }
-// }
+		const totalMilkQty = morningData.totalQty + eveningData.totalQty
+		const totalMilkCost = morningData.totalCost + eveningData.totalCost
 
-private static calculateIncomeAggregateAndAverage(
-    morningData: { totalQty: number; totalCost: number },
-    eveningData: { totalQty: number; totalCost: number },
-    manureData: { totalQty: number; totalCost: number },
-    sellingData: { totalCost: number },
-    totalIncome: number,
-    otherIncomeAmount: number,
-    noOfDays: number
-): IncomeAggregateAverageResult {
-    const formatNumber = (num: number): string => {
-        return Number.parseFloat(num.toFixed(2)).toString();
-    };
+		const aggregate = {
+			milkProdQtyMorning: formatNumber(morningData.totalQty),
+			milkProdQtyEvening: formatNumber(eveningData.totalQty),
+			milkProdQtyTotal: formatNumber(totalMilkQty),
+			milkProdCostMorning: formatNumber(morningData.totalCost),
+			milkProdCostEvening: formatNumber(eveningData.totalCost),
+			milkProdCostTotal: formatNumber(totalMilkCost),
+			manureProductionQuantity: formatNumber(manureData.totalQty),
+			manureProductionAmount: formatNumber(manureData.totalCost),
+			sellingPriceAmount: formatNumber(sellingData.totalCost),
+			OtherIncomeAmount: formatNumber(otherIncomeAmount),
+		}
 
-    const totalMilkQty = morningData.totalQty + eveningData.totalQty;
-    const totalMilkCost = morningData.totalCost + eveningData.totalCost;
+		const average = {
+			milkProdQtyMorning: formatNumber(morningData.totalQty / noOfDays),
+			milkProdQtyEvening: formatNumber(eveningData.totalQty / noOfDays),
+			milkProdQtyTotal: formatNumber(totalMilkQty / noOfDays),
+			milkProdCostMorning: formatNumber(morningData.totalCost / noOfDays),
+			milkProdCostEvening: formatNumber(eveningData.totalCost / noOfDays),
+			milkProdCostTotal: formatNumber(totalMilkCost / noOfDays),
+			manureProductionQuantity: formatNumber(manureData.totalQty / noOfDays),
+			manureProductionAmount: formatNumber(manureData.totalCost / noOfDays),
+			sellingPriceAmount: formatNumber(sellingData.totalCost / noOfDays),
+			OtherIncomeAmount: formatNumber(otherIncomeAmount / noOfDays),
+		}
 
-    const aggregate = {
-        milkProdQtyMorning: formatNumber(morningData.totalQty),
-        milkProdQtyEvening: formatNumber(eveningData.totalQty),
-        milkProdQtyTotal: formatNumber(totalMilkQty),
-        milkProdCostMorning: formatNumber(morningData.totalCost),
-        milkProdCostEvening: formatNumber(eveningData.totalCost),
-        milkProdCostTotal: formatNumber(totalMilkCost),
-        manureProductionQuantity: formatNumber(manureData.totalQty),
-        manureProductionAmount: formatNumber(manureData.totalCost),
-        sellingPriceAmount: formatNumber(sellingData.totalCost),
-        OtherIncomeAmount: formatNumber(otherIncomeAmount),
-    };
-
-    const average = {
-        milkProdQtyMorning: formatNumber(morningData.totalQty / noOfDays),
-        milkProdQtyEvening: formatNumber(eveningData.totalQty / noOfDays),
-        milkProdQtyTotal: formatNumber(totalMilkQty / noOfDays),
-        milkProdCostMorning: formatNumber(morningData.totalCost / noOfDays),
-        milkProdCostEvening: formatNumber(eveningData.totalCost / noOfDays),
-        milkProdCostTotal: formatNumber(totalMilkCost / noOfDays),
-        manureProductionQuantity: formatNumber(manureData.totalQty / noOfDays),
-        manureProductionAmount: formatNumber(manureData.totalCost / noOfDays),
-        sellingPriceAmount: formatNumber(sellingData.totalCost / noOfDays),
-        OtherIncomeAmount: formatNumber(otherIncomeAmount / noOfDays),
-    };
-
-    return { aggregate, average };
-}
+		return { aggregate, average }
+	}
 }
